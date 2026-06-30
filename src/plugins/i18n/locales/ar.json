@@ -1,0 +1,80 @@
+{
+  "app": {
+    "name": "منظومة التوظيف الذكية",
+    "tagline": "رحلة حياة مهنية ذكية ومستدامة"
+  },
+  "common": {
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "add": "إضافة",
+    "search": "بحث",
+    "view": "عرض",
+    "details": "التفاصيل",
+    "back": "رجوع",
+    "next": "التالي",
+    "previous": "السابق",
+    "submit": "إرسال",
+    "apply": "تقدّم الآن",
+    "all": "الكل",
+    "new": "جديد",
+    "loading": "جارٍ التحميل...",
+    "noData": "لا توجد بيانات",
+    "logout": "تسجيل الخروج",
+    "profile": "الملف الشخصي",
+    "settings": "الإعدادات",
+    "notifications": "الإشعارات"
+  },
+  "auth": {
+    "login": "تسجيل الدخول",
+    "register": "إنشاء حساب",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "confirmPassword": "تأكيد كلمة المرور",
+    "name": "الاسم",
+    "phone": "رقم الجوال",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "rememberMe": "تذكرني",
+    "noAccount": "ليس لديك حساب؟",
+    "haveAccount": "لديك حساب بالفعل؟",
+    "selectRole": "اختر دورك",
+    "loginSubtitle": "أهلاً بعودتك! سجّل الدخول لمتابعة رحلتك المهنية",
+    "registerSubtitle": "ابدأ رحلتك المهنية الذكية اليوم"
+  },
+  "roles": {
+    "seeker": "باحث عن عمل",
+    "company": "جهة توظيف",
+    "endorser": "موصٍ / زميل",
+    "admin": "مدير النظام"
+  },
+  "nav": {
+    "dashboard": "الرئيسية",
+    "profile": "ملفي الشخصي",
+    "opportunities": "الفرص",
+    "wishes": "الرغبات الواردة",
+    "applications": "طلباتي",
+    "assessments": "مركز التقييم",
+    "resumeBuilder": "منشئ السيرة الذاتية",
+    "endorsements": "التوصيات",
+    "assistant": "المساعد الذكي",
+    "candidates": "الترشيحات",
+    "createOpportunity": "نشر فرصة",
+    "analytics": "التحليلات",
+    "surveys": "الاستبيانات",
+    "team": "الفريق والصلاحيات"
+  },
+  "dashboard": {
+    "welcome": "مرحباً، {name}!",
+    "aiGreeting": "لديك {opportunities} فرص جديدة تناسبك، و{wishes} رغبة واردة، و{endorsements} توصية مستلمة.",
+    "availableOpportunities": "الفرص المتاحة",
+    "incomingWishes": "الرغبات الواردة",
+    "receivedEndorsements": "التوصيات المستلمة",
+    "completedAssessments": "الاختبارات المنجزة",
+    "recommendedOpportunities": "الفرص الموصى بها ذكياً",
+    "latestWishes": "أحدث الرغبات الواردة",
+    "recentActivity": "نشاطات حديثة",
+    "matchRate": "نسبة التطابق",
+    "viewAll": "استعراض الكل"
+  }
+}

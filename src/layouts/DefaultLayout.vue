@@ -1,0 +1,135 @@
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import { useTheme } from 'vuetify'
+import { useAuthStore } from '@/stores/AuthStore'
+import { navForRole } from './navigation'
+
+const { t, locale } = useI18n()
+const router = useRouter()
+const theme = useTheme()
+const authStore = useAuthStore()
+
+const drawer = ref(true)
+const rail = ref(false)
+
+const items = computed(() => navForRole(authStore.role))
+const user = computed(() => authStore.authUser)
+const roleLabel = computed(() => (authStore.role ? t(`roles.${authStore.role}`) : ''))
+
+const isDark = computed(() => theme.global.current.value.dark)
+
+function toggleTheme() {
+  theme.global.name.value = isDark.value ? 'lightTheme' : 'darkTheme'
+}
+
+function toggleLocale() {
+  locale.value = locale.value === 'ar' ? 'en' : 'ar'
+}
+
+function logout() {
+  authStore.clearAuthUser()
+  router.push({ name: 'login' })
+}
+
+const initials = computed(() => {
+  const name = user.value?.name ?? '?'
+  return name.trim().charAt(0).toUpperCase()
+})
+</script>
+
+<template>
+  <VNavigationDrawer
+    v-model="drawer"
+    :rail="rail"
+    :location="locale === 'ar' ? 'right' : 'left'"
+    width="270"
+    color="primary"
+    theme="darkTheme"
+  >
+    <!-- Brand -->
+    <div class="d-flex align-center pa-4 ga-3">
+      <VAvatar color="accent" size="40" rounded="lg">
+        <VIcon icon="mdi-briefcase-account" color="white" />
+      </VAvatar>
+      <div v-if="!rail" class="text-truncate">
+        <div class="text-subtitle-1 font-weight-bold text-white">
+          {{ t('app.name') }}
+        </div>
+      </div>
+    </div>
+
+    <VDivider class="opacity-25" />
+
+    <!-- Nav items -->
+    <VList nav density="comfortable" class="px-2 mt-2">
+      <VListItem
+        v-for="item in items"
+        :key="`${item.title}-${item.to}`"
+        :prepend-icon="item.icon"
+        :title="t(`nav.${item.title}`)"
+        :to="{ name: item.to }"
+        rounded="lg"
+        color="accent"
+        class="mb-1"
+      />
+    </VList>
+  </VNavigationDrawer>
+
+  <VAppBar flat border color="surface" height="68">
+    <VBtn icon variant="text" @click="rail = !rail">
+      <VIcon icon="mdi-menu" />
+    </VBtn>
+
+    <VSpacer />
+
+    <!-- Locale toggle -->
+    <VBtn variant="text" class="font-weight-bold" @click="toggleLocale">
+      {{ locale === 'ar' ? 'EN' : 'ع' }}
+    </VBtn>
+
+    <!-- Theme toggle -->
+    <VBtn icon variant="text" @click="toggleTheme">
+      <VIcon :icon="isDark ? 'mdi-weather-sunny' : 'mdi-weather-night'" />
+    </VBtn>
+
+    <!-- Notifications -->
+    <VBtn icon variant="text">
+      <VBadge color="error" dot>
+        <VIcon icon="mdi-bell-outline" />
+      </VBadge>
+    </VBtn>
+
+    <!-- User menu -->
+    <VMenu>
+      <template #activator="{ props }">
+        <VBtn v-bind="props" variant="text" class="px-2 ms-2">
+          <VAvatar color="secondary" size="36">
+            <span class="text-white font-weight-bold">{{ initials }}</span>
+          </VAvatar>
+          <div class="d-none d-sm-block text-start mx-2">
+            <div class="text-body-2 font-weight-bold">
+              {{ user?.name }}
+            </div>
+            <div class="text-caption text-medium-emphasis">
+              {{ roleLabel }}
+            </div>
+          </div>
+        </VBtn>
+      </template>
+      <VList density="compact" min-width="200">
+        <VListItem :title="t('common.profile')" prepend-icon="mdi-account-outline" :to="{ name: 'profile' }" />
+        <VListItem :title="t('common.settings')" prepend-icon="mdi-cog-outline" />
+        <VDivider />
+        <VListItem :title="t('common.logout')" prepend-icon="mdi-logout" base-color="error" @click="logout" />
+      </VList>
+    </VMenu>
+  </VAppBar>
+
+  <VMain class="bg-background">
+    <VContainer fluid class="pa-4 pa-md-6">
+      <slot />
+    </VContainer>
+  </VMain>
+</template>

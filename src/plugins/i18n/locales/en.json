@@ -1,0 +1,80 @@
+{
+  "app": {
+    "name": "Smart Recruitment System",
+    "tagline": "An intelligent, sustainable career journey"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "add": "Add",
+    "search": "Search",
+    "view": "View",
+    "details": "Details",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "apply": "Apply Now",
+    "all": "All",
+    "new": "New",
+    "loading": "Loading...",
+    "noData": "No data",
+    "logout": "Logout",
+    "profile": "Profile",
+    "settings": "Settings",
+    "notifications": "Notifications"
+  },
+  "auth": {
+    "login": "Login",
+    "register": "Create Account",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "name": "Name",
+    "phone": "Phone Number",
+    "forgotPassword": "Forgot password?",
+    "rememberMe": "Remember me",
+    "noAccount": "Don't have an account?",
+    "haveAccount": "Already have an account?",
+    "selectRole": "Select your role",
+    "loginSubtitle": "Welcome back! Sign in to continue your career journey",
+    "registerSubtitle": "Start your smart career journey today"
+  },
+  "roles": {
+    "seeker": "Job Seeker",
+    "company": "Employer",
+    "endorser": "Endorser / Colleague",
+    "admin": "System Admin"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "profile": "My Profile",
+    "opportunities": "Opportunities",
+    "wishes": "Incoming Wishes",
+    "applications": "My Applications",
+    "assessments": "Assessment Center",
+    "resumeBuilder": "Resume Builder",
+    "endorsements": "Endorsements",
+    "assistant": "AI Assistant",
+    "candidates": "Candidates",
+    "createOpportunity": "Post Opportunity",
+    "analytics": "Analytics",
+    "surveys": "Surveys",
+    "team": "Team & Permissions"
+  },
+  "dashboard": {
+    "welcome": "Welcome, {name}!",
+    "aiGreeting": "You have {opportunities} new matching opportunities, {wishes} incoming wishes, and {endorsements} received endorsements.",
+    "availableOpportunities": "Available Opportunities",
+    "incomingWishes": "Incoming Wishes",
+    "receivedEndorsements": "Received Endorsements",
+    "completedAssessments": "Completed Assessments",
+    "recommendedOpportunities": "AI-Recommended Opportunities",
+    "latestWishes": "Latest Incoming Wishes",
+    "recentActivity": "Recent Activity",
+    "matchRate": "Match Rate",
+    "viewAll": "View All"
+  }
+}

@@ -1,0 +1,50 @@
+:root {
+  --app-font: 'Tajawal', 'Segoe UI', 'Tahoma', 'Noto Sans Arabic', system-ui, sans-serif;
+}
+
+* {
+  font-family: var(--app-font);
+}
+
+html {
+  overflow-y: auto !important;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+}
+
+.v-application {
+  font-family: var(--app-font) !important;
+}
+
+// Custom scrollbar
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(26, 54, 93, 0.25);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(26, 54, 93, 0.4);
+}
+
+// Utility
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.page-card {
+  border-radius: 16px;
+}
+
+// Gradient used in auth + hero areas
+.brand-gradient {
+  background: linear-gradient(135deg, #1a365d 0%, #319795 100%);
+}

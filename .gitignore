@@ -64,6 +64,10 @@ Desktop.ini
 # ===== TypeScript =====
 *.tsbuildinfo
 
+# ===== Build artifacts from vue-tsc emit =====
+vite.config.js
+vite.config.d.ts
+
 # ===== Cache =====
 .cache/
 .eslintcache
