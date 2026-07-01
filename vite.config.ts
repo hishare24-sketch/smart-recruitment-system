@@ -4,10 +4,13 @@ import vue from '@vitejs/plugin-vue'
 import vuetify from 'vite-plugin-vuetify'
 
 // https://vite.dev/config/
-// In production (GitHub Pages project site) assets live under /smart-recruitment-system/.
-// Dev keeps the root base so localhost URLs stay clean.
+// Base path differs per deploy target:
+//  - GitHub Pages project site serves under /smart-recruitment-system/
+//  - Netlify / Vercel (and dev) serve from the root, so assets live at /
+// Netlify sets NETLIFY=true and Vercel sets VERCEL=1 during their builds.
+const isRootHost = !!process.env.NETLIFY || !!process.env.VERCEL
 export default defineConfig(({ command }) => ({
-  base: command === 'build' ? '/smart-recruitment-system/' : '/',
+  base: command === 'build' && !isRootHost ? '/smart-recruitment-system/' : '/',
   plugins: [
     vue(),
     vuetify({ autoImport: true }),
