@@ -2,24 +2,40 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import PageHeader from '@/components/shared/PageHeader.vue'
-import { mockCandidates } from '../services/mockCandidates'
+import StatCard from '@/components/shared/StatCard.vue'
 import { CANDIDATE_STATUS_META } from '../interfaces/Candidate'
 import type { CandidateStatus } from '../interfaces/Candidate'
+import { useCandidatesStore } from '@/stores/CandidatesStore'
 
 const router = useRouter()
+const store = useCandidatesStore()
+
 const search = ref('')
 const statusFilter = ref<CandidateStatus | null>(null)
+const sortBy = ref<'match' | 'recent'>('match')
 
 const statusOptions = (Object.keys(CANDIDATE_STATUS_META) as CandidateStatus[]).map(value => ({
   value,
   title: CANDIDATE_STATUS_META[value].label,
 }))
 
-const filtered = computed(() => mockCandidates.filter((c) => {
-  const matchesSearch = !search.value || c.name.includes(search.value) || c.title.includes(search.value)
-  const matchesStatus = !statusFilter.value || c.status === statusFilter.value
-  return matchesSearch && matchesStatus
-}))
+const stats = computed(() => [
+  { title: 'إجمالي الترشيحات', value: store.candidates.length, icon: 'mdi-account-group-outline', color: 'primary' },
+  { title: 'ترشيحات جديدة', value: store.newCount, icon: 'mdi-account-plus-outline', color: 'accent' },
+  { title: 'قيد المراجعة', value: store.countByStatus('reviewing'), icon: 'mdi-file-search-outline', color: 'info' },
+  { title: 'مقابلات', value: store.interviewCount, icon: 'mdi-calendar-check-outline', color: 'success' },
+])
+
+const filtered = computed(() => {
+  let list = store.candidates.filter((c) => {
+    const matchesSearch = !search.value || c.name.includes(search.value) || c.title.includes(search.value)
+      || c.skills.some(s => s.toLowerCase().includes(search.value.toLowerCase()))
+    const matchesStatus = !statusFilter.value || c.status === statusFilter.value
+    return matchesSearch && matchesStatus
+  })
+  list = [...list].sort((a, b) => (sortBy.value === 'match' ? b.matchRate - a.matchRate : b.id - a.id))
+  return list
+})
 
 function matchColor(rate: number) {
   if (rate >= 85)
@@ -36,58 +52,46 @@ function openProfile(id: number) {
 
 <template>
   <div>
-    <PageHeader
-      title="الترشيحات"
-      subtitle="المرشحون المتقدمون لفرصك مع نسب التطابق الذكي"
-      icon="mdi-account-group-outline"
-    />
+    <PageHeader title="الترشيحات" subtitle="المرشحون المتقدمون لفرصك مع نسب التطابق الذكي" icon="mdi-account-group-outline" />
+
+    <VRow class="mb-2">
+      <VCol v-for="s in stats" :key="s.title" cols="6" md="3">
+        <StatCard v-bind="s" />
+      </VCol>
+    </VRow>
 
     <VCard class="pa-4 mb-5">
       <VRow dense align="center">
-        <VCol cols="12" md="7">
-          <VTextField
-            v-model="search"
-            placeholder="ابحث باسم المرشح أو المسمى..."
-            prepend-inner-icon="mdi-magnify"
-            hide-details
-            clearable
-          />
+        <VCol cols="12" md="6">
+          <VTextField v-model="search" placeholder="ابحث بالاسم أو المسمى أو المهارة..." prepend-inner-icon="mdi-magnify" hide-details clearable />
         </VCol>
-        <VCol cols="12" md="5">
-          <VSelect
-            v-model="statusFilter"
-            :items="statusOptions"
-            placeholder="حالة الترشيح"
-            prepend-inner-icon="mdi-filter-variant"
-            hide-details
-            clearable
-          />
+        <VCol cols="6" md="3">
+          <VSelect v-model="statusFilter" :items="statusOptions" placeholder="حالة الترشيح" hide-details clearable />
+        </VCol>
+        <VCol cols="6" md="3">
+          <VSelect v-model="sortBy" :items="[{ value: 'match', title: 'الأعلى تطابقاً' }, { value: 'recent', title: 'الأحدث' }]" hide-details prepend-inner-icon="mdi-sort" />
         </VCol>
       </VRow>
     </VCard>
+
+    <div class="text-body-2 text-medium-emphasis mb-3">{{ filtered.length }} مرشح</div>
 
     <VRow>
       <VCol v-for="c in filtered" :key="c.id" cols="12" md="6">
         <VCard class="pa-4" height="100%">
           <div class="d-flex align-start justify-space-between">
-            <div class="d-flex align-center ga-3">
-              <VAvatar color="secondary" size="52">
-                <span class="text-h6 text-white font-weight-bold">{{ c.name.charAt(0) }}</span>
-              </VAvatar>
+            <div class="d-flex align-center ga-3 cursor-pointer" @click="openProfile(c.id)">
+              <VAvatar color="secondary" size="52"><span class="text-h6 text-white font-weight-bold">{{ c.name.charAt(0) }}</span></VAvatar>
               <div>
                 <div class="text-subtitle-1 font-weight-bold">{{ c.name }}</div>
-                <div class="text-body-2 text-medium-emphasis">{{ c.title }} · {{ c.location }}</div>
+                <div class="text-body-2 text-medium-emphasis">{{ c.title }} · {{ c.location }} · {{ c.level }}</div>
               </div>
             </div>
-            <VChip :color="CANDIDATE_STATUS_META[c.status].color" size="small" label>
-              {{ CANDIDATE_STATUS_META[c.status].label }}
-            </VChip>
+            <VChip :color="CANDIDATE_STATUS_META[c.status].color" size="small" label>{{ CANDIDATE_STATUS_META[c.status].label }}</VChip>
           </div>
 
           <div class="d-flex flex-wrap ga-1 my-3">
-            <VChip v-for="s in c.skills.slice(0, 4)" :key="s" size="x-small" variant="tonal" color="primary">
-              {{ s }}
-            </VChip>
+            <VChip v-for="s in c.skills.slice(0, 4)" :key="s" size="x-small" variant="tonal" color="primary">{{ s }}</VChip>
           </div>
 
           <div class="mb-3">
@@ -101,9 +105,22 @@ function openProfile(id: number) {
           <VDivider class="mb-3" />
           <div class="d-flex align-center justify-space-between">
             <span class="text-caption text-medium-emphasis">تقدّم {{ c.appliedAt }}</span>
-            <VBtn color="primary" size="small" variant="tonal" @click="openProfile(c.id)">
-              عرض الملف
-            </VBtn>
+            <div class="d-flex ga-1">
+              <VBtn v-if="c.status === 'new' || c.status === 'reviewing'" color="success" size="small" variant="tonal" prepend-icon="mdi-calendar-check-outline" @click="store.setStatus(c.id, 'interview')">
+                دعوة لمقابلة
+              </VBtn>
+              <VBtn color="primary" size="small" variant="tonal" @click="openProfile(c.id)">الملف</VBtn>
+              <VMenu>
+                <template #activator="{ props }">
+                  <VBtn v-bind="props" icon="mdi-dots-vertical" variant="text" size="small" />
+                </template>
+                <VList density="compact">
+                  <VListItem prepend-icon="mdi-file-search-outline" title="نقل لقيد المراجعة" @click="store.setStatus(c.id, 'reviewing')" />
+                  <VListItem prepend-icon="mdi-calendar-check-outline" title="دعوة لمقابلة" @click="store.setStatus(c.id, 'interview')" />
+                  <VListItem prepend-icon="mdi-close-circle-outline" title="رفض الترشيح" base-color="error" @click="store.setStatus(c.id, 'rejected')" />
+                </VList>
+              </VMenu>
+            </div>
           </div>
         </VCard>
       </VCol>

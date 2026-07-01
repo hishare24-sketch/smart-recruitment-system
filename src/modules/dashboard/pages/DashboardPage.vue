@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/AuthStore'
 import { useApplicationsStore } from '@/stores/ApplicationsStore'
 import { useSavedStore } from '@/stores/SavedStore'
 import { useWishesStore } from '@/stores/WishesStore'
+import { useCandidatesStore } from '@/stores/CandidatesStore'
 import StatCard from '@/components/shared/StatCard.vue'
 import OpportunityCard from '@/modules/opportunities/components/OpportunityCard.vue'
 import { mockOpportunities } from '@/modules/opportunities/services/mockOpportunities'
@@ -14,11 +15,13 @@ const authStore = useAuthStore()
 const applicationsStore = useApplicationsStore()
 const savedStore = useSavedStore()
 const wishesStore = useWishesStore()
+const candidatesStore = useCandidatesStore()
 
 const userName = computed(() => authStore.authUser?.name ?? '')
 const isCompany = computed(() => authStore.role === 'company')
 
 const recommended = computed(() => [...mockOpportunities].sort((a, b) => b.matchRate - a.matchRate).slice(0, 4))
+const topCandidates = computed(() => [...candidatesStore.candidates].sort((a, b) => b.matchRate - a.matchRate).slice(0, 5))
 
 const seekerStats = computed(() => [
   { title: 'طلباتي النشطة', value: applicationsStore.count, icon: 'mdi-file-send-outline', color: 'primary' },
@@ -27,14 +30,14 @@ const seekerStats = computed(() => [
   { title: t('dashboard.completedAssessments'), value: 4, icon: 'mdi-clipboard-check-outline', color: 'success' },
 ])
 
-const companyStats = [
+const companyStats = computed(() => [
   { title: 'الفرص المنشورة', value: 18, icon: 'mdi-briefcase-outline', color: 'primary' },
-  { title: 'ترشيحات جديدة', value: 37, icon: 'mdi-account-group-outline', color: 'accent' },
-  { title: 'رغبات مرسلة', value: 9, icon: 'mdi-send-outline', color: 'secondary' },
-  { title: 'مقابلات مجدولة', value: 5, icon: 'mdi-calendar-clock-outline', color: 'success' },
-]
+  { title: 'ترشيحات جديدة', value: candidatesStore.newCount, icon: 'mdi-account-group-outline', color: 'accent' },
+  { title: 'إجمالي المرشحين', value: candidatesStore.candidates.length, icon: 'mdi-account-multiple-outline', color: 'secondary' },
+  { title: 'مقابلات مجدولة', value: candidatesStore.interviewCount, icon: 'mdi-calendar-clock-outline', color: 'success' },
+])
 
-const stats = computed(() => (isCompany.value ? companyStats : seekerStats.value))
+const stats = computed(() => (isCompany.value ? companyStats.value : seekerStats.value))
 
 const wishes = computed(() => wishesStore.wishes.slice(0, 3))
 const wishStatusMeta: Record<string, { label: string, color: string }> = {
@@ -88,16 +91,36 @@ const aiSuggestions = [
     <VRow>
       <!-- Main column -->
       <VCol cols="12" lg="8">
-        <!-- Recommended opportunities -->
         <div class="d-flex align-center justify-space-between mb-3 mt-2">
           <h2 class="text-h6 font-weight-bold">
             {{ isCompany ? 'أحدث الترشيحات' : t('dashboard.recommendedOpportunities') }}
           </h2>
-          <VBtn variant="text" color="secondary" :to="{ name: 'opportunities' }" size="small">
+          <VBtn variant="text" color="secondary" :to="{ name: isCompany ? 'candidates' : 'opportunities' }" size="small">
             {{ t('dashboard.viewAll') }}
           </VBtn>
         </div>
-        <VRow>
+
+        <!-- Company: latest candidates -->
+        <VCard v-if="isCompany">
+          <VList lines="two">
+            <template v-for="(c, i) in topCandidates" :key="c.id">
+              <VListItem @click="$router.push({ name: 'candidate-profile', params: { id: c.id } })">
+                <template #prepend>
+                  <VAvatar color="secondary"><span class="text-white font-weight-bold">{{ c.name.charAt(0) }}</span></VAvatar>
+                </template>
+                <VListItemTitle class="font-weight-bold">{{ c.name }}</VListItemTitle>
+                <VListItemSubtitle>{{ c.title }} · تطابق {{ c.matchRate }}%</VListItemSubtitle>
+                <template #append>
+                  <VChip color="success" size="small" label>{{ c.matchRate }}%</VChip>
+                </template>
+              </VListItem>
+              <VDivider v-if="i < topCandidates.length - 1" />
+            </template>
+          </VList>
+        </VCard>
+
+        <!-- Seeker: recommended opportunities -->
+        <VRow v-else>
           <VCol v-for="opp in recommended" :key="opp.id" cols="12" md="6">
             <OpportunityCard :opportunity="opp" />
           </VCol>

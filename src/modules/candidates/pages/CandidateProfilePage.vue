@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getCandidateById } from '../services/mockCandidates'
+import { CANDIDATE_STATUS_META } from '../interfaces/Candidate'
+import { useCandidatesStore } from '@/stores/CandidatesStore'
 
 const route = useRoute()
 const router = useRouter()
-const candidate = computed(() => getCandidateById(Number(route.params.id)))
+const store = useCandidatesStore()
+const candidate = computed(() => store.getById(Number(route.params.id)))
+const snackbar = ref('')
 
 const matchBreakdown = [
   { label: 'المهارات', value: 90 },
@@ -71,12 +74,15 @@ const endorsements = [
           <VProgressCircular :model-value="candidate.matchRate" :size="110" :width="10" color="success">
             <span class="text-h5 font-weight-bold">{{ candidate.matchRate }}%</span>
           </VProgressCircular>
-          <div class="text-body-2 text-medium-emphasis mt-2 mb-4">تطابق مع: {{ candidate.appliedFor }}</div>
+          <div class="text-body-2 text-medium-emphasis mt-2 mb-2">تطابق مع: {{ candidate.appliedFor }}</div>
+          <VChip :color="CANDIDATE_STATUS_META[candidate.status].color" size="small" label class="mb-4">
+            الحالة: {{ CANDIDATE_STATUS_META[candidate.status].label }}
+          </VChip>
 
-          <VBtn color="accent" block class="mb-2" prepend-icon="mdi-hand-heart-outline">إبداء رغبة</VBtn>
-          <VBtn color="primary" variant="tonal" block class="mb-2" prepend-icon="mdi-calendar-clock-outline">جدولة مقابلة</VBtn>
+          <VBtn color="accent" block class="mb-2" prepend-icon="mdi-hand-heart-outline" @click="snackbar = 'تم إرسال رغبة للمرشح'">إبداء رغبة</VBtn>
+          <VBtn color="primary" variant="tonal" block class="mb-2" prepend-icon="mdi-calendar-clock-outline" @click="store.setStatus(candidate.id, 'interview'); snackbar = 'تمت دعوة المرشح لمقابلة'">جدولة مقابلة</VBtn>
           <VBtn color="secondary" variant="outlined" block class="mb-2" prepend-icon="mdi-message-outline" :to="{ name: 'messages' }">إرسال رسالة</VBtn>
-          <VBtn color="error" variant="text" block prepend-icon="mdi-close">رفض الترشيح</VBtn>
+          <VBtn color="error" variant="text" block prepend-icon="mdi-close" @click="store.setStatus(candidate.id, 'rejected'); snackbar = 'تم رفض الترشيح'">رفض الترشيح</VBtn>
         </VCard>
 
         <VCard class="pa-5">
@@ -91,6 +97,10 @@ const endorsements = [
         </VCard>
       </VCol>
     </VRow>
+
+    <VSnackbar :model-value="!!snackbar" color="success" timeout="2500" @update:model-value="snackbar = ''">
+      {{ snackbar }}
+    </VSnackbar>
   </div>
 
   <VCard v-else class="pa-12 text-center">
