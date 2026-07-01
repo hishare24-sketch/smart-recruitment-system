@@ -121,6 +121,12 @@ export const routes: RouteRecordRaw[] = [
     meta: { layout: 'default' },
   },
   {
+    path: '/interviewer/analytics',
+    name: 'interviewer-analytics',
+    component: () => import('@/modules/interviewers/pages/InterviewerAnalyticsPage.vue'),
+    meta: { layout: 'default' },
+  },
+  {
     path: '/applications',
     name: 'applications',
     component: () => import('@/modules/applications/pages/ApplicationsPage.vue'),

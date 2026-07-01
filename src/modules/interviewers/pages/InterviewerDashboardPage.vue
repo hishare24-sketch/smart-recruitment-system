@@ -51,6 +51,7 @@ function savePricing() {
       icon="mdi-account-tie"
     >
       <template #actions>
+        <VBtn variant="text" color="primary" prepend-icon="mdi-chart-box-outline" :to="{ name: 'interviewer-analytics' }">التحليلات</VBtn>
         <VBtn variant="tonal" color="secondary" prepend-icon="mdi-tag-outline" @click="openPricing">إدارة الأسعار</VBtn>
       </template>
     </PageHeader>

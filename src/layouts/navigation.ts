@@ -22,6 +22,7 @@ export const navItems: NavItem[] = [
 
   // Interviewer (certified)
   { title: 'interviewerHome', icon: 'mdi-account-tie', to: 'interviewer-dashboard', roles: ['interviewer'] },
+  { title: 'analytics', icon: 'mdi-chart-box-outline', to: 'interviewer-analytics', roles: ['interviewer'] },
   { title: 'assistant', icon: 'mdi-robot-happy-outline', to: 'assistant', roles: ['interviewer'] },
 
   // Seeker
