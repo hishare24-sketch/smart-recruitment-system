@@ -19,9 +19,9 @@ router.beforeEach((to) => {
     return { name: 'login', query: { redirect: to.fullPath } }
   }
 
-  // Prevent logged-in users from seeing auth pages
-  if (authStore.isAuthUser && (to.name === 'login' || to.name === 'register')) {
-    return { name: 'dashboard' }
+  // Send logged-in users away from auth/landing pages to their dashboard
+  if (authStore.isAuthUser && (to.name === 'login' || to.name === 'register' || to.name === 'home')) {
+    return { name: authStore.role === 'endorser' ? 'endorser-home' : 'dashboard' }
   }
 
   return true

@@ -9,7 +9,11 @@ export interface NavItem {
 
 // Single source of truth for sidebar items, filtered by role
 export const navItems: NavItem[] = [
-  { title: 'dashboard', icon: 'mdi-view-dashboard-outline', to: 'dashboard', roles: ['seeker', 'company', 'endorser', 'admin'] },
+  { title: 'dashboard', icon: 'mdi-view-dashboard-outline', to: 'dashboard', roles: ['seeker', 'company', 'admin'] },
+
+  // Endorser
+  { title: 'dashboard', icon: 'mdi-view-dashboard-outline', to: 'endorser-home', roles: ['endorser'] },
+  { title: 'endorsements', icon: 'mdi-account-star-outline', to: 'add-endorsement', roles: ['endorser'] },
 
   // Seeker
   { title: 'profile', icon: 'mdi-account-circle-outline', to: 'profile', roles: ['seeker'] },
@@ -27,7 +31,7 @@ export const navItems: NavItem[] = [
 
   // Admin
   { title: 'team', icon: 'mdi-shield-account-outline', to: 'dashboard', roles: ['admin'] },
-  { title: 'surveys', icon: 'mdi-poll', to: 'dashboard', roles: ['admin', 'company'] },
+  { title: 'surveys', icon: 'mdi-poll', to: 'surveys', roles: ['admin', 'company'] },
 ]
 
 export function navForRole(role: UserRole | undefined): NavItem[] {

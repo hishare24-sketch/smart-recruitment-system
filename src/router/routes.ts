@@ -15,12 +15,12 @@ export const routes: RouteRecordRaw[] = [
     meta: { layout: 'forms', public: true },
   },
 
-  // ===== Authenticated (Default layout) =====
+  // ===== Public landing =====
   {
     path: '/',
     name: 'home',
-    redirect: { name: 'dashboard' },
-    meta: { layout: 'default' },
+    component: () => import('@/modules/public/pages/LandingPage.vue'),
+    meta: { layout: 'blank', public: true },
   },
   {
     path: '/dashboard',
@@ -68,6 +68,28 @@ export const routes: RouteRecordRaw[] = [
     path: '/assistant',
     name: 'assistant',
     component: () => import('@/modules/assistant/pages/AssistantPage.vue'),
+    meta: { layout: 'default' },
+  },
+
+  // ===== Endorser =====
+  {
+    path: '/endorsements',
+    name: 'endorser-home',
+    component: () => import('@/modules/endorsements/pages/EndorserHomePage.vue'),
+    meta: { layout: 'default' },
+  },
+  {
+    path: '/endorsements/add',
+    name: 'add-endorsement',
+    component: () => import('@/modules/endorsements/pages/AddEndorsementPage.vue'),
+    meta: { layout: 'default' },
+  },
+
+  // ===== Surveys =====
+  {
+    path: '/surveys',
+    name: 'surveys',
+    component: () => import('@/modules/surveys/pages/SurveysPage.vue'),
     meta: { layout: 'default' },
   },
 
