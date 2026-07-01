@@ -62,7 +62,8 @@
     "createOpportunity": "Post Opportunity",
     "analytics": "Analytics",
     "surveys": "Surveys",
-    "team": "Team & Permissions"
+    "team": "Roles & Permissions",
+    "users": "Users"
   },
   "dashboard": {
     "welcome": "Welcome, {name}!",

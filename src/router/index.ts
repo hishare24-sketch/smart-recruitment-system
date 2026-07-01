@@ -21,7 +21,11 @@ router.beforeEach((to) => {
 
   // Send logged-in users away from auth/landing pages to their dashboard
   if (authStore.isAuthUser && (to.name === 'login' || to.name === 'register' || to.name === 'home')) {
-    return { name: authStore.role === 'endorser' ? 'endorser-home' : 'dashboard' }
+    const homeByRole: Record<string, string> = {
+      endorser: 'endorser-home',
+      admin: 'admin-dashboard',
+    }
+    return { name: homeByRole[authStore.role ?? ''] ?? 'dashboard' }
   }
 
   return true

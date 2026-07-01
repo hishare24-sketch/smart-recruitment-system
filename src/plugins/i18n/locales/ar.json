@@ -62,7 +62,8 @@
     "createOpportunity": "نشر فرصة",
     "analytics": "التحليلات",
     "surveys": "الاستبيانات",
-    "team": "الفريق والصلاحيات"
+    "team": "الأدوار والصلاحيات",
+    "users": "المستخدمون"
   },
   "dashboard": {
     "welcome": "مرحباً، {name}!",

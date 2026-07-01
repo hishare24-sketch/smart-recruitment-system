@@ -85,6 +85,26 @@ export const routes: RouteRecordRaw[] = [
     meta: { layout: 'default' },
   },
 
+  // ===== Admin =====
+  {
+    path: '/admin',
+    name: 'admin-dashboard',
+    component: () => import('@/modules/admin/pages/AdminDashboardPage.vue'),
+    meta: { layout: 'default' },
+  },
+  {
+    path: '/admin/users',
+    name: 'admin-users',
+    component: () => import('@/modules/team/pages/UsersPage.vue'),
+    meta: { layout: 'default' },
+  },
+  {
+    path: '/admin/roles',
+    name: 'admin-roles',
+    component: () => import('@/modules/team/pages/RolesPage.vue'),
+    meta: { layout: 'default' },
+  },
+
   // ===== Surveys =====
   {
     path: '/surveys',

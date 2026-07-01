@@ -9,7 +9,12 @@ export interface NavItem {
 
 // Single source of truth for sidebar items, filtered by role
 export const navItems: NavItem[] = [
-  { title: 'dashboard', icon: 'mdi-view-dashboard-outline', to: 'dashboard', roles: ['seeker', 'company', 'admin'] },
+  { title: 'dashboard', icon: 'mdi-view-dashboard-outline', to: 'dashboard', roles: ['seeker', 'company'] },
+
+  // Admin
+  { title: 'dashboard', icon: 'mdi-view-dashboard-outline', to: 'admin-dashboard', roles: ['admin'] },
+  { title: 'users', icon: 'mdi-account-multiple-outline', to: 'admin-users', roles: ['admin'] },
+  { title: 'team', icon: 'mdi-shield-account-outline', to: 'admin-roles', roles: ['admin'] },
 
   // Endorser
   { title: 'dashboard', icon: 'mdi-view-dashboard-outline', to: 'endorser-home', roles: ['endorser'] },
@@ -29,8 +34,7 @@ export const navItems: NavItem[] = [
   { title: 'wishes', icon: 'mdi-hand-heart-outline', to: 'company-wishes', roles: ['company'] },
   { title: 'analytics', icon: 'mdi-chart-box-outline', to: 'analytics', roles: ['company'] },
 
-  // Admin
-  { title: 'team', icon: 'mdi-shield-account-outline', to: 'dashboard', roles: ['admin'] },
+  // Shared (admin + company)
   { title: 'surveys', icon: 'mdi-poll', to: 'surveys', roles: ['admin', 'company'] },
 ]
 
