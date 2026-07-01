@@ -163,3 +163,32 @@ describe('mockAi.trustMotivation', () => {
     expect(mockAi.trustMotivation(0, 70)).toContain('70')
   })
 })
+
+describe('mockAi.suggestOptimalTimes', () => {
+  it('returns 3 slots ranked with the preferred period first', () => {
+    const res = mockAi.suggestOptimalTimes({ availability: ['الأحد', 'الثلاثاء', 'الخميس'], candidatePref: 'evening' })
+    expect(res.suggestions).toHaveLength(3)
+    expect(res.suggestions[0].period).toBe('evening')
+    // compatibility is strictly descending
+    expect(res.suggestions[0].compatibility).toBeGreaterThan(res.suggestions[1].compatibility)
+    expect(res.suggestions[1].compatibility).toBeGreaterThan(res.suggestions[2].compatibility)
+    // every slot lands on one of the interviewer's available weekdays
+    const allowed = new Set([0, 2, 4]) // الأحد/الثلاثاء/الخميس
+    for (const s of res.suggestions)
+      expect(allowed.has(new Date(`${s.iso}T00:00:00`).getDay())).toBe(true)
+    expect(res.explanation.length).toBeGreaterThan(0)
+  })
+
+  it('falls back gracefully when no availability is given', () => {
+    const res = mockAi.suggestOptimalTimes({ availability: [] })
+    expect(res.suggestions).toHaveLength(3)
+  })
+})
+
+describe('mockAi.peerRequestTip', () => {
+  it('gives a type-specific tip and a default for unknown types', () => {
+    expect(mockAi.peerRequestTip('recommendation')).toContain('توصية')
+    expect(mockAi.peerRequestTip('training')).toContain('تدريب')
+    expect(mockAi.peerRequestTip('unknown').length).toBeGreaterThan(0)
+  })
+})
