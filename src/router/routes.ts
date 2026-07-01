@@ -91,6 +91,12 @@ export const routes: RouteRecordRaw[] = [
     meta: { layout: 'default' },
   },
   {
+    path: '/peer-requests',
+    name: 'peer-requests',
+    component: () => import('@/modules/peer-requests/pages/PeerRequestsPage.vue'),
+    meta: { layout: 'default' },
+  },
+  {
     path: '/requests/mine',
     name: 'my-requests',
     component: () => import('@/modules/requests/pages/MyRequestsPage.vue'),

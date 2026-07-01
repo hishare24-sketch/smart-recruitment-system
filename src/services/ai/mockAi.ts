@@ -696,6 +696,20 @@ function suggestOptimalTimes(ctx: { availability: string[], candidatePref?: DayP
   return { suggestions, explanation }
 }
 
+// Contextual tip shown in the peer-request form to improve acceptance odds
+function peerRequestTip(type: string): string {
+  const tips: Record<string, string> = {
+    recommendation: 'إضافة رابط لمشروع مشترك يرفع فرصة قبول التوصية بنسبة 40%. اذكر إنجازًا محددًا تعاونتما فيه.',
+    endorsement: 'التزكيات من مستخدمين موثّقين تُضاعف مصداقية مهاراتك — اربط كل مهارة بإثبات عملي.',
+    evaluation: 'أرفق نماذج من عملك (مشروع/كود) قبل التقييم ليكون تقرير المقيّم أدق وأسرع.',
+    level: 'حدّد المهارات المراد قياسها بوضوح؛ ذلك يختصر جلسة تحديد المستوى ويجعل النتيجة أدق.',
+    interview: 'راجع أيام توفّر الطرف الآخر واختر من الأوقات المقترحة ذكيًا لرفع احتمال التأكيد.',
+    consultation: 'صِغ سؤالك الاستشاري في جملة واحدة واضحة؛ الأسئلة المحددة تحصل على ردود أسرع وأعمق.',
+    training: 'حدّد هدفك من التدريب ومستواك الحالي ليصمّم المدرّب جلسة مخصّصة لك.',
+  }
+  return tips[type] ?? 'كن محددًا في سبب طلبك وأرفق ما يدعمه — الطلبات الواضحة تُقبل أسرع.'
+}
+
 export const mockAi: AiService = {
   skillLevel,
   trustAnalysis,
@@ -734,5 +748,6 @@ export const mockAi: AiService = {
   keywordAlternatives,
   smartFilterChips,
   suggestOptimalTimes,
+  peerRequestTip,
   autoClassify,
 }

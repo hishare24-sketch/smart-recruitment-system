@@ -208,6 +208,8 @@ export interface AiService {
   smartFilterChips: (ctx: { section: string, skills: string[] }) => { key: string, label: string, icon: string }[]
   // — smart scheduling —
   suggestOptimalTimes: (ctx: { availability: string[], candidatePref?: DayPeriod, fromISO?: string }) => OptimalTimesResult
+  // — peer requests —
+  peerRequestTip: (type: string) => string
   // — auto-classification —
   autoClassify: (text: string) => AutoClassification
 }
