@@ -6,6 +6,7 @@ import { useApplicationsStore } from '@/stores/ApplicationsStore'
 import { useSavedStore } from '@/stores/SavedStore'
 import { useWishesStore } from '@/stores/WishesStore'
 import { useCandidatesStore } from '@/stores/CandidatesStore'
+import { usePostedOpportunitiesStore } from '@/stores/PostedOpportunitiesStore'
 import StatCard from '@/components/shared/StatCard.vue'
 import OpportunityCard from '@/modules/opportunities/components/OpportunityCard.vue'
 import { mockOpportunities } from '@/modules/opportunities/services/mockOpportunities'
@@ -16,6 +17,7 @@ const applicationsStore = useApplicationsStore()
 const savedStore = useSavedStore()
 const wishesStore = useWishesStore()
 const candidatesStore = useCandidatesStore()
+const postedStore = usePostedOpportunitiesStore()
 
 const userName = computed(() => authStore.authUser?.name ?? '')
 const isCompany = computed(() => authStore.role === 'company')
@@ -31,7 +33,7 @@ const seekerStats = computed(() => [
 ])
 
 const companyStats = computed(() => [
-  { title: 'الفرص المنشورة', value: 18, icon: 'mdi-briefcase-outline', color: 'primary' },
+  { title: 'الفرص المنشورة', value: postedStore.publishedCount, icon: 'mdi-briefcase-outline', color: 'primary' },
   { title: 'ترشيحات جديدة', value: candidatesStore.newCount, icon: 'mdi-account-group-outline', color: 'accent' },
   { title: 'إجمالي المرشحين', value: candidatesStore.candidates.length, icon: 'mdi-account-multiple-outline', color: 'secondary' },
   { title: 'مقابلات مجدولة', value: candidatesStore.interviewCount, icon: 'mdi-calendar-clock-outline', color: 'success' },
