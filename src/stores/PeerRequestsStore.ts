@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { useGamificationStore } from '@/stores/GamificationStore'
+import { useNotificationsStore } from '@/stores/NotificationsStore'
 
 // A unified peer-to-peer request: any user asks any other user for one of these services
 export type PeerRequestType
@@ -97,6 +98,13 @@ export const usePeerRequestsStore = defineStore('peerRequests', () => {
       date: new Date().toISOString().slice(0, 10),
     })
     useGamificationStore().record('peerRequest', 'أرسلت طلبًا')
+    useNotificationsStore().push({
+      icon: PEER_TYPE_META[req.type].icon,
+      color: PEER_TYPE_META[req.type].color,
+      title: 'تم إرسال طلبك',
+      body: `${PEER_TYPE_META[req.type].label} إلى ${req.personName} — بانتظار الرد`,
+      category: 'system',
+    })
   }
 
   function findIncoming(id: number) {

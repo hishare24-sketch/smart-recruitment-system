@@ -124,7 +124,8 @@ export const useGamificationStore = defineStore('gamification', () => {
   const counters = ref<Counters>(init.counters)
   const earnedBadgeIds = ref<string[]>(init.earnedBadgeIds)
   const challenges = ref<Challenge[]>(init.challenges)
-  const lastReward = ref<{ points: number, label: string } | null>(null)
+  const lastReward = ref<{ points: number, label: string, at: number } | null>(null)
+  const lastBadgeId = ref<string | null>(null)
 
   watch([points, streak, counters, earnedBadgeIds, challenges], () => {
     localStorage.setItem(STORAGE, JSON.stringify({
@@ -155,8 +156,10 @@ export const useGamificationStore = defineStore('gamification', () => {
   function recomputeBadges() {
     const snap = { points: points.value, counters: counters.value, streak: streak.value.count }
     for (const b of BADGE_CATALOG) {
-      if (!earnedBadgeIds.value.includes(b.id) && b.check(snap))
+      if (!earnedBadgeIds.value.includes(b.id) && b.check(snap)) {
         earnedBadgeIds.value.push(b.id)
+        lastBadgeId.value = b.id // signals a celebration to the UI
+      }
     }
   }
 
@@ -184,7 +187,7 @@ export const useGamificationStore = defineStore('gamification', () => {
   // Award points for a genuine action; updates counters, challenges and badges
   function record(action: GameAction, label?: string) {
     points.value += ACTION_POINTS[action]
-    lastReward.value = { points: ACTION_POINTS[action], label: label ?? '' }
+    lastReward.value = { points: ACTION_POINTS[action], label: label ?? '', at: Date.now() }
     const metric = METRIC_OF[action]
     if (metric) {
       counters.value[metric] += 1
@@ -212,10 +215,14 @@ export const useGamificationStore = defineStore('gamification', () => {
   const activeChallenges = computed(() => challenges.value.filter(c => !c.done))
   const doneChallenges = computed(() => challenges.value.filter(c => c.done))
 
+  function badgeById(id: string) {
+    return ALL_BADGES.find(b => b.id === id) ?? null
+  }
+
   return {
-    points, streak, counters, challenges, lastReward,
+    points, streak, counters, challenges, lastReward, lastBadgeId,
     tier, nextTier, tierProgress, pointsToNext,
     badges, earnedCount, activeChallenges, doneChallenges,
-    record, checkIn,
+    record, checkIn, badgeById,
   }
 })

@@ -8,6 +8,8 @@ import { useNotificationsStore } from '@/stores/NotificationsStore'
 import { useMessagesStore } from '@/stores/MessagesStore'
 import { useGamificationStore } from '@/stores/GamificationStore'
 import GlobalSearchBar from '@/components/shared/GlobalSearchBar.vue'
+import RewardFeedback from '@/components/shared/RewardFeedback.vue'
+import { usePeerRequestsStore } from '@/stores/PeerRequestsStore'
 import { navForRole } from './navigation'
 
 const { t, locale } = useI18n()
@@ -34,6 +36,14 @@ const messagesStore = useMessagesStore()
 
 // Daily streak check-in — runs once when an authenticated layout mounts
 useGamificationStore().checkIn()
+
+// Live badge counts for nav items (e.g. pending peer requests)
+const peerRequests = usePeerRequestsStore()
+function navBadge(to: string): number {
+  if (to === 'peer-requests')
+    return peerRequests.pendingIncoming
+  return 0
+}
 
 // On desktop the drawer is permanent (open by default); on mobile it starts closed
 const drawer = ref(!mobile.value)
@@ -108,7 +118,11 @@ const initials = computed(() => {
         color="primary"
         class="mb-1 nav-item"
         @click="mobile && (drawer = false)"
-      />
+      >
+        <template v-if="!rail && navBadge(item.to)" #append>
+          <VChip size="x-small" color="error" label>{{ navBadge(item.to) }}</VChip>
+        </template>
+      </VListItem>
     </VList>
   </VNavigationDrawer>
 
@@ -184,4 +198,7 @@ const initials = computed(() => {
       <slot />
     </VContainer>
   </VMain>
+
+  <!-- Global reward toasts + badge-unlock celebrations -->
+  <RewardFeedback />
 </template>
