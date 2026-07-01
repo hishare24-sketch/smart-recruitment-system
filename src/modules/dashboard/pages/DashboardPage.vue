@@ -222,8 +222,8 @@ const aiSuggestions = [
           </div>
         </VCard>
 
-        <!-- Gamification (seeker) -->
-        <div v-if="!isCompany" class="mb-4">
+        <!-- Gamification (all roles — points/level/streak/leaderboard are universal) -->
+        <div class="mb-4">
           <GamificationCard />
         </div>
 

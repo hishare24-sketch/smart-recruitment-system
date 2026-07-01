@@ -7,8 +7,10 @@ import { useProfileStore } from '@/stores/ProfileStore'
 import { useResumesStore } from '@/stores/ResumesStore'
 import { useInterviewsStore } from '@/stores/InterviewsStore'
 import { usePeerRequestsStore } from '@/stores/PeerRequestsStore'
+import { useAuthStore } from '@/stores/AuthStore'
 
 const g = useGamificationStore()
+const isCompany = computed(() => useAuthStore().role === 'company')
 const profile = useProfileStore()
 const resumes = useResumesStore()
 const interviews = useInterviewsStore()
@@ -42,8 +44,8 @@ const onboardingPct = computed(() => Math.round((goalsDone.value / goals.value.l
       <VCol cols="12" md="7">
         <GamificationCard :show-link="false" />
 
-        <!-- Onboarding checklist -->
-        <VCard class="pa-4 mt-4">
+        <!-- Onboarding checklist (seeker journey) -->
+        <VCard v-if="!isCompany" class="pa-4 mt-4">
           <div class="d-flex align-center ga-2 mb-1">
             <VIcon icon="mdi-rocket-launch-outline" color="primary" />
             <h3 class="text-subtitle-1 font-weight-bold">رحلة البداية</h3>

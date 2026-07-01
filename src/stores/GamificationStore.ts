@@ -8,6 +8,7 @@ export type GameAction
   = 'profileComplete' | 'skill' | 'aiInterview' | 'expertInterview'
     | 'recommendation' | 'receiveRecommendation' | 'rateInterviewer'
     | 'project' | 'assessment' | 'peerRequest'
+    | 'postOpportunity' | 'reviewCandidate'
 
 const ACTION_POINTS: Record<GameAction, number> = {
   profileComplete: 50,
@@ -20,6 +21,8 @@ const ACTION_POINTS: Record<GameAction, number> = {
   project: 60,
   assessment: 30,
   peerRequest: 10,
+  postOpportunity: 40,
+  reviewCandidate: 15,
 }
 const DAILY_LOGIN_POINTS = 5
 

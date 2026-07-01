@@ -2,9 +2,11 @@
 import { computed, ref } from 'vue'
 import PageHeader from '@/components/shared/PageHeader.vue'
 import { usePostedOpportunitiesStore } from '@/stores/PostedOpportunitiesStore'
+import { useGamificationStore } from '@/stores/GamificationStore'
 import { ai } from '@/services/ai'
 
 const store = usePostedOpportunitiesStore()
+const gamification = useGamificationStore()
 
 const title = ref('')
 const department = ref<string | null>(null)
@@ -95,6 +97,7 @@ function publish() {
     status: 'published',
     salaryRange: salaryRange.value,
   })
+  gamification.record('postOpportunity', `نشرت فرصة «${title.value}»`)
   snackbar.value = 'تم نشر الفرصة بنجاح!'
   resetForm()
 }

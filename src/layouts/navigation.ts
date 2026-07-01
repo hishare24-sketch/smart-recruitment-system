@@ -44,6 +44,7 @@ export const navItems: NavItem[] = [
   { title: 'candidates', icon: 'mdi-account-group-outline', to: 'candidates', roles: ['company'] },
   { title: 'wishes', icon: 'mdi-hand-heart-outline', to: 'company-wishes', roles: ['company'] },
   { title: 'analytics', icon: 'mdi-chart-box-outline', to: 'analytics', roles: ['company'] },
+  { title: 'achievements', icon: 'mdi-trophy-outline', to: 'achievements', roles: ['company'] },
 
   // Shared (admin + company)
   { title: 'surveys', icon: 'mdi-poll', to: 'surveys', roles: ['admin', 'company'] },
