@@ -14,6 +14,30 @@ const search = ref('')
 const statusFilter = ref<CandidateStatus | null>(null)
 const sortBy = ref<'match' | 'recent'>('match')
 
+// Bulk selection
+const selected = ref<number[]>([])
+const bulkSnackbar = ref('')
+function toggleSelect(id: number) {
+  selected.value = selected.value.includes(id) ? selected.value.filter(x => x !== id) : [...selected.value, id]
+}
+function clearSelection() {
+  selected.value = []
+}
+function bulkInterview() {
+  selected.value.forEach(id => store.setStatus(id, 'interview'))
+  bulkSnackbar.value = `تمت دعوة ${selected.value.length} مرشحين لمقابلة`
+  clearSelection()
+}
+function bulkReject() {
+  selected.value.forEach(id => store.setStatus(id, 'rejected'))
+  bulkSnackbar.value = `تم رفض ${selected.value.length} مرشحين`
+  clearSelection()
+}
+function bulkMessage() {
+  bulkSnackbar.value = `تم إرسال رسالة جماعية إلى ${selected.value.length} مرشحين`
+  clearSelection()
+}
+
 const statusOptions = (Object.keys(CANDIDATE_STATUS_META) as CandidateStatus[]).map(value => ({
   value,
   title: CANDIDATE_STATUS_META[value].label,
@@ -74,17 +98,34 @@ function openProfile(id: number) {
       </VRow>
     </VCard>
 
-    <div class="text-body-2 text-medium-emphasis mb-3">{{ filtered.length }} مرشح</div>
+    <div class="d-flex align-center justify-space-between mb-3">
+      <span class="text-body-2 text-medium-emphasis">{{ filtered.length }} مرشح</span>
+    </div>
+
+    <!-- Bulk action bar -->
+    <VExpandTransition>
+      <VCard v-if="selected.length" color="primary" theme="darkTheme" class="pa-3 mb-3 d-flex align-center flex-wrap ga-2">
+        <span class="font-weight-bold me-2">{{ selected.length }} محدّد</span>
+        <VBtn size="small" color="white" variant="tonal" prepend-icon="mdi-calendar-check-outline" @click="bulkInterview">دعوة جماعية لمقابلة</VBtn>
+        <VBtn size="small" color="white" variant="tonal" prepend-icon="mdi-message-outline" @click="bulkMessage">رسالة جماعية</VBtn>
+        <VBtn size="small" color="white" variant="tonal" prepend-icon="mdi-close" @click="bulkReject">رفض جماعي</VBtn>
+        <VSpacer />
+        <VBtn size="small" variant="text" @click="clearSelection">إلغاء التحديد</VBtn>
+      </VCard>
+    </VExpandTransition>
 
     <VRow>
       <VCol v-for="c in filtered" :key="c.id" cols="12" md="6">
-        <VCard class="pa-4" height="100%">
+        <VCard class="pa-4" height="100%" :variant="selected.includes(c.id) ? 'outlined' : undefined" :color="selected.includes(c.id) ? 'primary' : undefined">
           <div class="d-flex align-start justify-space-between">
-            <div class="d-flex align-center ga-3 cursor-pointer" @click="openProfile(c.id)">
-              <VAvatar color="secondary" size="52"><span class="text-h6 text-white font-weight-bold">{{ c.name.charAt(0) }}</span></VAvatar>
-              <div>
-                <div class="text-subtitle-1 font-weight-bold">{{ c.name }}</div>
-                <div class="text-body-2 text-medium-emphasis">{{ c.title }} · {{ c.location }} · {{ c.level }}</div>
+            <div class="d-flex align-center ga-2">
+              <VCheckbox :model-value="selected.includes(c.id)" hide-details density="compact" color="primary" @update:model-value="toggleSelect(c.id)" />
+              <div class="d-flex align-center ga-3 cursor-pointer" @click="openProfile(c.id)">
+                <VAvatar color="secondary" size="52"><span class="text-h6 text-white font-weight-bold">{{ c.name.charAt(0) }}</span></VAvatar>
+                <div>
+                  <div class="text-subtitle-1 font-weight-bold">{{ c.name }}</div>
+                  <div class="text-body-2 text-medium-emphasis">{{ c.title }} · {{ c.location }} · {{ c.level }}</div>
+                </div>
               </div>
             </div>
             <VChip :color="CANDIDATE_STATUS_META[c.status].color" size="small" label>{{ CANDIDATE_STATUS_META[c.status].label }}</VChip>
@@ -125,5 +166,9 @@ function openProfile(id: number) {
         </VCard>
       </VCol>
     </VRow>
+
+    <VSnackbar :model-value="!!bulkSnackbar" color="success" timeout="2500" @update:model-value="bulkSnackbar = ''">
+      {{ bulkSnackbar }}
+    </VSnackbar>
   </div>
 </template>
