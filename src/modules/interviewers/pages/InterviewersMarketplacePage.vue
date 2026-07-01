@@ -55,7 +55,13 @@ function open(id: number) {
       title="سوق المقيّمين المعتمدين"
       subtitle="خبراء معتمدون يُجرون مقابلات تقييمية موثّقة ترفع نسبة ثقتك"
       icon="mdi-account-supervisor-circle-outline"
-    />
+    >
+      <template #actions>
+        <VBtn variant="tonal" color="secondary" prepend-icon="mdi-badge-account-outline" :to="{ name: 'interviewer-register' }">
+          سجّل كمقيّم
+        </VBtn>
+      </template>
+    </PageHeader>
 
     <!-- AI recommended -->
     <div v-if="recommended.length" class="mb-6">

@@ -24,6 +24,7 @@ router.beforeEach((to) => {
     const homeByRole: Record<string, string> = {
       endorser: 'endorser-home',
       admin: 'admin-dashboard',
+      interviewer: 'interviewer-dashboard',
     }
     return { name: homeByRole[authStore.role ?? ''] ?? 'dashboard' }
   }

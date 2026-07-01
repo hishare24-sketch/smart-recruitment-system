@@ -16,11 +16,44 @@ const match = computed(() => (interviewer.value ? store.matchFor(candidate.value
 
 const kinds = Object.keys(KIND_META) as MarketInterviewKind[]
 
-// Booking dialog
+// Booking dialog + advanced calendar
 const bookDialog = ref(false)
 const chosenKind = ref<MarketInterviewKind>('level')
-const chosenSlot = ref('')
+const chosenDate = ref<Date | null>(null)
+const chosenTime = ref('')
 const bookedSnackbar = ref(false)
+
+// Map Arabic weekday names → JS getDay() so the calendar only opens the interviewer's days
+const DAY_MAP: Record<string, number> = {
+  'الأحد': 0, 'الإثنين': 1, 'الاثنين': 1, 'الثلاثاء': 2, 'الأربعاء': 3, 'الخميس': 4, 'الجمعة': 5, 'السبت': 6,
+}
+const AR_DAYS = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت']
+const allowedWeekdays = computed(() =>
+  new Set((interviewer.value?.availability ?? []).map(d => DAY_MAP[d]).filter(n => n !== undefined)),
+)
+const today = new Date()
+today.setHours(0, 0, 0, 0)
+
+// VDatePicker allowed-dates predicate: only future dates on the interviewer's weekdays
+function allowedDates(value: unknown): boolean {
+  const d = value instanceof Date ? value : new Date(value as string)
+  d.setHours(0, 0, 0, 0)
+  return d >= today && allowedWeekdays.value.has(d.getDay())
+}
+
+// Time slots for the chosen date — some deterministically marked as booked
+const BASE_SLOTS = ['16:00', '17:00', '18:00', '19:00', '20:00', '21:00']
+const timeSlots = computed(() => {
+  if (!chosenDate.value)
+    return []
+  const seed = chosenDate.value.getDate()
+  return BASE_SLOTS.map((time, i) => ({ time, taken: (seed + i) % 4 === 0 }))
+})
+
+function pickTime(time: string, taken: boolean) {
+  if (!taken)
+    chosenTime.value = time
+}
 
 const price = computed(() => {
   if (!interviewer.value)
@@ -31,9 +64,25 @@ const price = computed(() => {
   return Math.round((priceMin + (priceMax - priceMin) * weight[chosenKind.value]) / 5) * 5
 })
 
+const dateLabel = computed(() => {
+  if (!chosenDate.value)
+    return ''
+  const d = chosenDate.value
+  return `${AR_DAYS[d.getDay()]} ${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+})
+const canConfirm = computed(() => !!chosenDate.value && !!chosenTime.value)
+
+function openBooking(kind?: MarketInterviewKind) {
+  if (kind)
+    chosenKind.value = kind
+  chosenDate.value = null
+  chosenTime.value = ''
+  bookDialog.value = true
+}
+
 function confirmBooking() {
-  if (interviewer.value)
-    store.book(interviewer.value, chosenKind.value, chosenSlot.value || interviewer.value.availability[0], price.value)
+  if (interviewer.value && canConfirm.value)
+    store.book(interviewer.value, chosenKind.value, `${dateLabel.value} · ${chosenTime.value}`, price.value)
   bookDialog.value = false
   bookedSnackbar.value = true
 }
@@ -90,7 +139,7 @@ function confirmBooking() {
               <VCard variant="outlined" class="pa-3 h-100">
                 <div class="text-body-2 font-weight-bold mb-1">{{ KIND_META[k].label }}</div>
                 <div class="text-caption text-medium-emphasis mb-2">{{ KIND_META[k].desc }} · {{ KIND_META[k].minutes }}</div>
-                <VBtn size="x-small" color="accent" variant="tonal" @click="chosenKind = k; bookDialog = true">احجز هذا النوع</VBtn>
+                <VBtn size="x-small" color="accent" variant="tonal" @click="openBooking(k)">احجز هذا النوع</VBtn>
               </VCard>
             </VCol>
           </VRow>
@@ -108,7 +157,7 @@ function confirmBooking() {
           </div>
           <div class="text-center text-h6 font-weight-bold mb-1">{{ interviewer.priceMin }}–{{ interviewer.priceMax }} ريال</div>
           <div class="text-center text-caption text-medium-emphasis mb-3">حسب نوع المقابلة</div>
-          <VBtn color="accent" size="large" block prepend-icon="mdi-calendar-plus" @click="bookDialog = true">احجز مقابلة</VBtn>
+          <VBtn color="accent" size="large" block prepend-icon="mdi-calendar-plus" @click="openBooking()">احجز مقابلة</VBtn>
           <VAlert type="info" variant="tonal" density="compact" class="mt-3 text-caption">
             <VIcon icon="mdi-shield-check-outline" size="16" class="me-1" />تقرير المقابلة يُضاف لملفك ويرفع نسبة ثقتك تلقائيًا.
           </VAlert>
@@ -116,8 +165,8 @@ function confirmBooking() {
       </VCol>
     </VRow>
 
-    <!-- Booking dialog -->
-    <VDialog v-model="bookDialog" max-width="520">
+    <!-- Booking dialog with advanced calendar -->
+    <VDialog v-model="bookDialog" max-width="680" scrollable>
       <VCard class="pa-2">
         <VCardTitle class="d-flex justify-space-between align-center">
           <span>حجز مقابلة مع {{ interviewer.name }}</span>
@@ -126,27 +175,74 @@ function confirmBooking() {
         <VCardText>
           <VSelect
             v-model="chosenKind"
-            :items="kinds.map(k => ({ value: k, title: KIND_META[k].label }))"
+            :items="kinds.map(k => ({ value: k, title: `${KIND_META[k].label} · ${KIND_META[k].minutes}` }))"
             label="نوع المقابلة"
+            prepend-inner-icon="mdi-format-list-bulleted-type"
             class="mb-3"
           />
-          <VSelect
-            v-model="chosenSlot"
-            :items="interviewer.availability"
-            label="اليوم المتاح"
-            :placeholder="interviewer.availability[0]"
-            class="mb-2"
-          />
-          <VAlert color="accent" variant="tonal" density="compact" class="text-body-2">
-            <div class="d-flex justify-space-between align-center">
-              <span>{{ KIND_META[chosenKind].label }} · {{ KIND_META[chosenKind].minutes }}</span>
+
+          <VRow>
+            <!-- Calendar -->
+            <VCol cols="12" sm="7">
+              <div class="text-caption font-weight-bold mb-1">
+                <VIcon icon="mdi-calendar-month-outline" size="16" class="me-1" />اختر اليوم
+                <span class="text-medium-emphasis">(أيام المقيّم: {{ interviewer.availability.join('، ') }})</span>
+              </div>
+              <VDatePicker
+                v-model="chosenDate"
+                :allowed-dates="allowedDates"
+                :min="today"
+                color="primary"
+                show-adjacent-months
+                hide-header
+                width="100%"
+                @update:model-value="chosenTime = ''"
+              />
+            </VCol>
+
+            <!-- Time slots -->
+            <VCol cols="12" sm="5">
+              <div class="text-caption font-weight-bold mb-2">
+                <VIcon icon="mdi-clock-outline" size="16" class="me-1" />الفترات المتاحة
+              </div>
+              <div v-if="!chosenDate" class="text-caption text-medium-emphasis py-4 text-center">
+                اختر يومًا من الكالندر أولًا
+              </div>
+              <div v-else class="d-flex flex-wrap ga-2">
+                <VChip
+                  v-for="slot in timeSlots"
+                  :key="slot.time"
+                  :color="chosenTime === slot.time ? 'primary' : slot.taken ? 'error' : undefined"
+                  :variant="chosenTime === slot.time ? 'flat' : slot.taken ? 'tonal' : 'outlined'"
+                  :disabled="slot.taken"
+                  label
+                  @click="pickTime(slot.time, slot.taken)"
+                >
+                  <VIcon v-if="slot.taken" icon="mdi-lock-outline" size="13" start />
+                  {{ slot.time }}
+                </VChip>
+              </div>
+              <div v-if="chosenDate" class="text-caption text-medium-emphasis mt-2">
+                <VIcon icon="mdi-information-outline" size="13" /> الفترات الحمراء محجوزة
+              </div>
+            </VCol>
+          </VRow>
+
+          <VDivider class="my-3" />
+
+          <VAlert :color="canConfirm ? 'success' : 'accent'" variant="tonal" density="compact">
+            <div class="d-flex justify-space-between align-center flex-wrap ga-2">
+              <span class="text-body-2">
+                <template v-if="canConfirm">{{ dateLabel }} · {{ chosenTime }}</template>
+                <template v-else>اختر اليوم والفترة لتأكيد الموعد</template>
+              </span>
               <span class="font-weight-bold">{{ price }} ريال</span>
             </div>
           </VAlert>
         </VCardText>
         <VCardActions class="justify-end">
           <VBtn variant="text" @click="bookDialog = false">إلغاء</VBtn>
-          <VBtn color="accent" prepend-icon="mdi-check" @click="confirmBooking">تأكيد الحجز والدفع</VBtn>
+          <VBtn color="accent" prepend-icon="mdi-check" :disabled="!canConfirm" @click="confirmBooking">تأكيد الحجز والدفع</VBtn>
         </VCardActions>
       </VCard>
     </VDialog>

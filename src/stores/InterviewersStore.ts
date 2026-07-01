@@ -47,6 +47,20 @@ export interface Booking {
   ratingGiven?: number
 }
 
+// Interviewer-side view: sessions the logged-in interviewer must conduct
+export interface AgendaItem {
+  id: number
+  candidateName: string
+  candidateInitial: string
+  candidateField: string
+  kind: MarketInterviewKind
+  datetime: string
+  price: number
+  status: 'requested' | 'scheduled' | 'completed'
+  rating?: number
+  report?: EvaluationReport
+}
+
 export const INTERVIEWER_TYPE_META: Record<InterviewerType, { label: string, icon: string, color: string }> = {
   technical: { label: 'خبير تقني', icon: 'mdi-code-tags', color: 'primary' },
   leadership: { label: 'خبير قيادي/إداري', icon: 'mdi-account-tie', color: 'accent' },
@@ -140,13 +154,62 @@ function loadBookings(): Booking[] {
   }
 }
 
+const AGENDA_STORAGE = 'interviewerAgenda'
+const PRICING_STORAGE = 'interviewerPricing'
+
+const AGENDA_SEED: AgendaItem[] = [
+  { id: 1, candidateName: 'أحمد العلي', candidateInitial: 'أ', candidateField: 'تطوير الويب', kind: 'skills', datetime: 'الخميس 2026-07-02 · 20:00', price: 180, status: 'requested' },
+  { id: 2, candidateName: 'سارة الزهراني', candidateInitial: 'س', candidateField: 'تطوير الويب', kind: 'level', datetime: 'الأحد 2026-07-05 · 18:00', price: 90, status: 'requested' },
+  { id: 3, candidateName: 'محمد القرني', candidateInitial: 'م', candidateField: 'البنية التحتية', kind: 'comprehensive', datetime: 'الثلاثاء 2026-06-30 · 19:00', price: 280, status: 'scheduled' },
+  {
+    id: 4, candidateName: 'ليان الحربي', candidateInitial: 'ل', candidateField: 'تطوير الويب', kind: 'skills', datetime: '2026-06-22 · 17:00', price: 180, status: 'completed', rating: 5,
+    report: {
+      level: 'متقدم', overall: 88,
+      competencies: [{ name: 'حل المشكلات', score: 90 }, { name: 'المعرفة التقنية', score: 88 }, { name: 'التواصل', score: 85 }],
+      strengths: ['حلول منظّمة وواضحة', 'إلمام عميق بأنماط التصميم'],
+      improvements: ['تحسين تغطية الاختبارات'],
+      recommendation: 'مرشح تقني قوي جاهز لأدوار متقدمة.',
+      trustGain: 12,
+    },
+  },
+]
+
+const DEFAULT_PRICING: Record<MarketInterviewKind, number> = { skills: 180, level: 90, leadership: 300, behavioral: 120, comprehensive: 280 }
+
+function loadAgenda(): AgendaItem[] {
+  const raw = localStorage.getItem(AGENDA_STORAGE)
+  if (!raw)
+    return AGENDA_SEED.map(a => ({ ...a }))
+  try {
+    return JSON.parse(raw) as AgendaItem[]
+  }
+  catch {
+    return AGENDA_SEED.map(a => ({ ...a }))
+  }
+}
+function loadPricing(): Record<MarketInterviewKind, number> {
+  const raw = localStorage.getItem(PRICING_STORAGE)
+  if (!raw)
+    return { ...DEFAULT_PRICING }
+  try {
+    return { ...DEFAULT_PRICING, ...JSON.parse(raw) }
+  }
+  catch {
+    return { ...DEFAULT_PRICING }
+  }
+}
+
 let nextBookingId = 700
 
 export const useInterviewersStore = defineStore('interviewers', () => {
   const interviewers = ref<Interviewer[]>(INTERVIEWERS_SEED.map(i => ({ ...i })))
   const bookings = ref<Booking[]>(loadBookings())
+  const agenda = ref<AgendaItem[]>(loadAgenda())
+  const pricing = ref<Record<MarketInterviewKind, number>>(loadPricing())
 
   watch(bookings, val => localStorage.setItem(BOOKINGS_STORAGE, JSON.stringify(val)), { deep: true })
+  watch(agenda, val => localStorage.setItem(AGENDA_STORAGE, JSON.stringify(val)), { deep: true })
+  watch(pricing, val => localStorage.setItem(PRICING_STORAGE, JSON.stringify(val)), { deep: true })
 
   const fields = computed(() => [...new Set(interviewers.value.map(i => i.field))])
 
@@ -195,9 +258,52 @@ export const useInterviewersStore = defineStore('interviewers', () => {
     return Math.round(reports.reduce((s, b) => s + (b.report?.overall ?? 0), 0) / reports.length)
   })
 
+  // — Interviewer side (agenda / stats / pricing) —
+  function getAgendaItem(id: number) {
+    return agenda.value.find(a => a.id === id)
+  }
+  function acceptRequest(id: number) {
+    const item = getAgendaItem(id)
+    if (item && item.status === 'requested')
+      item.status = 'scheduled'
+  }
+  function declineRequest(id: number) {
+    agenda.value = agenda.value.filter(a => a.id !== id)
+  }
+  function completeSession(id: number, report: EvaluationReport) {
+    const item = getAgendaItem(id)
+    if (item) {
+      item.status = 'completed'
+      item.report = report
+    }
+  }
+  function setPrice(kind: MarketInterviewKind, value: number) {
+    pricing.value[kind] = value
+  }
+
+  const agendaRequests = computed(() => agenda.value.filter(a => a.status === 'requested'))
+  const agendaUpcoming = computed(() => agenda.value.filter(a => a.status === 'scheduled'))
+  const agendaCompleted = computed(() => agenda.value.filter(a => a.status === 'completed'))
+
+  const interviewerStats = computed(() => {
+    const done = agendaCompleted.value
+    const earnings = done.reduce((s, a) => s + a.price, 0)
+    const rated = done.filter(a => a.rating)
+    const avgRating = rated.length ? Math.round((rated.reduce((s, a) => s + (a.rating ?? 0), 0) / rated.length) * 10) / 10 : 0
+    return {
+      sessions: done.length,
+      earnings,
+      avgRating,
+      pending: agendaRequests.value.length,
+      upcoming: agendaUpcoming.value.length,
+    }
+  })
+
   return {
-    interviewers, bookings, fields,
+    interviewers, bookings, agenda, pricing, fields,
     getById, recommendedFor, matchFor, book, rateBooking,
     completedReports, trustValue,
+    getAgendaItem, acceptRequest, declineRequest, completeSession, setPrice,
+    agendaRequests, agendaUpcoming, agendaCompleted, interviewerStats,
   }
 })

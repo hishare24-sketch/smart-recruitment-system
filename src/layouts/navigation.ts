@@ -20,6 +20,10 @@ export const navItems: NavItem[] = [
   { title: 'dashboard', icon: 'mdi-view-dashboard-outline', to: 'endorser-home', roles: ['endorser'] },
   { title: 'endorsements', icon: 'mdi-account-star-outline', to: 'add-endorsement', roles: ['endorser'] },
 
+  // Interviewer (certified)
+  { title: 'interviewerHome', icon: 'mdi-account-tie', to: 'interviewer-dashboard', roles: ['interviewer'] },
+  { title: 'assistant', icon: 'mdi-robot-happy-outline', to: 'assistant', roles: ['interviewer'] },
+
   // Seeker
   { title: 'profile', icon: 'mdi-account-circle-outline', to: 'profile', roles: ['seeker'] },
   { title: 'opportunities', icon: 'mdi-briefcase-search-outline', to: 'opportunities', roles: ['seeker'] },

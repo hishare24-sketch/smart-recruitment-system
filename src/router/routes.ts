@@ -97,9 +97,27 @@ export const routes: RouteRecordRaw[] = [
     meta: { layout: 'default' },
   },
   {
+    path: '/interviewers/register',
+    name: 'interviewer-register',
+    component: () => import('@/modules/interviewers/pages/InterviewerRegisterPage.vue'),
+    meta: { layout: 'default' },
+  },
+  {
     path: '/interviewers/:id',
     name: 'interviewer-profile',
     component: () => import('@/modules/interviewers/pages/InterviewerProfilePage.vue'),
+    meta: { layout: 'default' },
+  },
+  {
+    path: '/interviewer',
+    name: 'interviewer-dashboard',
+    component: () => import('@/modules/interviewers/pages/InterviewerDashboardPage.vue'),
+    meta: { layout: 'default' },
+  },
+  {
+    path: '/interviewer/session/:id',
+    name: 'conduct-interview',
+    component: () => import('@/modules/interviewers/pages/ConductInterviewPage.vue'),
     meta: { layout: 'default' },
   },
   {
