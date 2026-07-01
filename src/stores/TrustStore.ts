@@ -4,6 +4,7 @@ import { useProfileStore, skillConfidence } from '@/stores/ProfileStore'
 import { useApplicationsStore } from '@/stores/ApplicationsStore'
 import { useMessagesStore } from '@/stores/MessagesStore'
 import { useInterviewsStore } from '@/stores/InterviewsStore'
+import { useInterviewersStore } from '@/stores/InterviewersStore'
 import { ai } from '@/services/ai'
 
 export interface TrustFactor {
@@ -18,6 +19,7 @@ export const useTrustStore = defineStore('trust', () => {
   const applications = useApplicationsStore()
   const messages = useMessagesStore()
   const interviews = useInterviewsStore()
+  const interviewers = useInterviewersStore()
 
   // Each factor computed from real store data where possible, else a stable mock value
   const factors = computed<TrustFactor[]>(() => {
@@ -39,6 +41,12 @@ export const useTrustStore = defineStore('trust', () => {
     // Interaction: applications + conversations
     const interaction = Math.min(100, applications.count * 12 + messages.conversations.length * 8)
 
+    // Interviews factor blends self-serve AI interviews with certified-interviewer reports
+    const interviewSignals = [interviews.trustValue, interviewers.trustValue].filter(v => v > 0)
+    const interviewsValue = interviewSignals.length
+      ? Math.round(interviewSignals.reduce((s, v) => s + v, 0) / interviewSignals.length)
+      : 0
+
     return [
       { key: 'completeness', label: 'اكتمال البيانات', weight: 20, value: completeness },
       { key: 'endorsements', label: 'التوصيات', weight: 25, value: 80 },
@@ -47,7 +55,7 @@ export const useTrustStore = defineStore('trust', () => {
       { key: 'interaction', label: 'حجم التفاعل', weight: 5, value: interaction },
       { key: 'recency', label: 'حداثة البيانات', weight: 5, value: 90 },
       { key: 'activity', label: 'النشاط والاستجابة', weight: 5, value: 70 },
-      { key: 'interviews', label: 'المقابلات المُنجزة', weight: 5, value: interviews.trustValue },
+      { key: 'interviews', label: 'المقابلات المُنجزة', weight: 5, value: interviewsValue },
     ]
   })
 

@@ -7,6 +7,7 @@ const ROLE_PERMISSIONS: Record<User['role'], string[]> = {
   company: ['view_candidates', 'create_opportunity', 'send_wish', 'view_analytics'],
   endorser: ['create_endorsement'],
   admin: ['*'],
+  interviewer: ['conduct_interview', 'manage_interviewer_profile', 'write_evaluation'],
 }
 
 function buildMockUser(partial: Partial<User> & Pick<User, 'email' | 'role' | 'name'>): User {
@@ -31,7 +32,7 @@ class AuthService {
     if (this.useMock) {
       await new Promise(r => setTimeout(r, 600))
       // Infer role from a "+role" hint in the email, default to seeker
-      const role = (['company', 'endorser', 'admin'] as const).find(r => payload.email.includes(r)) ?? 'seeker'
+      const role = (['company', 'endorser', 'admin', 'interviewer'] as const).find(r => payload.email.includes(r)) ?? 'seeker'
       return buildMockUser({
         email: payload.email,
         name: payload.email.split('@')[0] || 'مستخدم',

@@ -42,6 +42,32 @@ export interface UploadAnalysis {
   atsKeywords: string[]
 }
 
+// — Certified Interviewers Marketplace (phase 5) —
+export interface InterviewerEligibility {
+  score: number // 0-100 initial eligibility
+  strengths: string[]
+  gaps: string[]
+  recommendation: 'accept' | 'review' | 'reject'
+  note: string
+}
+
+export interface PricingSuggestion {
+  min: number
+  max: number
+  note: string
+}
+
+export interface InterviewerRank {
+  id: number
+  match: number // 0-100
+  reason: string
+}
+
+export interface EvaluationReview {
+  summary: string
+  suggestions: string[]
+}
+
 export interface SkillInsight {
   skill: string // weakest verified skill name
   confidence: number
@@ -101,4 +127,11 @@ export interface AiService {
   assistantReply: (question: string, ctx: { trust: number, unverifiedSkills: string[], lastInterviewScore: number | null, route?: string }) => string
   assistantSuggestions: (ctx: { unverifiedSkills: string[], pendingProofs: number, route?: string }) => string[]
   analyzeUpload: (fileName: string) => UploadAnalysis
+  // — certified interviewers marketplace (phase 5) —
+  interviewerEligibility: (quals: { years: number, certs: number, endorsements: number, hasLicense?: boolean }) => InterviewerEligibility
+  suggestInterviewerPricing: (kind: string, years: number) => PricingSuggestion
+  interviewerMatch: (candidate: { field: string, skills: string[] }, interviewer: { type: string, specialties: string[] }) => number
+  recommendInterviewers: (candidate: { field: string, skills: string[] }, interviewers: { id: number, type: string, specialties: string[] }[]) => InterviewerRank[]
+  suggestEvaluationQuestions: (kind: string) => string[]
+  reviewEvaluationReport: (draft: { strengths: string, improvements: string, level: string }) => EvaluationReview
 }

@@ -7,6 +7,10 @@ import type {
   InterviewRecommendation,
   InterviewType,
   ProactiveNudge,
+  EvaluationReview,
+  InterviewerEligibility,
+  InterviewerRank,
+  PricingSuggestion,
   RequestPerformance,
   SkillInsight,
   SkillLevelResult,
@@ -328,6 +332,96 @@ function analyzeUpload(fileName: string): UploadAnalysis {
   }
 }
 
+// — Certified Interviewers Marketplace AI (phase 5) —
+function interviewerEligibility(quals: { years: number, certs: number, endorsements: number, hasLicense?: boolean }): InterviewerEligibility {
+  let score = 20
+  score += Math.min(40, quals.years * 5) // up to 40 for 8+ years
+  score += Math.min(25, quals.certs * 8) // up to 25 for certificates
+  score += Math.min(15, quals.endorsements * 5) // up to 15 for endorsements
+  if (quals.hasLicense)
+    score = Math.min(100, score + 5)
+  score = Math.min(100, score)
+
+  const strengths: string[] = []
+  const gaps: string[] = []
+  if (quals.years >= 5)
+    strengths.push(`خبرة عملية قوية (${quals.years} سنوات)`)
+  else gaps.push('الخبرة العملية أقل من 5 سنوات المطلوبة')
+  if (quals.certs >= 2)
+    strengths.push('شهادات معتمدة متعددة')
+  else gaps.push('أضف شهادات معتمدة لتعزيز أهليتك')
+  if (quals.endorsements >= 2)
+    strengths.push('توصيات موثّقة من جهات معترف بها')
+  else gaps.push('توصيتان موثّقتان على الأقل تعزّزان القبول')
+
+  const recommendation: InterviewerEligibility['recommendation'] = score >= 70 ? 'accept' : score >= 45 ? 'review' : 'reject'
+  const noteByRec: Record<InterviewerEligibility['recommendation'], string> = {
+    accept: 'مؤهلاتك تستوفي معايير المنصة — يُوصى بالقبول كمقيّم معتمد.',
+    review: 'مؤهلات واعدة تحتاج مراجعة إدارية — عزّز النقاط الناقصة لرفع فرص القبول.',
+    reject: 'المؤهلات الحالية دون الحدّ الأدنى — استكمل الخبرة والشهادات ثم أعد التقديم.',
+  }
+  return { score, strengths, gaps, recommendation, note: noteByRec[recommendation] }
+}
+
+const PRICE_BANDS: Record<string, [number, number]> = {
+  skills: [50, 300],
+  level: [30, 150],
+  leadership: [100, 500],
+  behavioral: [40, 200],
+  comprehensive: [150, 800],
+}
+function suggestInterviewerPricing(kind: string, years: number): PricingSuggestion {
+  const [floor, ceil] = PRICE_BANDS[kind] ?? [50, 300]
+  const experienceFactor = Math.min(1, years / 12)
+  const mid = Math.round(floor + (ceil - floor) * (0.35 + 0.4 * experienceFactor))
+  const min = Math.round(mid * 0.8 / 5) * 5
+  const max = Math.round(mid * 1.25 / 5) * 5
+  return { min, max, note: `بناءً على خبرتك (${years} سنوات) ومتوسط السوق لهذا النوع، النطاق ${min}–${max} ريال تنافسي.` }
+}
+
+function interviewerMatch(candidate: { field: string, skills: string[] }, interviewer: { type: string, specialties: string[] }): number {
+  const overlap = interviewer.specialties.filter(s =>
+    candidate.skills.some(k => k.toLowerCase() === s.toLowerCase()) || candidate.field.includes(s),
+  ).length
+  const base = interviewer.specialties.some(s => candidate.field.includes(s) || s.includes(candidate.field)) ? 65 : 45
+  return Math.min(98, base + overlap * 12)
+}
+
+function recommendInterviewers(candidate: { field: string, skills: string[] }, interviewers: { id: number, type: string, specialties: string[] }[]): InterviewerRank[] {
+  return interviewers
+    .map((iv) => {
+      const match = interviewerMatch(candidate, iv)
+      return { id: iv.id, match, reason: `توافق ${match}% مع مجالك «${candidate.field}» ومهاراتك المُثبتة.` }
+    })
+    .sort((a, b) => b.match - a.match)
+    .slice(0, 3)
+}
+
+const EVAL_QUESTIONS: Record<string, string[]> = {
+  skills: ['حلّل مشكلة تقنية حقيقية واجهتها وكيف وصلت للحل.', 'ما المقايضات التي توازنها عند اختيار حلٍّ تقني؟', 'اكتب/اشرح خوارزمية لحالة عملية محددة.'],
+  level: ['صف أكثر مشروع فخور به ودورك التفصيلي فيه.', 'كيف تقيس جودة عملك وتضمن قابليته للصيانة؟', 'ما الفجوة الأكبر في مهاراتك وخطتك لسدّها؟'],
+  leadership: ['صف تحوّلاً قدته وكيف أدرت مقاومة التغيير.', 'كيف تطوّر أفراد فريقك وتتعامل مع ضعف الأداء؟', 'حلّل قرارًا استراتيجيًا صعبًا اتخذته وأثره.'],
+  behavioral: ['أخبرني عن موقف تعارضت فيه مع زميل وكيف حللته.', 'كيف تتعامل مع ضغط المواعيد وتعارض الأولويات؟', 'ما القيم التي توجّه قراراتك المهنية؟'],
+  comprehensive: ['ابدأ بنبذة عن مسارك ثم أعمق إنجاز تقني لك.', 'صف موقف قيادة أو تأثير على فريق.', 'كيف توازن بين الابتكار والاستقرار في عملك؟'],
+}
+function suggestEvaluationQuestions(kind: string): string[] {
+  return EVAL_QUESTIONS[kind] ?? EVAL_QUESTIONS.level
+}
+
+function reviewEvaluationReport(draft: { strengths: string, improvements: string, level: string }): EvaluationReview {
+  const suggestions: string[] = []
+  if (draft.strengths.trim().length < 40)
+    suggestions.push('وسّع نقاط القوة بأمثلة ملموسة من المقابلة.')
+  if (draft.improvements.trim().length < 40)
+    suggestions.push('اربط كل نقطة تحسين بتوصية تطويرية قابلة للتنفيذ.')
+  if (!/\d/.test(draft.strengths + draft.improvements))
+    suggestions.push('ادعم التقييم بمؤشرات قابلة للقياس (نسب، أمثلة رقمية).')
+  return {
+    summary: `تقرير متماسك يحدّد المستوى «${draft.level}». ${suggestions.length ? 'أضف اللمسات المقترحة لرفع جودته.' : 'جاهز للإضافة إلى ملف المرشح.'}`,
+    suggestions,
+  }
+}
+
 export const mockAi: AiService = {
   skillLevel,
   trustAnalysis,
@@ -349,4 +443,10 @@ export const mockAi: AiService = {
   assistantReply,
   assistantSuggestions,
   analyzeUpload,
+  interviewerEligibility,
+  suggestInterviewerPricing,
+  interviewerMatch,
+  recommendInterviewers,
+  suggestEvaluationQuestions,
+  reviewEvaluationReport,
 }
