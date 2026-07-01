@@ -117,13 +117,34 @@ async function exportPng() {
     toastMsg.value = 'تعذّر توليد الصورة — جرّب تصدير PDF.'
   }
 }
+// Real Word export: inline the styles into a clone, wrap in Word-namespaced
+// HTML, and download as .doc (opens in Word / Google Docs — no dependency).
+function exportDoc() {
+  const node = document.querySelector('.resume-print-target') as HTMLElement | null
+  if (!node)
+    return
+  const clone = node.cloneNode(true) as HTMLElement
+  inlineStyles(node, clone)
+  clone.style.maxHeight = 'none'
+  clone.style.boxShadow = 'none'
+  const html = `<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>${currentName()}</title></head><body dir="${isRtl.value ? 'rtl' : 'ltr'}">${clone.outerHTML}</body></html>`
+  const blob = new Blob(['﻿', html], { type: 'application/msword' })
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = `${currentName()}.doc`
+  a.click()
+  URL.revokeObjectURL(a.href)
+  toastMsg.value = 'تم تنزيل نسخة Word من السيرة.'
+}
 function exportResume(format: string) {
   if (format.includes('PDF'))
     printResume()
   else if (format === 'PNG')
     exportPng()
+  else if (format === 'DOCX')
+    exportDoc()
   else
-    toastMsg.value = `تصدير ${format} سيتوفّر قريبًا — استخدم PDF أو PNG الآن.`
+    toastMsg.value = `تصدير ${format} سيتوفّر قريبًا.`
 }
 
 // — Sharing: public link, private (password) link, QR —
