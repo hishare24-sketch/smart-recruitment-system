@@ -103,6 +103,24 @@ export const routes: RouteRecordRaw[] = [
     meta: { layout: 'default' },
   },
   {
+    path: '/interviews',
+    name: 'interviews',
+    component: () => import('@/modules/interviews/pages/InterviewsPage.vue'),
+    meta: { layout: 'default' },
+  },
+  {
+    path: '/interviews/session/:id',
+    name: 'interview-session',
+    component: () => import('@/modules/interviews/pages/InterviewSessionPage.vue'),
+    meta: { layout: 'default' },
+  },
+  {
+    path: '/interviews/:id/result',
+    name: 'interview-result',
+    component: () => import('@/modules/interviews/pages/InterviewResultPage.vue'),
+    meta: { layout: 'default' },
+  },
+  {
     path: '/messages',
     name: 'messages',
     component: () => import('@/modules/messages/pages/MessagesPage.vue'),

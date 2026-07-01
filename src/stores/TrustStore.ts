@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useProfileStore, skillConfidence } from '@/stores/ProfileStore'
 import { useApplicationsStore } from '@/stores/ApplicationsStore'
 import { useMessagesStore } from '@/stores/MessagesStore'
+import { useInterviewsStore } from '@/stores/InterviewsStore'
 import { ai } from '@/services/ai'
 
 export interface TrustFactor {
@@ -16,6 +17,7 @@ export const useTrustStore = defineStore('trust', () => {
   const profile = useProfileStore()
   const applications = useApplicationsStore()
   const messages = useMessagesStore()
+  const interviews = useInterviewsStore()
 
   // Each factor computed from real store data where possible, else a stable mock value
   const factors = computed<TrustFactor[]>(() => {
@@ -45,7 +47,7 @@ export const useTrustStore = defineStore('trust', () => {
       { key: 'interaction', label: 'حجم التفاعل', weight: 5, value: interaction },
       { key: 'recency', label: 'حداثة البيانات', weight: 5, value: 90 },
       { key: 'activity', label: 'النشاط والاستجابة', weight: 5, value: 70 },
-      { key: 'interviews', label: 'المقابلات المُنجزة', weight: 5, value: 40 },
+      { key: 'interviews', label: 'المقابلات المُنجزة', weight: 5, value: interviews.trustValue },
     ]
   })
 
