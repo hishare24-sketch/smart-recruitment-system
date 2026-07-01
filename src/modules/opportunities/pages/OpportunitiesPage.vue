@@ -8,8 +8,21 @@ import type { EmploymentType, ExperienceLevel } from '../interfaces/Opportunity'
 import { useSavedStore } from '@/stores/SavedStore'
 import TaxonomyTree from '@/components/shared/TaxonomyTree.vue'
 import { categorizeSkill } from '@/services/taxonomy'
+import { useProfileStore } from '@/stores/ProfileStore'
+import { ai } from '@/services/ai'
 
 const savedStore = useSavedStore()
+const profile = useProfileStore()
+
+// AI smart quick-filters
+const smartChips = computed(() => ai.smartFilterChips({ section: 'opportunities', skills: profile.skills.map(s => s.name) }))
+const activeChips = ref<Set<string>>(new Set())
+function toggleChip(key: string) {
+  const next = new Set(activeChips.value)
+  next.has(key) ? next.delete(key) : next.add(key)
+  activeChips.value = next
+}
+const userSkills = computed(() => profile.skills.map(s => s.name))
 const treeSel = ref<{ category?: string, sub?: string }>({})
 const treeItems = computed(() => mockOpportunities.map(o => ({
   skills: o.skills,
@@ -21,7 +34,7 @@ const selectedType = ref<EmploymentType | null>(null)
 const selectedLevel = ref<ExperienceLevel | null>(null)
 const selectedCity = ref<string | null>(null)
 const minSalary = ref(0)
-const sortBy = ref<'match' | 'newest' | 'salary'>('match')
+const sortBy = ref<'match' | 'newest' | 'oldest' | 'salary' | 'salaryLow'>('match')
 const savedOnly = ref(false)
 const view = ref<'grid' | 'list'>('grid')
 
@@ -31,7 +44,9 @@ const cityOptions = [...new Set(mockOpportunities.map(o => o.city))].map(c => ({
 const sortOptions = [
   { value: 'match', title: 'الأعلى تطابقاً' },
   { value: 'newest', title: 'الأحدث' },
+  { value: 'oldest', title: 'الأقدم' },
   { value: 'salary', title: 'الأعلى راتباً' },
+  { value: 'salaryLow', title: 'الأقل راتباً' },
 ]
 
 const filtered = computed(() => {
@@ -47,7 +62,9 @@ const filtered = computed(() => {
     const matchesSaved = !savedOnly.value || savedStore.isSaved(o.id)
     const matchesCategory = !treeSel.value.category || o.skills.some(s => categorizeSkill(s) === treeSel.value.category)
     const matchesSub = !treeSel.value.sub || `${o.title} ${o.city} ${o.skills.join(' ')}`.includes(treeSel.value.sub)
-    return matchesSearch && matchesType && matchesLevel && matchesCity && matchesSalary && matchesSaved && matchesCategory && matchesSub
+    const matchesNew = !activeChips.value.has('newToday') || o.postedDaysAgo <= 1
+    const matchesSkills = !activeChips.value.has('skills') || o.skills.some(s => userSkills.value.includes(s))
+    return matchesSearch && matchesType && matchesLevel && matchesCity && matchesSalary && matchesSaved && matchesCategory && matchesSub && matchesNew && matchesSkills
   })
 
   list = [...list].sort((a, b) => {
@@ -55,6 +72,10 @@ const filtered = computed(() => {
       return b.matchRate - a.matchRate
     if (sortBy.value === 'newest')
       return a.postedDaysAgo - b.postedDaysAgo
+    if (sortBy.value === 'oldest')
+      return b.postedDaysAgo - a.postedDaysAgo
+    if (sortBy.value === 'salaryLow')
+      return a.salaryMax - b.salaryMax
     return b.salaryMax - a.salaryMax
   })
   return list
@@ -141,6 +162,22 @@ function resetFilters() {
 
       <!-- Results -->
       <VCol cols="12" md="9">
+        <!-- AI smart quick-filters -->
+        <div class="d-flex align-center flex-wrap ga-2 mb-3">
+          <span class="text-caption text-medium-emphasis"><VIcon icon="mdi-robot-happy-outline" size="16" color="secondary" /> فلاتر ذكية:</span>
+          <VChip
+            v-for="chip in smartChips"
+            :key="chip.key"
+            :color="activeChips.has(chip.key) ? 'secondary' : undefined"
+            :variant="activeChips.has(chip.key) ? 'flat' : 'outlined'"
+            size="small"
+            :prepend-icon="chip.icon"
+            @click="toggleChip(chip.key)"
+          >
+            {{ chip.label }}
+          </VChip>
+        </div>
+
         <div class="text-body-2 text-medium-emphasis mb-3">
           {{ filtered.length }} فرصة متاحة
         </div>

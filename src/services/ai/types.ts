@@ -182,5 +182,5 @@ export interface AiService {
   // — global search —
   searchIntent: (query: string) => SearchIntent
   keywordAlternatives: (query: string) => string[]
-  smartFilterChips: (ctx: { section: string, skills: string[] }) => { label: string, icon: string }[]
+  smartFilterChips: (ctx: { section: string, skills: string[] }) => { key: string, label: string, icon: string }[]
 }

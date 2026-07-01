@@ -9,6 +9,7 @@ import EmptyState from '@/components/shared/EmptyState.vue'
 import AttachmentsDialog from '@/components/shared/AttachmentsDialog.vue'
 import TaxonomyTree from '@/components/shared/TaxonomyTree.vue'
 import { ALL_SKILLS, categorizeSkill } from '@/services/taxonomy'
+import { ai } from '@/services/ai'
 
 const router = useRouter()
 const store = useInterviewersStore()
@@ -38,6 +39,26 @@ const selectedSkills = ref<string[]>([])
 const minRating = ref(0)
 const maxPrice = ref(500)
 const treeSel = ref<{ category?: string, sub?: string }>({})
+const search = ref('')
+const sortBy = ref<'match' | 'rating' | 'priceLow' | 'priceHigh' | 'sessions'>('match')
+const view = ref<'grid' | 'list'>('grid')
+const sortOptions = [
+  { value: 'match', title: 'الأعلى تطابقًا' },
+  { value: 'rating', title: 'الأعلى تقييمًا' },
+  { value: 'priceLow', title: 'الأقل سعرًا' },
+  { value: 'priceHigh', title: 'الأعلى سعرًا' },
+  { value: 'sessions', title: 'الأكثر مقابلات' },
+]
+
+// AI smart quick-filters
+const smartChips = computed(() => ai.smartFilterChips({ section: 'interviewers', skills: profile.skills.map(s => s.name) }))
+const activeChips = ref<Set<string>>(new Set())
+function toggleChip(key: string) {
+  const next = new Set(activeChips.value)
+  next.has(key) ? next.delete(key) : next.add(key)
+  activeChips.value = next
+}
+const userSkills = computed(() => profile.skills.map(s => s.name))
 
 // Taxonomy tree items (skills for counting, text for sub-category keyword match)
 const treeItems = computed(() => store.interviewers.map(iv => ({
@@ -56,8 +77,14 @@ function toggleType(t: InterviewerType) {
     : [...selectedTypes.value, t]
 }
 
-const filtered = computed(() =>
-  store.interviewers.filter((iv) => {
+function matchOf(id: number) {
+  return store.matchFor(candidate.value, id)
+}
+
+const filtered = computed(() => {
+  const list = store.interviewers.filter((iv) => {
+    if (search.value.trim() && !`${iv.name} ${iv.title} ${iv.field} ${iv.specialties.join(' ')}`.includes(search.value.trim()))
+      return false
     if (selectedTypes.value.length && !selectedTypes.value.includes(iv.type))
       return false
     if (selectedSkills.value.length && !iv.specialties.some(s => selectedSkills.value.includes(s)))
@@ -70,13 +97,23 @@ const filtered = computed(() =>
       return false
     if (iv.priceMin > maxPrice.value)
       return false
+    // AI smart quick-filters
+    if (activeChips.value.has('topRated') && iv.rating < 4.5)
+      return false
+    if (activeChips.value.has('skills') && !iv.specialties.some(s => userSkills.value.includes(s)))
+      return false
     return true
-  }),
-)
-
-function matchOf(id: number) {
-  return store.matchFor(candidate.value, id)
-}
+  })
+  const sorted = [...list]
+  switch (sortBy.value) {
+    case 'rating': sorted.sort((a, b) => b.rating - a.rating); break
+    case 'priceLow': sorted.sort((a, b) => a.priceMin - b.priceMin); break
+    case 'priceHigh': sorted.sort((a, b) => b.priceMax - a.priceMax); break
+    case 'sessions': sorted.sort((a, b) => b.sessionsCount - a.sessionsCount); break
+    default: sorted.sort((a, b) => matchOf(b.id) - matchOf(a.id))
+  }
+  return sorted
+})
 function open(id: number) {
   router.push({ name: 'interviewer-profile', params: { id } })
 }
@@ -168,9 +205,49 @@ function open(id: number) {
 
       <!-- Interviewers grid -->
       <VCol cols="12" md="9">
-        <div class="text-body-2 text-medium-emphasis mb-3">{{ filtered.length }} مقيّم معتمد</div>
+        <!-- Local search -->
+        <VTextField
+          v-model="search"
+          placeholder="ابحث في المقيّمين بالاسم أو التخصص..."
+          prepend-inner-icon="mdi-magnify"
+          variant="solo"
+          density="compact"
+          flat
+          hide-details
+          clearable
+          class="mb-3"
+        />
+
+        <!-- AI smart quick-filters -->
+        <div class="d-flex align-center flex-wrap ga-2 mb-3">
+          <span class="text-caption text-medium-emphasis"><VIcon icon="mdi-robot-happy-outline" size="16" color="secondary" /> فلاتر ذكية:</span>
+          <VChip
+            v-for="chip in smartChips"
+            :key="chip.key"
+            :color="activeChips.has(chip.key) ? 'secondary' : undefined"
+            :variant="activeChips.has(chip.key) ? 'flat' : 'outlined'"
+            size="small"
+            :prepend-icon="chip.icon"
+            @click="toggleChip(chip.key)"
+          >
+            {{ chip.label }}
+          </VChip>
+        </div>
+
+        <!-- Toolbar: count · sort · view -->
+        <div class="d-flex align-center justify-space-between flex-wrap ga-2 mb-3">
+          <span class="text-body-2 text-medium-emphasis">{{ filtered.length }} مقيّم معتمد</span>
+          <div class="d-flex align-center ga-2">
+            <VSelect v-model="sortBy" :items="sortOptions" density="compact" variant="outlined" hide-details prepend-inner-icon="mdi-sort" style="max-width: 180px" />
+            <VBtnToggle v-model="view" mandatory density="compact" variant="outlined" divided>
+              <VBtn value="grid" icon="mdi-view-grid-outline" size="small" />
+              <VBtn value="list" icon="mdi-view-list-outline" size="small" />
+            </VBtnToggle>
+          </div>
+        </div>
+
         <VRow>
-          <VCol v-for="iv in filtered" :key="iv.id" cols="12" sm="6">
+          <VCol v-for="iv in filtered" :key="iv.id" cols="12" :sm="view === 'grid' ? 6 : 12">
             <VCard class="pa-4 h-100 d-flex flex-column cursor-pointer" @click="open(iv.id)">
               <div class="d-flex align-start ga-3 mb-2">
                 <VAvatar :color="INTERVIEWER_TYPE_META[iv.type].color" size="52">

@@ -8,9 +8,21 @@ import { ai } from '@/services/ai'
 import EmptyState from '@/components/shared/EmptyState.vue'
 import TaxonomyTree from '@/components/shared/TaxonomyTree.vue'
 import { categorizeSkill } from '@/services/taxonomy'
+import { useProfileStore } from '@/stores/ProfileStore'
 
 const router = useRouter()
 const store = useRequestsStore()
+const profile = useProfileStore()
+
+// AI smart quick-filters
+const smartChips = computed(() => ai.smartFilterChips({ section: 'requests', skills: profile.skills.map(s => s.name) }))
+const activeChips = ref<Set<string>>(new Set())
+function toggleChip(key: string) {
+  const next = new Set(activeChips.value)
+  next.has(key) ? next.delete(key) : next.add(key)
+  activeChips.value = next
+}
+const userSkills = computed(() => profile.skills.map(s => s.name))
 
 const search = ref('')
 const searchFocused = ref(false)
@@ -31,12 +43,14 @@ const treeItems = computed(() => store.requests.map(r => ({
 
 // Side-sheet filter + sorting
 const filterDrawer = ref(false)
-const sortBy = ref<'match' | 'newest' | 'rating' | 'price'>('match')
+const sortBy = ref<'match' | 'newest' | 'oldest' | 'rating' | 'price' | 'applicants'>('match')
 const sortOptions = [
   { value: 'match', title: 'الأعلى تطابقًا' },
   { value: 'newest', title: 'الأحدث' },
+  { value: 'oldest', title: 'الأقدم' },
   { value: 'rating', title: 'الأعلى تقييمًا' },
   { value: 'price', title: 'الأقل سعرًا' },
+  { value: 'applicants', title: 'الأكثر تقدّمًا' },
 ]
 const activeFilterCount = computed(() =>
   selectedKinds.value.length + (selectedField.value ? 1 : 0) + (remoteOnly.value ? 1 : 0)
@@ -75,13 +89,24 @@ const filtered = computed(() => {
       return false
     if (treeSel.value.sub && !`${r.title} ${r.field} ${r.skills.join(' ')}`.includes(treeSel.value.sub))
       return false
+    // AI smart quick-filters
+    if (activeChips.value.has('newToday') && r.state !== 'new')
+      return false
+    if (activeChips.value.has('lowComp') && r.applicants >= 5)
+      return false
+    if (activeChips.value.has('topRated') && r.orgRating < 4.5)
+      return false
+    if (activeChips.value.has('skills') && !r.skills.some(s => userSkills.value.includes(s)))
+      return false
     return true
   })
   const sorted = [...list]
   switch (sortBy.value) {
     case 'newest': sorted.sort((a, b) => b.postedOrder - a.postedOrder); break
+    case 'oldest': sorted.sort((a, b) => a.postedOrder - b.postedOrder); break
     case 'rating': sorted.sort((a, b) => b.orgRating - a.orgRating); break
     case 'price': sorted.sort((a, b) => a.budgetValue - b.budgetValue); break
+    case 'applicants': sorted.sort((a, b) => b.applicants - a.applicants); break
     default: sorted.sort((a, b) => b.matchRate - a.matchRate)
   }
   return sorted
@@ -176,6 +201,22 @@ function open(id: number) {
           style="max-width: 190px"
         />
       </div>
+    </div>
+
+    <!-- AI smart quick-filters -->
+    <div class="d-flex align-center flex-wrap ga-2 mb-3">
+      <span class="text-caption text-medium-emphasis"><VIcon icon="mdi-robot-happy-outline" size="16" color="secondary" /> فلاتر ذكية:</span>
+      <VChip
+        v-for="chip in smartChips"
+        :key="chip.key"
+        :color="activeChips.has(chip.key) ? 'secondary' : undefined"
+        :variant="activeChips.has(chip.key) ? 'flat' : 'outlined'"
+        size="small"
+        :prepend-icon="chip.icon"
+        @click="toggleChip(chip.key)"
+      >
+        {{ chip.label }}
+      </VChip>
     </div>
 
     <!-- AI proactive alert -->

@@ -596,14 +596,16 @@ function keywordAlternatives(query: string): string[] {
   return out.slice(0, 2)
 }
 
-function smartFilterChips(ctx: { section: string, skills: string[] }): { label: string, icon: string }[] {
-  const chips = [
-    { label: 'منافسة منخفضة (<5 متقدمين)', icon: 'mdi-account-arrow-down-outline' },
-    { label: 'جديد اليوم', icon: 'mdi-new-box' },
-    { label: 'جهات تقييمها 4.5★+', icon: 'mdi-star-check-outline' },
-  ]
+function smartFilterChips(ctx: { section: string, skills: string[] }): { key: string, label: string, icon: string }[] {
+  const chips: { key: string, label: string, icon: string }[] = []
   if (ctx.skills.length)
-    chips.unshift({ label: `يناسب مهاراتك في ${ctx.skills[0]}`, icon: 'mdi-target' })
+    chips.push({ key: 'skills', label: `يناسب مهاراتك في ${ctx.skills[0]}`, icon: 'mdi-target' })
+  if (ctx.section !== 'interviewers')
+    chips.push({ key: 'newToday', label: 'جديد', icon: 'mdi-new-box' })
+  if (ctx.section === 'requests')
+    chips.push({ key: 'lowComp', label: 'منافسة منخفضة (<5 متقدمين)', icon: 'mdi-account-arrow-down-outline' })
+  if (ctx.section === 'requests' || ctx.section === 'interviewers')
+    chips.push({ key: 'topRated', label: 'تقييم 4.5★+', icon: 'mdi-star-check-outline' })
   return chips
 }
 
