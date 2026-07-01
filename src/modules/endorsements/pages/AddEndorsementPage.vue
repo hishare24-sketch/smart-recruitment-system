@@ -1,9 +1,16 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import PageHeader from '@/components/shared/PageHeader.vue'
+import { useEndorserStore } from '@/stores/EndorserStore'
 
 const router = useRouter()
+const route = useRoute()
+const store = useEndorserStore()
+
+const requestId = computed(() => (route.query.request ? Number(route.query.request) : null))
+const candidate = computed(() => (requestId.value ? store.getRequest(requestId.value) : null))
+const candidateName = computed(() => candidate.value?.name ?? 'أحمد المنصور')
 
 const type = ref('text')
 const content = ref('')
@@ -23,9 +30,11 @@ const aiQuestions = ref([
   { q: 'كيف هي علاقته بالفريق؟', a: '' },
 ])
 
+const typeLabels: Record<string, string> = { text: 'نص', audio: 'صوت', video: 'فيديو', document: 'مستند' }
 const snackbar = ref(false)
 
 function submit() {
+  store.submit(requestId.value, typeLabels[type.value] ?? 'نص')
   snackbar.value = true
   setTimeout(() => router.push({ name: 'endorser-home' }), 1200)
 }
@@ -36,7 +45,7 @@ function submit() {
     <VBtn variant="text" prepend-icon="mdi-arrow-right" class="mb-3" @click="router.back()">رجوع</VBtn>
     <PageHeader
       title="إضافة توصية"
-      subtitle="لـ أحمد المنصور"
+      :subtitle="`لـ ${candidateName}`"
       icon="mdi-account-star-outline"
     />
 
@@ -44,10 +53,10 @@ function submit() {
       <!-- Candidate info -->
       <VCard class="pa-5 mb-4">
         <div class="d-flex align-center ga-3 mb-4">
-          <VAvatar color="secondary" size="48"><span class="text-white font-weight-bold">أ</span></VAvatar>
+          <VAvatar color="secondary" size="48"><span class="text-white font-weight-bold">{{ candidateName.charAt(0) }}</span></VAvatar>
           <div>
-            <div class="text-subtitle-1 font-weight-bold">أحمد المنصور</div>
-            <div class="text-caption text-medium-emphasis">مطوّر واجهات أمامية</div>
+            <div class="text-subtitle-1 font-weight-bold">{{ candidateName }}</div>
+            <div class="text-caption text-medium-emphasis">{{ candidate?.relation ?? 'مرشح' }}</div>
           </div>
         </div>
         <VRow dense>

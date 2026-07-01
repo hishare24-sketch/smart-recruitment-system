@@ -2,6 +2,7 @@ export interface AssessmentQuestion {
   id: number
   text: string
   options: string[]
+  correctIndex: number
 }
 
 export interface Assessment {
@@ -25,11 +26,11 @@ export interface CompletedAssessment {
 }
 
 const SAMPLE_QUESTIONS: AssessmentQuestion[] = [
-  { id: 1, text: 'ما الناتج عن التعبير: typeof null في JavaScript؟', options: ['"null"', '"object"', '"undefined"', '"number"'] },
-  { id: 2, text: 'أي طريقة تُستخدم لإضافة عنصر لنهاية المصفوفة؟', options: ['push()', 'pop()', 'shift()', 'unshift()'] },
-  { id: 3, text: 'ما الكلمة المفتاحية التي تُنشئ متغيراً لا يمكن إعادة تعيينه؟', options: ['let', 'var', 'const', 'static'] },
-  { id: 4, text: 'ماذا يُعيد Promise عند نجاحه؟', options: ['reject', 'resolve', 'throw', 'catch'] },
-  { id: 5, text: 'أي مما يلي ليس نوعاً بدائياً (primitive) في JavaScript؟', options: ['string', 'number', 'array', 'boolean'] },
+  { id: 1, text: 'ما الناتج عن التعبير: typeof null في JavaScript؟', options: ['"null"', '"object"', '"undefined"', '"number"'], correctIndex: 1 },
+  { id: 2, text: 'أي طريقة تُستخدم لإضافة عنصر لنهاية المصفوفة؟', options: ['push()', 'pop()', 'shift()', 'unshift()'], correctIndex: 0 },
+  { id: 3, text: 'ما الكلمة المفتاحية التي تُنشئ متغيراً لا يمكن إعادة تعيينه؟', options: ['let', 'var', 'const', 'static'], correctIndex: 2 },
+  { id: 4, text: 'ماذا يُعيد Promise عند نجاحه؟', options: ['reject', 'resolve', 'throw', 'catch'], correctIndex: 1 },
+  { id: 5, text: 'أي مما يلي ليس نوعاً بدائياً (primitive) في JavaScript؟', options: ['string', 'number', 'array', 'boolean'], correctIndex: 2 },
 ]
 
 export const availableAssessments: Assessment[] = [

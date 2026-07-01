@@ -1,25 +1,21 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import PageHeader from '@/components/shared/PageHeader.vue'
 import StatCard from '@/components/shared/StatCard.vue'
+import { useEndorserStore } from '@/stores/EndorserStore'
 
 const router = useRouter()
+const store = useEndorserStore()
 
-const pendingRequests = [
-  { id: 1, name: 'أحمد المنصور', relation: 'زميل سابق', date: 'قبل يومين' },
-  { id: 2, name: 'سارة العتيبي', relation: 'عملنا في نفس الفريق', date: 'قبل 4 أيام' },
-]
+const pendingRequests = computed(() => store.requests)
+const givenEndorsements = computed(() => store.given)
 
-const givenEndorsements = [
-  { name: 'خالد الحربي', date: '2026-06-10', type: 'فيديو', views: 24 },
-  { name: 'نورة القحطاني', date: '2026-05-22', type: 'نص', views: 15 },
-]
-
-const stats = [
-  { title: 'طلبات معلّقة', value: 2, icon: 'mdi-account-clock-outline', color: 'warning' },
-  { title: 'توصيات مقدّمة', value: 8, icon: 'mdi-account-star-outline', color: 'primary' },
-  { title: 'مشاهدات توصياتك', value: 142, icon: 'mdi-eye-outline', color: 'secondary' },
-]
+const stats = computed(() => [
+  { title: 'طلبات معلّقة', value: store.pendingCount, icon: 'mdi-account-clock-outline', color: 'warning' },
+  { title: 'توصيات مقدّمة', value: store.givenCount, icon: 'mdi-account-star-outline', color: 'primary' },
+  { title: 'مشاهدات توصياتك', value: store.totalViews, icon: 'mdi-eye-outline', color: 'secondary' },
+])
 
 function addEndorsement(id?: number) {
   router.push({ name: 'add-endorsement', query: id ? { request: String(id) } : {} })

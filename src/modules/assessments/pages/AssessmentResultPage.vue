@@ -9,6 +9,8 @@ const router = useRouter()
 const assessment = computed(() => getAssessmentById(Number(route.params.id)))
 const score = computed(() => Number(route.query.score ?? 0))
 const hasResult = computed(() => route.query.score !== undefined)
+const correct = computed(() => (route.query.correct !== undefined ? Number(route.query.correct) : null))
+const total = computed(() => (route.query.total !== undefined ? Number(route.query.total) : null))
 const displayName = computed(() => assessment.value?.name ?? String(route.query.name ?? 'الاختبار'))
 const canRetake = computed(() => !!assessment.value)
 
@@ -36,7 +38,10 @@ const recommendations = ['أكمل دورة "JavaScript المتقدم"', 'تد�
       </VProgressCircular>
       <h1 class="text-h5 font-weight-bold mt-4">{{ displayName }}</h1>
       <VChip :color="level.color" class="mt-2" label>المستوى: {{ level.label }}</VChip>
-      <div class="text-body-2 text-medium-emphasis mt-3">
+      <div v-if="correct !== null" class="text-body-1 font-weight-medium mt-3">
+        أجبت بشكل صحيح على {{ correct }} من {{ total }} أسئلة
+      </div>
+      <div class="text-body-2 text-medium-emphasis mt-1">
         نتيجتك أعلى من 68% من المستخدمين الآخرين في هذا الاختبار
       </div>
     </VCard>

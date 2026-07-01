@@ -40,9 +40,15 @@ function prev() {
 }
 
 function finish() {
-  // Compute a mock score based on answered ratio (demo)
-  const score = Math.round((answeredCount.value / totalQuestions.value) * 100)
-  router.replace({ name: 'assessment-result', params: { id: route.params.id }, query: { score } })
+  // Real scoring: count correct answers against the answer key
+  const questions = assessment.value?.questions ?? []
+  const correct = questions.filter(q => answers.value[q.id] === q.correctIndex).length
+  const score = totalQuestions.value ? Math.round((correct / totalQuestions.value) * 100) : 0
+  router.replace({
+    name: 'assessment-result',
+    params: { id: route.params.id },
+    query: { score, correct, total: totalQuestions.value },
+  })
 }
 
 onMounted(() => {
