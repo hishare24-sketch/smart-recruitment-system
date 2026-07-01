@@ -7,8 +7,20 @@ import { useResumesStore } from '@/stores/ResumesStore'
 import { ai } from '@/services/ai'
 import TrustScoreCard from '@/components/shared/TrustScoreCard.vue'
 import { LEVEL_META, TYPE_META, useInterviewsStore } from '@/stores/InterviewsStore'
+import { KIND_META, useInterviewersStore } from '@/stores/InterviewersStore'
+import type { Booking } from '@/stores/InterviewersStore'
 
 const interviewsStore = useInterviewsStore()
+const interviewersStore = useInterviewersStore()
+
+// Certified-interviewer reports + digital certificate
+const certifiedReports = computed(() => interviewersStore.completedReports)
+const certificateDialog = ref(false)
+const certificateReport = ref<Booking | null>(null)
+function openCertificate(b: Booking) {
+  certificateReport.value = b
+  certificateDialog.value = true
+}
 
 const authStore = useAuthStore()
 const profile = useProfileStore()
@@ -149,11 +161,14 @@ const privacySettings = ref([
   { label: 'ظهور المهارات', value: 'public' },
   { label: 'ظهور الإثباتات', value: 'companies' },
   { label: 'ظهور نسبة الثقة', value: 'public' },
+  { label: 'ظهور تقارير المقابلات', value: 'companies' },
+  { label: 'ظهور تسجيلات المقابلات', value: 'private' },
   { label: 'إشعارات التواصل', value: 'public' },
   { label: 'مشاركة البيانات للتحليل', value: 'public' },
 ])
 const proofRequestEnabled = ref(true)
 const interviewsForCompanies = ref(true)
+const interviewerRequestsEnabled = ref(true)
 const privacyOptions = [
   { value: 'public', title: 'عام' },
   { value: 'companies', title: 'لأصحاب العمل' },
@@ -406,6 +421,27 @@ const profileCompletion = computed(() => {
           <div v-else class="text-center text-medium-emphasis py-6">
             لا مقابلات بعد — أجرِ مقابلة AI لتحديد مستواك ورفع نسبة ثقتك
           </div>
+
+          <!-- Certified-interviewer reports -->
+          <template v-if="certifiedReports.length">
+            <VDivider class="my-4" />
+            <div class="d-flex align-center ga-2 mb-3">
+              <VIcon icon="mdi-account-tie" color="secondary" />
+              <h3 class="text-subtitle-1 font-weight-bold">تقارير المقيّمين المعتمدين ({{ certifiedReports.length }})</h3>
+            </div>
+            <VCard v-for="b in certifiedReports" :key="b.id" variant="outlined" class="pa-3 mb-2">
+              <div class="d-flex align-center justify-space-between flex-wrap ga-2">
+                <div>
+                  <div class="text-body-2 font-weight-bold">{{ b.interviewerName }} · {{ KIND_META[b.kind].label }}</div>
+                  <div class="text-caption text-medium-emphasis">{{ b.datetime }} · المستوى {{ b.report?.level }}</div>
+                </div>
+                <div class="d-flex align-center ga-2">
+                  <VChip color="success" size="small" label>{{ b.report?.overall }}%</VChip>
+                  <VBtn size="x-small" color="secondary" variant="tonal" prepend-icon="mdi-certificate-outline" @click="openCertificate(b)">الشهادة</VBtn>
+                </div>
+              </div>
+            </VCard>
+          </template>
         </VCard>
       </VWindowItem>
 
@@ -427,6 +463,10 @@ const profileCompletion = computed(() => {
           <div class="d-flex align-center justify-space-between py-1">
             <span class="text-body-2">إتاحة نتائج مقابلاتي للجهات</span>
             <VSwitch v-model="interviewsForCompanies" color="secondary" hide-details density="compact" />
+          </div>
+          <div class="d-flex align-center justify-space-between py-1">
+            <span class="text-body-2">السماح للمقيّمين بطلب إجراء مقابلة معي</span>
+            <VSwitch v-model="interviewerRequestsEnabled" color="secondary" hide-details density="compact" />
           </div>
         </VCard>
       </VWindowItem>
@@ -527,6 +567,49 @@ const profileCompletion = computed(() => {
         <VCardActions class="justify-end">
           <VBtn variant="text" @click="editDialog = false">إلغاء</VBtn>
           <VBtn color="accent" prepend-icon="mdi-content-save" @click="saveEdit">حفظ</VBtn>
+        </VCardActions>
+      </VCard>
+    </VDialog>
+
+    <!-- Digital certificate dialog -->
+    <VDialog v-model="certificateDialog" max-width="560">
+      <VCard v-if="certificateReport" class="pa-0 overflow-hidden">
+        <div class="brand-gradient pa-5 text-center" style="color: white">
+          <VIcon icon="mdi-certificate" size="44" />
+          <div class="text-h6 font-weight-bold mt-1">شهادة اجتياز مقابلة تقييمية</div>
+          <div class="text-caption" style="opacity: 0.85">منظومة التوظيف الذكية · موثّقة</div>
+        </div>
+        <VCardText class="text-center pt-5">
+          <div class="text-body-2 text-medium-emphasis mb-1">تشهد المنصة بأن</div>
+          <div class="text-h6 font-weight-bold mb-3">{{ user?.name }}</div>
+          <div class="text-body-2 text-medium-emphasis mb-1">اجتاز</div>
+          <div class="text-subtitle-1 font-weight-bold">{{ KIND_META[certificateReport.kind].label }}</div>
+          <div class="text-body-2 mb-3">بإشراف المقيّم المعتمد «{{ certificateReport.interviewerName }}»</div>
+
+          <div class="d-flex justify-center ga-6 my-4">
+            <div>
+              <div class="text-h5 font-weight-bold text-success">{{ certificateReport.report?.overall }}%</div>
+              <div class="text-caption text-medium-emphasis">التقييم العام</div>
+            </div>
+            <VDivider vertical />
+            <div>
+              <div class="text-h5 font-weight-bold text-primary">{{ certificateReport.report?.level }}</div>
+              <div class="text-caption text-medium-emphasis">المستوى المُحدَّد</div>
+            </div>
+            <VDivider vertical />
+            <div>
+              <div class="text-h5 font-weight-bold text-accent">+{{ certificateReport.report?.trustGain }}%</div>
+              <div class="text-caption text-medium-emphasis">أثر الثقة</div>
+            </div>
+          </div>
+
+          <div class="text-caption text-medium-emphasis">
+            <VIcon icon="mdi-shield-check" size="14" color="success" /> رقم التوثيق: SR-{{ certificateReport.id }}-{{ certificateReport.report?.overall }} · {{ certificateReport.datetime }}
+          </div>
+        </VCardText>
+        <VCardActions class="justify-end px-4 pb-3">
+          <VBtn variant="text" @click="certificateDialog = false">إغلاق</VBtn>
+          <VBtn color="accent" prepend-icon="mdi-download" @click="toast('جارٍ تنزيل الشهادة الرقمية...')">تنزيل الشهادة</VBtn>
         </VCardActions>
       </VCard>
     </VDialog>
