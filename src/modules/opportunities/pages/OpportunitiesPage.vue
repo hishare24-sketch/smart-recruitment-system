@@ -23,6 +23,9 @@ function toggleChip(key: string) {
   activeChips.value = next
 }
 const userSkills = computed(() => profile.skills.map(s => s.name))
+
+// AI personalized top match
+const topMatch = computed(() => [...mockOpportunities].sort((a, b) => b.matchRate - a.matchRate)[0])
 const treeSel = ref<{ category?: string, sub?: string }>({})
 const treeItems = computed(() => mockOpportunities.map(o => ({
   skills: o.skills,
@@ -115,6 +118,17 @@ function resetFilters() {
         </VBtnToggle>
       </template>
     </PageHeader>
+
+    <!-- AI personalized top match -->
+    <VAlert v-if="topMatch" color="secondary" variant="tonal" density="comfortable" class="mb-4" border="start">
+      <div class="d-flex align-center justify-space-between flex-wrap ga-2">
+        <span class="text-caption">
+          <VIcon icon="mdi-robot-happy-outline" size="16" /> الأكثر تطابقًا مع ملفك: «{{ topMatch.title }}» — {{ topMatch.company }} · تطابق
+          <strong>{{ topMatch.matchRate }}%</strong>
+        </span>
+        <VBtn size="x-small" color="secondary" variant="flat" :to="{ name: 'opportunity-details', params: { id: topMatch.id } }">عرض</VBtn>
+      </div>
+    </VAlert>
 
     <!-- Search & filters -->
     <VCard class="pa-4 mb-5">

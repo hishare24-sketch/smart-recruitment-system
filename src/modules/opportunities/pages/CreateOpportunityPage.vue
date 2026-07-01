@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import PageHeader from '@/components/shared/PageHeader.vue'
 import { usePostedOpportunitiesStore } from '@/stores/PostedOpportunitiesStore'
+import { ai } from '@/services/ai'
 
 const store = usePostedOpportunitiesStore()
 
@@ -41,6 +42,15 @@ const snackbar = ref('')
 const errorMsg = ref('')
 
 const typeLabel = computed(() => typeOptions.find(t => t.value === type.value)?.title ?? '')
+
+// AI auto-classification of the posted opportunity
+const classification = computed(() => ai.autoClassify(`${title.value} ${description.value} ${skills.value.join(' ')}`))
+const suggestedSkills = computed(() => classification.value.suggestedSkills.filter(s => !skills.value.includes(s)))
+const hasInput = computed(() => !!(title.value.trim() || description.value.trim()))
+function addSuggestedSkill(s: string) {
+  if (!skills.value.includes(s))
+    skills.value = [...skills.value, s]
+}
 const salaryRange = computed(() => {
   if (salaryFrom.value && salaryTo.value)
     return `${salaryFrom.value.toLocaleString('en-US')} - ${salaryTo.value.toLocaleString('en-US')} ريال`
@@ -143,6 +153,20 @@ function openPreview() {
               <VCol cols="12" md="6"><VSelect v-model="educationLevel" label="المستوى التعليمي" :items="educationOptions" /></VCol>
               <VCol cols="12" md="6"><VTextField v-model.number="experienceYears" label="سنوات الخبرة المطلوبة" type="number" /></VCol>
             </VRow>
+
+            <!-- AI auto-classification -->
+            <VAlert v-if="hasInput && classification.category" color="secondary" variant="tonal" density="comfortable" class="mt-2" border="start">
+              <div class="d-flex align-center ga-2 mb-1">
+                <VIcon icon="mdi-robot-happy-outline" size="20" />
+                <span class="text-body-2">صنّف الـAI هذه الفرصة تلقائيًا تحت: <strong>{{ classification.categoryLabel }}</strong></span>
+              </div>
+              <div v-if="suggestedSkills.length" class="d-flex align-center flex-wrap ga-1 mt-2">
+                <span class="text-caption text-medium-emphasis">مهارات مقترحة:</span>
+                <VChip v-for="s in suggestedSkills" :key="s" size="x-small" color="secondary" @click="addSuggestedSkill(s)">
+                  <VIcon icon="mdi-plus" start size="12" />{{ s }}
+                </VChip>
+              </div>
+            </VAlert>
           </VCard>
 
           <VCard class="pa-5 mb-4">

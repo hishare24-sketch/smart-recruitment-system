@@ -13,6 +13,7 @@ import type {
   AttachmentsInsight,
   EvalElementSuggestion,
   PricingSuggestion,
+  AutoClassification,
   RequestPerformance,
   ResumeReview,
   ReviewsDigest,
@@ -23,6 +24,7 @@ import type {
   UploadAnalysis,
   VideoAnalysis,
 } from './types'
+import { ALL_SKILLS, TAXONOMY, categorizeSkill, getCategory } from '@/services/taxonomy'
 
 // Convincing mock implementation. Deterministic where useful, varied where natural.
 
@@ -609,6 +611,31 @@ function smartFilterChips(ctx: { section: string, skills: string[] }): { key: st
   return chips
 }
 
+// Auto-classify posted content into a taxonomy category + suggest skills
+function autoClassify(text: string): AutoClassification {
+  const t = text.toLowerCase()
+  const mentioned = ALL_SKILLS.filter(s => t.includes(s.toLowerCase()))
+  const counts = new Map<string, number>()
+  for (const s of mentioned) {
+    const c = categorizeSkill(s)
+    if (c)
+      counts.set(c, (counts.get(c) ?? 0) + 1)
+  }
+  for (const cat of TAXONOMY) {
+    if (text.includes(cat.label))
+      counts.set(cat.id, (counts.get(cat.id) ?? 0) + 2)
+    for (const sub of cat.subcategories) {
+      if (text.includes(sub))
+        counts.set(cat.id, (counts.get(cat.id) ?? 0) + 1)
+    }
+  }
+  const top = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]
+  const category = top?.[0]
+  const catSkills = category ? getCategory(category)!.skills : []
+  const suggestedSkills = [...new Set([...mentioned, ...catSkills])].slice(0, 6)
+  return { category, categoryLabel: getCategory(category)?.label, suggestedSkills }
+}
+
 export const mockAi: AiService = {
   skillLevel,
   trustAnalysis,
@@ -646,4 +673,5 @@ export const mockAi: AiService = {
   searchIntent,
   keywordAlternatives,
   smartFilterChips,
+  autoClassify,
 }

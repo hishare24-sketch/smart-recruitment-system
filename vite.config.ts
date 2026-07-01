@@ -23,4 +23,15 @@ export default defineConfig(({ command }) => ({
     port: Number(process.env.PORT) || 5173,
     host: true,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Split large vendors into their own chunks for better caching
+        manualChunks: {
+          vue: ['vue', 'vue-router', 'pinia', 'vue-i18n'],
+          vuetify: ['vuetify'],
+        },
+      },
+    },
+  },
 }))

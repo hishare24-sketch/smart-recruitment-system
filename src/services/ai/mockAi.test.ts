@@ -79,6 +79,16 @@ describe('mockAi global search helpers', () => {
     const chips = mockAi.smartFilterChips({ section: 'requests', skills: ['Laravel'] })
     expect(chips.length).toBeGreaterThan(0)
     expect(chips[0].label).toContain('Laravel')
+    expect(chips.some(c => c.key === 'lowComp')).toBe(true)
+    // interviewers section drops request-only chips
+    expect(mockAi.smartFilterChips({ section: 'interviewers', skills: [] }).some(c => c.key === 'lowComp')).toBe(false)
+  })
+
+  it('auto-classifies posted text into a taxonomy category with skills', () => {
+    const c = mockAi.autoClassify('مطلوب مطوّر Vue.js و TypeScript لبناء واجهات')
+    expect(c.category).toBe('technology')
+    expect(c.suggestedSkills.length).toBeGreaterThan(0)
+    expect(mockAi.autoClassify('').suggestedSkills).toEqual([])
   })
 })
 

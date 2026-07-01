@@ -102,6 +102,13 @@ export interface SearchIntent {
   note: string // human-readable interpretation of the intent
 }
 
+// — Auto-classification (posting flows) —
+export interface AutoClassification {
+  category?: string // taxonomy category id
+  categoryLabel?: string
+  suggestedSkills: string[]
+}
+
 export interface SkillInsight {
   skill: string // weakest verified skill name
   confidence: number
@@ -183,4 +190,6 @@ export interface AiService {
   searchIntent: (query: string) => SearchIntent
   keywordAlternatives: (query: string) => string[]
   smartFilterChips: (ctx: { section: string, skills: string[] }) => { key: string, label: string, icon: string }[]
+  // — auto-classification —
+  autoClassify: (text: string) => AutoClassification
 }

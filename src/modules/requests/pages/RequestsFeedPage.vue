@@ -41,6 +41,9 @@ const treeItems = computed(() => store.requests.map(r => ({
   text: `${r.title} ${r.field} ${r.skills.join(' ')}`,
 })))
 
+// AI personalized top match (highest match with the user's profile)
+const topMatch = computed(() => [...store.requests].sort((a, b) => b.matchRate - a.matchRate)[0])
+
 // Side-sheet filter + sorting
 const filterDrawer = ref(false)
 const sortBy = ref<'match' | 'newest' | 'oldest' | 'rating' | 'price' | 'applicants'>('match')
@@ -219,10 +222,15 @@ function open(id: number) {
       </VChip>
     </div>
 
-    <!-- AI proactive alert -->
-    <VAlert color="secondary" variant="tonal" density="comfortable" class="mb-4" border="start">
-      <template #prepend><VIcon icon="mdi-bell-ring-outline" /></template>
-      <span class="text-caption">يوجد طلب جديد من «شركة تقنية المستقبل» قد يعجبك — تطابق 94%.</span>
+    <!-- AI personalized top match -->
+    <VAlert v-if="topMatch" color="secondary" variant="tonal" density="comfortable" class="mb-4" border="start">
+      <div class="d-flex align-center justify-space-between flex-wrap ga-2">
+        <span class="text-caption">
+          <VIcon icon="mdi-robot-happy-outline" size="16" /> ترشيح مخصّص لك: «{{ topMatch.title }}» من {{ topMatch.org }} — تطابق
+          <strong>{{ topMatch.matchRate }}%</strong> مع ملفك.
+        </span>
+        <VBtn size="x-small" color="secondary" variant="flat" @click="open(topMatch.id)">عرض</VBtn>
+      </div>
     </VAlert>
 
     <!-- Horizontal request cards -->
