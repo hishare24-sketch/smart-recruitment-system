@@ -55,11 +55,51 @@ const seekerStats = computed(() => [
 const companyStats = computed(() => [
   { title: 'الفرص المنشورة', value: postedStore.publishedCount, icon: 'mdi-briefcase-outline', color: 'primary' },
   { title: 'ترشيحات جديدة', value: candidatesStore.newCount, icon: 'mdi-account-group-outline', color: 'accent' },
-  { title: 'إجمالي المرشحين', value: candidatesStore.candidates.length, icon: 'mdi-account-multiple-outline', color: 'secondary' },
   { title: 'مقابلات مجدولة', value: candidatesStore.interviewCount, icon: 'mdi-calendar-clock-outline', color: 'success' },
+  { title: 'متوسط وقت التوظيف', value: avgTimeToHire.value, icon: 'mdi-timer-sand', color: 'secondary' },
 ])
 
 const stats = computed(() => (isCompany.value ? companyStats.value : seekerStats.value))
+
+// — Company AI widgets (doc §3.3-ج) —
+// Deterministic mock: hiring speed improves as candidates progress to interviews
+const avgTimeToHire = computed(() => `${18 - Math.min(candidatesStore.interviewCount * 2, 8)} يومًا`)
+
+const companyNudges = computed(() => {
+  if (!isCompany.value)
+    return []
+  const list: { tone: 'info' | 'success' | 'warning', icon: string, text: string, action?: string, actionLabel?: string }[] = []
+  if (candidatesStore.newCount > 0)
+    list.push({ tone: 'info', icon: 'mdi-account-plus-outline', text: `لديك ${candidatesStore.newCount} ترشيحات جديدة بانتظار المراجعة`, action: 'candidates', actionLabel: 'راجعها الآن' })
+  if (candidatesStore.interviewCount > 0)
+    list.push({ tone: 'success', icon: 'mdi-calendar-clock-outline', text: `${candidatesStore.interviewCount} مرشحون وصلوا مرحلة المقابلة — تابع جدولتها`, action: 'candidates', actionLabel: 'عرض' })
+  if (postedStore.publishedCount === 0)
+    list.push({ tone: 'warning', icon: 'mdi-briefcase-plus-outline', text: 'لا فرص منشورة حاليًا — انشر فرصة لتصلك ترشيحات', action: 'create-opportunity', actionLabel: 'انشر فرصة' })
+  return list
+})
+
+// 30-day applications trend (4 weekly buckets, deterministic from the pool)
+const weeklyApplications = computed(() => {
+  const total = candidatesStore.candidates.length
+  const weeks = [
+    { label: 'أسبوع 1', value: Math.max(1, Math.round(total * 0.6)) },
+    { label: 'أسبوع 2', value: Math.max(1, Math.round(total * 0.85)) },
+    { label: 'أسبوع 3', value: Math.max(1, Math.round(total * 0.7)) },
+    { label: 'أسبوع 4', value: total },
+  ]
+  const max = Math.max(...weeks.map(w => w.value))
+  return weeks.map(w => ({ ...w, pct: Math.round((w.value / max) * 100) }))
+})
+
+// Most common skills among applicants
+const topSkills = computed(() => {
+  const freq = new Map<string, number>()
+  for (const c of candidatesStore.candidates) {
+    for (const s of c.skills ?? [])
+      freq.set(s, (freq.get(s) ?? 0) + 1)
+  }
+  return [...freq.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5)
+})
 
 const wishes = computed(() => wishesStore.wishes.slice(0, 3))
 const wishStatusMeta: Record<string, { label: string, color: string }> = {
@@ -103,10 +143,10 @@ const aiSuggestions = [
       </div>
     </VCard>
 
-    <!-- Proactive AI nudges (seeker) -->
-    <div v-if="!isCompany && proactiveNudges.length" class="mb-4 d-flex flex-column ga-2">
+    <!-- Proactive AI nudges (seeker + company) -->
+    <div v-if="(isCompany ? companyNudges : proactiveNudges).length" class="mb-4 d-flex flex-column ga-2">
       <VAlert
-        v-for="(n, i) in proactiveNudges"
+        v-for="(n, i) in (isCompany ? companyNudges : proactiveNudges)"
         :key="i"
         :type="n.tone"
         variant="tonal"
@@ -220,6 +260,35 @@ const aiSuggestions = [
               <VBtn variant="text" color="primary" size="x-small" class="mt-1 px-0" :to="{ name: 'profile' }">عرض التفاصيل</VBtn>
             </div>
           </div>
+        </VCard>
+
+        <!-- Quick analytics (company, doc §3.3-ج) -->
+        <VCard v-if="isCompany" class="pa-4 mt-2 mb-4">
+          <div class="d-flex align-center ga-2 mb-3">
+            <VIcon icon="mdi-chart-bar" color="secondary" />
+            <span class="text-subtitle-1 font-weight-bold">تحليلات سريعة — آخر 30 يومًا</span>
+          </div>
+          <div class="d-flex align-end ga-2 mb-1" style="height: 88px">
+            <div v-for="w in weeklyApplications" :key="w.label" class="flex-grow-1 text-center d-flex flex-column justify-end" style="height: 100%">
+              <div class="text-caption font-weight-bold">{{ w.value }}</div>
+              <div class="bar-lime rounded-t mx-auto" :style="{ height: `${w.pct * 0.6}%`, width: '70%' }" />
+            </div>
+          </div>
+          <div class="d-flex ga-2">
+            <div v-for="w in weeklyApplications" :key="w.label" class="flex-grow-1 text-center text-caption text-medium-emphasis">
+              {{ w.label }}
+            </div>
+          </div>
+          <VDivider class="my-3" />
+          <div class="text-body-2 font-weight-bold mb-2">أكثر المهارات شيوعًا بين المتقدمين</div>
+          <div class="d-flex flex-wrap ga-1 mb-2">
+            <VChip v-for="[skill, count] in topSkills" :key="skill" size="small" color="primary" variant="tonal" label>
+              {{ skill }} · {{ count }}
+            </VChip>
+          </div>
+          <VBtn variant="text" color="secondary" size="small" class="px-0" :to="{ name: 'analytics' }">
+            التحليلات الكاملة
+          </VBtn>
         </VCard>
 
         <!-- Gamification (all roles — points/level/streak/leaderboard are universal) -->

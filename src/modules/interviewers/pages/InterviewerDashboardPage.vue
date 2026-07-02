@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import PageHeader from '@/components/shared/PageHeader.vue'
+import ReviewsPanel from '@/components/shared/ReviewsPanel.vue'
 import StatCard from '@/components/shared/StatCard.vue'
 import { COMMISSION_NOTE, KIND_META, useInterviewersStore } from '@/stores/InterviewersStore'
 import type { AgendaItem, MarketInterviewKind } from '@/stores/InterviewersStore'
@@ -215,6 +216,18 @@ function addSuggestion(s: EvalElementSuggestion) {
             <VCol cols="8" sm="2"><VTextField v-model.number="newElement.price" type="number" label="السعر" suffix="﷼" density="compact" hide-details /></VCol>
             <VCol cols="4" sm="1"><VBtn color="accent" block height="40" :disabled="!newElement.name.trim()" @click="addElement"><VIcon icon="mdi-plus" /></VBtn></VCol>
           </VRow>
+        </VCard>
+      </VCol>
+
+      <!-- Candidate reviews of me (doc §3.3-ب) -->
+      <VCol cols="12">
+        <VCard class="pa-5">
+          <div class="d-flex align-center ga-2 mb-1">
+            <VIcon icon="mdi-star-check-outline" color="amber" />
+            <h2 class="text-subtitle-1 font-weight-bold">تقييمات المرشحين لي</h2>
+          </div>
+          <p class="text-caption text-medium-emphasis mb-3">آخر التقييمات العلنية من مرشحيك — يمكنك الرد مرة واحدة على كل تقييم.</p>
+          <ReviewsPanel direction="toInterviewer" subject-id="1" can-reply :limit="3" />
         </VCard>
       </VCol>
     </VRow>
