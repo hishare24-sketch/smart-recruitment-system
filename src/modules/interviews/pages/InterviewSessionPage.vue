@@ -197,7 +197,7 @@ onBeforeUnmount(() => {
 
       <!-- Prompt -->
       <div class="d-flex ga-3 mb-4">
-        <VAvatar color="secondary" size="34"><VIcon icon="mdi-robot-happy-outline" color="white" size="18" /></VAvatar>
+        <VAvatar color="secondary" size="34"><VIcon icon="mdi-robot-happy-outline" size="18" /></VAvatar>
         <div class="pa-3 rounded-lg bg-grey-lighten-3 text-body-1 flex-grow-1">
           {{ currentQuestion.prompt }}
           <div v-if="currentQuestion.scenario && currentQuestion.pattern !== 'pressure'" class="mt-2 pa-2 rounded bg-white text-body-2 font-weight-bold">

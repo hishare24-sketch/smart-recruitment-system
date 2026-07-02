@@ -32,13 +32,13 @@ watch([choice, justification], () => {
           @click="choice = o.key"
         >
           <div class="d-flex align-center ga-1 mb-2">
-            <VIcon :icon="choice === o.key ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank'" size="18" :color="choice === o.key ? 'white' : undefined" />
-            <span class="text-body-2 font-weight-bold" :class="choice === o.key ? 'text-white' : ''">{{ o.label }}</span>
+            <VIcon :icon="choice === o.key ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank'" size="18" />
+            <span class="text-body-2 font-weight-bold">{{ o.label }}</span>
           </div>
-          <div class="text-caption" :class="choice === o.key ? 'text-white' : 'text-success'">
+          <div class="text-caption" :class="choice === o.key ? '' : 'text-success'">
             <VIcon icon="mdi-plus" size="12" /> {{ o.pros }}
           </div>
-          <div class="text-caption" :class="choice === o.key ? 'text-white' : 'text-error'">
+          <div class="text-caption" :class="choice === o.key ? '' : 'text-error'">
             <VIcon icon="mdi-minus" size="12" /> {{ o.cons }}
           </div>
         </VCard>

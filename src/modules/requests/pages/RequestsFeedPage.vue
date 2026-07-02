@@ -243,7 +243,7 @@ function open(id: number) {
       <div class="d-flex ga-4 flex-wrap flex-sm-nowrap align-center">
         <!-- Org logo -->
         <VAvatar :color="KIND_META[r.kind].color" size="56" rounded="lg">
-          <span class="text-h6 text-white font-weight-bold">{{ r.orgInitial }}</span>
+          <span class="text-h6 font-weight-bold">{{ r.orgInitial }}</span>
         </VAvatar>
 
         <!-- Main info -->

@@ -184,7 +184,7 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
       <template #activator="{ props }">
         <VBtn v-bind="props" variant="text" class="px-2 ms-2">
           <VAvatar color="secondary" size="36">
-            <span class="text-white font-weight-bold">{{ initials }}</span>
+            <span class="font-weight-bold">{{ initials }}</span>
           </VAvatar>
           <div class="d-none d-sm-block text-start mx-2">
             <div class="text-body-2 font-weight-bold">

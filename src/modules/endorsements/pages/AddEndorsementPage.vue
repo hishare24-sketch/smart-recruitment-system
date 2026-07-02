@@ -53,7 +53,7 @@ function submit() {
       <!-- Candidate info -->
       <VCard class="pa-5 mb-4">
         <div class="d-flex align-center ga-3 mb-4">
-          <VAvatar color="secondary" size="48"><span class="text-white font-weight-bold">{{ candidateName.charAt(0) }}</span></VAvatar>
+          <VAvatar color="secondary" size="48"><span class="font-weight-bold">{{ candidateName.charAt(0) }}</span></VAvatar>
           <div>
             <div class="text-subtitle-1 font-weight-bold">{{ candidateName }}</div>
             <div class="text-caption text-medium-emphasis">{{ candidate?.relation ?? 'مرشح' }}</div>
@@ -80,8 +80,8 @@ function submit() {
               class="pa-3 text-center cursor-pointer"
               @click="type = opt.value"
             >
-              <VIcon :icon="opt.icon" size="28" :color="type === opt.value ? 'white' : 'primary'" />
-              <div class="text-caption mt-1" :class="type === opt.value ? 'text-white' : ''">{{ opt.title }}</div>
+              <VIcon :icon="opt.icon" size="28" :color="type === opt.value ? undefined : 'primary'" />
+              <div class="text-caption mt-1">{{ opt.title }}</div>
             </VCard>
           </VCol>
         </VRow>

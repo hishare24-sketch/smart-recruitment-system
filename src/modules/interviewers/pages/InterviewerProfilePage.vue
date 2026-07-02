@@ -185,7 +185,7 @@ function confirmBooking() {
         <VCard class="pa-5 mb-4">
           <div class="d-flex align-start ga-4 mb-3">
             <VAvatar :color="INTERVIEWER_TYPE_META[interviewer.type].color" size="72">
-              <span class="text-h4 text-white font-weight-bold">{{ interviewer.initial }}</span>
+              <span class="text-h4 font-weight-bold">{{ interviewer.initial }}</span>
             </VAvatar>
             <div class="flex-grow-1">
               <div class="d-flex align-center ga-2 flex-wrap">

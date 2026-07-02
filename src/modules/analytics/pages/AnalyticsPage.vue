@@ -97,7 +97,7 @@ const levels = [
           <div v-for="s in topSkills" :key="s.skill" class="d-flex align-center ga-3 mb-3">
             <div class="text-body-2 font-weight-medium" style="width: 100px">{{ s.skill }}</div>
             <VProgressLinear :model-value="(s.count / maxSkill) * 100" color="accent" height="14" rounded class="flex-grow-1">
-              <span class="text-caption text-white font-weight-bold">{{ s.count }}</span>
+              <span class="text-caption on-accent font-weight-bold">{{ s.count }}</span>
             </VProgressLinear>
           </div>
         </VCard>

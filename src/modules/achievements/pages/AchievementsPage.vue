@@ -159,7 +159,7 @@ const onboardingPct = computed(() => Math.round((goalsDone.value / goals.value.l
               <template #prepend>
                 <div class="leader-rank text-center me-2" :class="`rank-${row.rank}`">{{ row.rank }}</div>
                 <VAvatar :color="row.you ? 'primary' : 'secondary'" size="34">
-                  <span class="text-white font-weight-bold">{{ row.initial }}</span>
+                  <span class="font-weight-bold">{{ row.initial }}</span>
                 </VAvatar>
               </template>
               <VListItemTitle :class="row.you ? 'font-weight-bold' : ''">

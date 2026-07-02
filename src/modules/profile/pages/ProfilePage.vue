@@ -270,7 +270,7 @@ const heroStats = computed(() => [
         <!-- Avatar overlaps the banner; actions sit on the surface beside it -->
         <div class="d-flex align-end justify-space-between ga-4 profile-hero__row">
           <VAvatar color="secondary" size="104" class="profile-hero__avatar">
-            <span class="text-h4 text-white font-weight-bold">{{ initials }}</span>
+            <span class="text-h4 font-weight-bold">{{ initials }}</span>
           </VAvatar>
           <div class="d-flex ga-2 flex-wrap">
             <VBtn color="primary" variant="outlined" prepend-icon="mdi-share-variant-outline" :to="{ name: 'public-resume', params: { token: 'me' } }">

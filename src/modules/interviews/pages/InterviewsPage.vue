@@ -230,8 +230,8 @@ function viewResult(iv: Interview) {
                   class="pa-2 cursor-pointer d-flex align-center ga-2"
                   @click="chosenTrack = tr"
                 >
-                  <VIcon :icon="TRACK_META[tr].icon" :color="chosenTrack === tr ? 'white' : 'primary'" size="20" />
-                  <div class="text-caption font-weight-bold" :class="chosenTrack === tr ? 'text-white' : ''">{{ TRACK_META[tr].label }}</div>
+                  <VIcon :icon="TRACK_META[tr].icon" :color="chosenTrack === tr ? undefined : 'primary'" size="20" />
+                  <div class="text-caption font-weight-bold">{{ TRACK_META[tr].label }}</div>
                 </VCard>
               </VCol>
             </VRow>
@@ -247,10 +247,10 @@ function viewResult(iv: Interview) {
             @click="chosenLevel = lvl"
           >
             <div class="d-flex align-center ga-2">
-              <VIcon :icon="chosenLevel === lvl ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank'" :color="chosenLevel === lvl ? 'white' : undefined" />
-              <span :class="chosenLevel === lvl ? 'text-white' : ''">{{ LEVEL_META[lvl].label }}</span>
+              <VIcon :icon="chosenLevel === lvl ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank'" />
+              <span>{{ LEVEL_META[lvl].label }}</span>
             </div>
-            <VChip size="small" :color="chosenLevel === lvl ? 'white' : 'accent'" :variant="chosenLevel === lvl ? 'flat' : 'tonal'" label>
+            <VChip size="small" :color="chosenLevel === lvl ? 'surface' : 'accent'" :variant="chosenLevel === lvl ? 'flat' : 'tonal'" label>
               {{ LEVEL_META[lvl].cost === 0 ? 'مجاني' : `${LEVEL_META[lvl].cost} ريال` }}
             </VChip>
           </VCard>

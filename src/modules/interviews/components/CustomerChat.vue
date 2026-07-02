@@ -18,9 +18,9 @@ const payload = computed(() => props.question.payload as AngryCustomerPayload)
       <div v-for="(m, i) in payload.thread" :key="i" class="d-flex mb-2" :class="m.from === 'agent' ? 'justify-end' : 'justify-start'">
         <div class="d-flex ga-2 align-end" :class="m.from === 'agent' ? 'flex-row-reverse' : ''" style="max-width: 82%">
           <VAvatar :color="m.from === 'agent' ? 'primary' : 'error'" size="26">
-            <VIcon :icon="m.from === 'agent' ? 'mdi-headset' : 'mdi-account'" color="white" size="15" />
+            <VIcon :icon="m.from === 'agent' ? 'mdi-headset' : 'mdi-account'" size="15" />
           </VAvatar>
-          <div class="pa-2 px-3 rounded-lg text-body-2" :class="m.from === 'agent' ? 'bg-primary text-white' : 'bubble-customer'">
+          <div class="pa-2 px-3 rounded-lg text-body-2" :class="m.from === 'agent' ? 'bg-primary' : 'bubble-customer'">
             {{ m.text }}
           </div>
         </div>

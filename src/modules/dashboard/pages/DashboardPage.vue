@@ -204,7 +204,7 @@ const aiSuggestions = [
             <template v-for="(c, i) in topCandidates" :key="c.id">
               <VListItem @click="$router.push({ name: 'candidate-profile', params: { id: c.id } })">
                 <template #prepend>
-                  <VAvatar color="secondary"><span class="text-white font-weight-bold">{{ c.name.charAt(0) }}</span></VAvatar>
+                  <VAvatar color="secondary"><span class="font-weight-bold">{{ c.name.charAt(0) }}</span></VAvatar>
                 </template>
                 <VListItemTitle class="font-weight-bold">{{ c.name }}</VListItemTitle>
                 <VListItemSubtitle>{{ c.title }} · تطابق {{ c.matchRate }}%</VListItemSubtitle>

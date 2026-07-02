@@ -142,7 +142,7 @@ async function onFileChange(e: Event) {
     <!-- Chat -->
     <div class="flex-grow-1 d-flex flex-column overflow-hidden">
       <div class="d-flex align-center ga-3 mb-3">
-        <VAvatar color="secondary" rounded="lg"><VIcon icon="mdi-robot-happy-outline" color="white" /></VAvatar>
+        <VAvatar color="secondary" rounded="lg"><VIcon icon="mdi-robot-happy-outline" /></VAvatar>
         <div>
           <h1 class="text-h6 font-weight-bold mb-0">المساعد الذكي</h1>
           <div class="text-caption text-success"><VIcon icon="mdi-circle" size="8" /> متصل</div>
@@ -176,9 +176,9 @@ async function onFileChange(e: Event) {
           <div v-for="(msg, i) in active.messages" :key="i" class="d-flex mb-3" :class="msg.from === 'user' ? 'justify-end' : 'justify-start'">
             <div class="d-flex ga-2" :class="msg.from === 'user' ? 'flex-row-reverse' : ''" style="max-width: 80%">
               <VAvatar :color="msg.from === 'user' ? 'primary' : 'secondary'" size="34">
-                <VIcon :icon="msg.from === 'user' ? 'mdi-account' : 'mdi-robot-happy-outline'" color="white" size="18" />
+                <VIcon :icon="msg.from === 'user' ? 'mdi-account' : 'mdi-robot-happy-outline'" size="18" />
               </VAvatar>
-              <div class="pa-3 rounded-lg text-body-2" :class="msg.from === 'user' ? 'bg-primary text-white' : 'bg-grey-lighten-3'">
+              <div class="pa-3 rounded-lg text-body-2" :class="msg.from === 'user' ? 'bg-primary' : 'bg-grey-lighten-3'">
                 {{ msg.text }}
 
                 <!-- Structured file-analysis card -->
@@ -209,7 +209,7 @@ async function onFileChange(e: Event) {
             </div>
           </div>
           <div v-if="isTyping" class="d-flex ga-2 mb-3">
-            <VAvatar color="secondary" size="34"><VIcon icon="mdi-robot-happy-outline" color="white" size="18" /></VAvatar>
+            <VAvatar color="secondary" size="34"><VIcon icon="mdi-robot-happy-outline" size="18" /></VAvatar>
             <div class="pa-3 rounded-lg bg-grey-lighten-3"><VProgressCircular indeterminate size="18" width="2" color="secondary" /></div>
           </div>
         </div>

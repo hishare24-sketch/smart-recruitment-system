@@ -47,7 +47,7 @@ onMounted(() => {
           <template v-for="(conv, i) in store.conversations" :key="conv.id">
             <VListItem :active="conv.id === activeId" color="primary" @click="selectConversation(conv.id)">
               <template #prepend>
-                <VAvatar color="secondary"><span class="text-white">{{ conv.initial }}</span></VAvatar>
+                <VAvatar color="secondary"><span>{{ conv.initial }}</span></VAvatar>
               </template>
               <VListItemTitle class="font-weight-bold">{{ conv.name }}</VListItemTitle>
               <VListItemSubtitle>{{ conv.messages[conv.messages.length - 1]?.text }}</VListItemSubtitle>
@@ -63,7 +63,7 @@ onMounted(() => {
       <!-- Thread -->
       <div v-if="active" class="flex-grow-1 d-flex flex-column">
         <div class="d-flex align-center ga-3 pa-4 border-b">
-          <VAvatar color="secondary"><span class="text-white">{{ active.initial }}</span></VAvatar>
+          <VAvatar color="secondary"><span>{{ active.initial }}</span></VAvatar>
           <div>
             <div class="text-subtitle-1 font-weight-bold">{{ active.name }}</div>
             <div class="text-caption text-medium-emphasis">{{ active.role }}</div>
@@ -72,7 +72,7 @@ onMounted(() => {
 
         <div ref="threadRef" class="flex-grow-1 overflow-y-auto pa-4 bg-background">
           <div v-for="(m, i) in active.messages" :key="i" class="d-flex mb-2" :class="m.from === 'me' ? 'justify-end' : 'justify-start'">
-            <div class="pa-3 rounded-lg text-body-2" :class="m.from === 'me' ? 'bg-primary text-white' : 'bg-surface'" style="max-width: 70%">
+            <div class="pa-3 rounded-lg text-body-2" :class="m.from === 'me' ? 'bg-primary' : 'bg-surface'" style="max-width: 70%">
               {{ m.text }}
               <div class="text-caption opacity-70 mt-1">{{ m.time }}</div>
             </div>

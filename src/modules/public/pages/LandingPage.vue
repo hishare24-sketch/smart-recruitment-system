@@ -28,7 +28,7 @@ const stats = [
     <VAppBar flat color="surface" height="70" class="px-4">
       <div class="d-flex align-center ga-2">
         <VAvatar color="primary" size="40" rounded="lg">
-          <VIcon icon="mdi-briefcase-account" color="white" />
+          <VIcon icon="mdi-briefcase-account" />
         </VAvatar>
         <span class="text-h6 font-weight-bold d-none d-sm-block">{{ t('app.name') }}</span>
       </div>
@@ -106,7 +106,7 @@ const stats = [
     </VContainer>
 
     <!-- Footer -->
-    <VFooter color="primary" class="text-white justify-center py-6">
+    <VFooter color="primary" class="justify-center py-6">
       <span class="text-body-2 opacity-80">© 2026 {{ t('app.name') }} — جميع الحقوق محفوظة</span>
     </VFooter>
   </div>

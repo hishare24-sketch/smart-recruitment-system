@@ -22,7 +22,7 @@ const placeholder = computed(() => (p.value.placeholder as string) ?? 'اكتب 
       <div v-for="(m, i) in thread" :key="i" class="d-flex mb-2" :class="m.from === 'agent' ? 'justify-end' : 'justify-start'">
         <div
           class="pa-2 px-3 rounded-lg text-body-2"
-          :class="m.from === 'agent' ? 'bg-primary text-white' : 'bg-grey-lighten-3'"
+          :class="m.from === 'agent' ? 'bg-primary' : 'bg-grey-lighten-3'"
           style="max-width: 80%"
         >
           {{ m.text }}

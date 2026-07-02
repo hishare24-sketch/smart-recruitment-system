@@ -10,7 +10,7 @@ const { t } = useI18n()
   <VAppBar flat color="surface" height="70" class="px-4" border>
     <div class="d-flex align-center ga-2 cursor-pointer" @click="router.push({ name: 'home' })">
       <VAvatar color="primary" size="40" rounded="lg">
-        <VIcon icon="mdi-briefcase-account" color="white" />
+        <VIcon icon="mdi-briefcase-account" />
       </VAvatar>
       <span class="text-h6 font-weight-bold d-none d-sm-block">{{ t('app.name') }}</span>
     </div>

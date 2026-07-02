@@ -100,8 +100,8 @@ async function submit() {
           class="text-center pa-3 cursor-pointer"
           @click="role = opt.value"
         >
-          <VIcon :icon="opt.icon" size="28" :color="role === opt.value ? 'white' : 'primary'" />
-          <div class="text-caption mt-1" :class="role === opt.value ? 'text-white' : ''">
+          <VIcon :icon="opt.icon" size="28" :color="role === opt.value ? undefined : 'primary'" />
+          <div class="text-caption mt-1">
             {{ t(`roles.${opt.value}`) }}
           </div>
         </VCard>

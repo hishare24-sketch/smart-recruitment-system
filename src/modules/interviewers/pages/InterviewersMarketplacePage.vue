@@ -205,7 +205,7 @@ function open(id: number) {
           <VCard class="pa-4 h-100 cursor-pointer" variant="tonal" color="secondary" @click="open(r.interviewer.id)">
             <div class="d-flex align-center ga-3 mb-2">
               <VAvatar :color="INTERVIEWER_TYPE_META[r.interviewer.type].color" size="48">
-                <span class="text-white font-weight-bold">{{ r.interviewer.initial }}</span>
+                <span class="font-weight-bold">{{ r.interviewer.initial }}</span>
               </VAvatar>
               <div class="flex-grow-1">
                 <div class="text-body-2 font-weight-bold">{{ r.interviewer.name }}</div>
@@ -312,7 +312,7 @@ function open(id: number) {
             <VCard class="pa-4 h-100 d-flex flex-column cursor-pointer" @click="open(iv.id)">
               <div class="d-flex align-start ga-3 mb-2">
                 <VAvatar :color="INTERVIEWER_TYPE_META[iv.type].color" size="52">
-                  <span class="text-white text-h6 font-weight-bold">{{ iv.initial }}</span>
+                  <span class="text-h6 font-weight-bold">{{ iv.initial }}</span>
                 </VAvatar>
                 <div class="flex-grow-1">
                   <div class="d-flex align-center ga-1">

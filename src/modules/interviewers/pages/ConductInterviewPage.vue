@@ -98,7 +98,7 @@ function submitReport() {
     <!-- Session header -->
     <VCard class="pa-4 mb-4">
       <div class="d-flex align-center ga-3 flex-wrap">
-        <VAvatar color="primary" size="52"><span class="text-h6 text-white font-weight-bold">{{ item.candidateInitial }}</span></VAvatar>
+        <VAvatar color="primary" size="52"><span class="text-h6 font-weight-bold">{{ item.candidateInitial }}</span></VAvatar>
         <div class="flex-grow-1">
           <h1 class="text-h6 font-weight-bold mb-0">{{ item.candidateName }}</h1>
           <div class="text-caption text-medium-emphasis">{{ item.candidateField }} · {{ KIND_META[item.kind].label }} · {{ item.datetime }}</div>

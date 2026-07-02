@@ -68,7 +68,7 @@ function toggleStatus(user: AdminUser) {
           <tr v-for="u in filtered" :key="u.id">
             <td>
               <div class="d-flex align-center ga-2 py-2">
-                <VAvatar color="secondary" size="36"><span class="text-white">{{ u.name.charAt(0) }}</span></VAvatar>
+                <VAvatar color="secondary" size="36"><span>{{ u.name.charAt(0) }}</span></VAvatar>
                 <span class="font-weight-bold">{{ u.name }}</span>
               </div>
             </td>

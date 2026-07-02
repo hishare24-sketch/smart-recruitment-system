@@ -291,11 +291,11 @@ const previewHobbies = ['القراءة التقنية', 'التصوير', 'ال
               height="100%"
               @click="selectedTemplate = tpl.id"
             >
-              <VIcon :icon="tpl.icon" size="40" :color="selectedTemplate === tpl.id ? 'white' : tpl.color" />
-              <div class="text-body-2 font-weight-bold mt-2" :class="selectedTemplate === tpl.id ? 'text-white' : ''">
+              <VIcon :icon="tpl.icon" size="40" :color="selectedTemplate === tpl.id ? undefined : tpl.color" />
+              <div class="text-body-2 font-weight-bold mt-2">
                 {{ tpl.name }}
               </div>
-              <div class="text-caption" :class="selectedTemplate === tpl.id ? 'text-white' : 'text-medium-emphasis'">
+              <div class="text-caption" :class="selectedTemplate === tpl.id ? '' : 'text-medium-emphasis'">
                 {{ tpl.desc }}
               </div>
             </VCard>

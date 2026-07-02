@@ -64,8 +64,8 @@ function onFile(e: Event) {
         class="pa-3 cursor-pointer d-flex align-center ga-3"
         @click="answer = i"
       >
-        <VIcon :icon="answer === i ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank'" :color="answer === i ? 'white' : 'medium-emphasis'" />
-        <span :class="answer === i ? 'text-white' : ''">{{ opt }}</span>
+        <VIcon :icon="answer === i ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank'" :color="answer === i ? undefined : 'medium-emphasis'" />
+        <span>{{ opt }}</span>
       </VCard>
       <VTextarea
         v-if="question.type === 'truefalse'"

@@ -132,9 +132,9 @@ function openProfile(id: number) {
     <VExpandTransition>
       <VCard v-if="selected.length" color="primary" theme="darkTheme" class="pa-3 mb-3 d-flex align-center flex-wrap ga-2">
         <span class="font-weight-bold me-2">{{ selected.length }} محدّد</span>
-        <VBtn size="small" color="white" variant="tonal" prepend-icon="mdi-calendar-check-outline" @click="bulkInterview">دعوة جماعية لمقابلة</VBtn>
-        <VBtn size="small" color="white" variant="tonal" prepend-icon="mdi-message-outline" @click="bulkMessage">رسالة جماعية</VBtn>
-        <VBtn size="small" color="white" variant="tonal" prepend-icon="mdi-close" @click="bulkReject">رفض جماعي</VBtn>
+        <VBtn size="small" variant="tonal" prepend-icon="mdi-calendar-check-outline" @click="bulkInterview">دعوة جماعية لمقابلة</VBtn>
+        <VBtn size="small" variant="tonal" prepend-icon="mdi-message-outline" @click="bulkMessage">رسالة جماعية</VBtn>
+        <VBtn size="small" variant="tonal" prepend-icon="mdi-close" @click="bulkReject">رفض جماعي</VBtn>
         <VSpacer />
         <VBtn size="small" variant="text" @click="clearSelection">إلغاء التحديد</VBtn>
       </VCard>
@@ -147,7 +147,7 @@ function openProfile(id: number) {
             <div class="d-flex align-center ga-2">
               <VCheckbox :model-value="selected.includes(c.id)" hide-details density="compact" color="primary" @update:model-value="toggleSelect(c.id)" />
               <div class="d-flex align-center ga-3 cursor-pointer" @click="openProfile(c.id)">
-                <VAvatar color="secondary" size="52"><span class="text-h6 text-white font-weight-bold">{{ c.name.charAt(0) }}</span></VAvatar>
+                <VAvatar color="secondary" size="52"><span class="text-h6 font-weight-bold">{{ c.name.charAt(0) }}</span></VAvatar>
                 <div>
                   <div class="text-subtitle-1 font-weight-bold">{{ c.name }}</div>
                   <div class="text-body-2 text-medium-emphasis">{{ c.title }} · {{ c.location }} · {{ c.level }}</div>

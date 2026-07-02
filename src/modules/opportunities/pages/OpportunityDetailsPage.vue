@@ -197,10 +197,10 @@ function askAboutOpportunity() {
             class="pa-3 mb-2 cursor-pointer d-flex align-center ga-3"
             @click="selectedResume = r.id"
           >
-            <VIcon :icon="selectedResume === r.id ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank'" :color="selectedResume === r.id ? 'white' : undefined" />
+            <VIcon :icon="selectedResume === r.id ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank'" />
             <div>
-              <div class="text-body-2 font-weight-bold" :class="selectedResume === r.id ? 'text-white' : ''">{{ r.name }}</div>
-              <div class="text-caption" :class="selectedResume === r.id ? 'text-white' : 'text-medium-emphasis'">{{ r.template }} · {{ r.language }}</div>
+              <div class="text-body-2 font-weight-bold">{{ r.name }}</div>
+              <div class="text-caption" :class="selectedResume === r.id ? '' : 'text-medium-emphasis'">{{ r.template }} · {{ r.language }}</div>
             </div>
           </VCard>
           <VBtn variant="tonal" color="secondary" block class="mt-2" prepend-icon="mdi-plus" :to="{ name: 'resume-builder' }">
