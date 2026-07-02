@@ -214,6 +214,15 @@ export interface AiService {
   autoClassify: (text: string) => AutoClassification
   // — survey results analysis —
   surveyInsights: (ctx: SurveyInsightsInput) => SurveyInsights
+  // — interviewer personal-brand growth —
+  interviewerGrowthTips: (ctx: { comments: string[], avgRating: number, fieldAvgRating: number }) => InterviewerGrowth
+}
+
+export interface InterviewerGrowth {
+  praise: string // ما يتميز به وفق تعليقات المرشحين
+  focus: string // أهم محور تحسين
+  tips: string[]
+  vsField: string // موقعه مقارنة بمتوسط مجاله (تحليل منافسين ضمني)
 }
 
 export interface SurveyInsightsInput {

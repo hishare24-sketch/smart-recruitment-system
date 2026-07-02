@@ -29,6 +29,12 @@ export const routes: RouteRecordRaw[] = [
     meta: { layout: 'blank', public: true },
   },
   {
+    path: '/expert/:slug',
+    name: 'public-expert',
+    component: () => import('@/modules/public/pages/PublicExpertPage.vue'),
+    meta: { layout: 'blank', public: true },
+  },
+  {
     path: '/resume/:token',
     name: 'public-resume',
     component: () => import('@/modules/public/pages/PublicResumePage.vue'),

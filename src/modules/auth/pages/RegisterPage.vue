@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import type { UserRole } from '@/interfaces/Auth'
 import { useAuthStore } from '@/stores/AuthStore'
+import { useInterviewerBrandStore } from '@/stores/InterviewerBrandStore'
 import { authService } from '../services/AuthService'
 
 const { t } = useI18n()
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
 const roleOptions: { value: UserRole, icon: string }[] = [
@@ -60,6 +62,10 @@ async function submit() {
     authStore.setAuthUser(user)
     // Extra roles chosen at sign-up: instant ones activate, approval ones stay pending
     extraRoles.value.forEach(r => authStore.requestRole(r))
+    // Referral program: joining via an interviewer invite link credits the inviter
+    const brand = useInterviewerBrandStore()
+    if (route.query.ref === brand.state.referralCode)
+      brand.creditReferral()
     // New seekers see the onboarding wizard; others go to their dashboard
     if (user.role === 'seeker')
       router.push({ name: 'onboarding' })

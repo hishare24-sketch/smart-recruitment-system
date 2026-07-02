@@ -28,6 +28,7 @@ import type {
   TimeSuggestion,
   SurveyInsights,
   SurveyInsightsInput,
+  InterviewerGrowth,
 } from './types'
 import { ALL_SKILLS, TAXONOMY, categorizeSkill, getCategory } from '@/services/taxonomy'
 
@@ -753,6 +754,39 @@ function surveyInsights(ctx: SurveyInsightsInput): SurveyInsights {
   }
 }
 
+// — Interviewer personal-brand growth (analyses real candidate review comments) —
+function interviewerGrowthTips(ctx: { comments: string[], avgRating: number, fieldAvgRating: number }): InterviewerGrowth {
+  const text = ctx.comments.join(' ')
+  const traits: [string, string][] = [
+    ['دقيق', 'الدقة والاحترافية'],
+    ['واضح', 'وضوح الشرح والملاحظات'],
+    ['صبور', 'الصبر واحتواء المرشح'],
+    ['عملي', 'الأسئلة العملية الواقعية'],
+    ['خبير', 'عمق الخبرة التقنية'],
+  ]
+  const found = traits.filter(([kw]) => text.includes(kw)).map(([, label]) => label)
+  const praise = found.length
+    ? `المرشحون يذكرون ${found.join(' و')} في تعليقاتهم — هذه علامتك التجارية، أبرِزها في ملفك العام.`
+    : 'تقييماتك إيجابية عمومًا — اطلب من مرشحيك ذكر ما ميّز الجلسة ليتكوّن دليل اجتماعي أقوى.'
+  const focus = text.includes('الوقت') || text.includes('ضيق')
+    ? 'إدارة زمن الجلسة: بعض المرشحين لمّحوا لضيق الوقت — خصص دقائق ختامية للأسئلة.'
+    : 'الاستماع النشط: لخّص إجابة المرشح قبل الانتقال للسؤال التالي لرفع شعوره بالإنصاف.'
+  const delta = Math.round((ctx.avgRating - ctx.fieldAvgRating) * 10) / 10
+  const vsField = delta >= 0
+    ? `تقييمك أعلى من متوسط مجالك بـ ${delta} نقطة — أنت في النطاق الجاذب للحجوزات المميزة.`
+    : `تقييمك أدنى من متوسط مجالك بـ ${Math.abs(delta)} نقطة — تحسين تجربة الختام يقلب المعادلة سريعًا.`
+  return {
+    praise,
+    focus,
+    tips: [
+      'أرسل ملخص نقاط التطوير للمرشح خلال 24 ساعة — يرفع التقييمات الممتازة بوضوح.',
+      'ثبّت أفضل 3 تقييمات في ملفك العام وحدّثها شهريًا.',
+      'فعّل عرضًا تعريفيًا قصيرًا لجذب مرشحين جدد ثم حوّلهم للحزم الكاملة.',
+    ],
+    vsField,
+  }
+}
+
 export const mockAi: AiService = {
   skillLevel,
   trustAnalysis,
@@ -794,4 +828,5 @@ export const mockAi: AiService = {
   peerRequestTip,
   autoClassify,
   surveyInsights,
+  interviewerGrowthTips,
 }

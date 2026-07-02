@@ -9,10 +9,62 @@ import type { AgendaItem, MarketInterviewKind } from '@/stores/InterviewersStore
 import { useNotificationsStore } from '@/stores/NotificationsStore'
 import { ai } from '@/services/ai'
 import type { EvalElementSuggestion } from '@/services/ai'
+import { MY_INTERVIEWER_ID, useInterviewerBrandStore } from '@/stores/InterviewerBrandStore'
+import { useReviewsStore } from '@/stores/ReviewsStore'
 
 const router = useRouter()
 const store = useInterviewersStore()
 const notifications = useNotificationsStore()
+
+// ===== لوحة التسويق الشخصي (شريك نجاح) =====
+const brand = useInterviewerBrandStore()
+const reviewsStore = useReviewsStore()
+const linkCopied = ref(false)
+const refCopied = ref(false)
+function copyPublicLink() {
+  navigator.clipboard?.writeText(`${window.location.origin}${import.meta.env.BASE_URL}${brand.publicPath}`)
+  brand.recordShare()
+  linkCopied.value = true
+  setTimeout(() => (linkCopied.value = false), 1800)
+}
+function copyReferral() {
+  navigator.clipboard?.writeText(brand.referralLink)
+  refCopied.value = true
+  setTimeout(() => (refCopied.value = false), 1800)
+}
+
+// مستشار النمو الذكي — يحلل تعليقات مرشحيّ الحقيقية ويقارن بمتوسط المجال
+const growth = computed(() => {
+  const myReviews = reviewsStore.forSubject('toInterviewer', String(MY_INTERVIEWER_ID))
+  return ai.interviewerGrowthTips({
+    comments: myReviews.map(r => r.comment),
+    avgRating: store.interviewerStats.avgRating || 4.6,
+    fieldAvgRating: 4.3, // متوسط مجاله (تحليل منافسين ضمني — بلا أسماء)
+  })
+})
+
+// عرض ترويجي جديد
+const promoDialog = ref(false)
+const newPromo = ref({ title: '', kind: 'discount' as 'discount' | 'free_intro', pct: 20 })
+function savePromo() {
+  if (!newPromo.value.title.trim())
+    return
+  brand.addPromo({ title: newPromo.value.title.trim(), kind: newPromo.value.kind, pct: newPromo.value.kind === 'discount' ? newPromo.value.pct : undefined })
+  promoDialog.value = false
+  newPromo.value = { title: '', kind: 'discount', pct: 20 }
+}
+
+// مقال جديد
+const articleDialog = ref(false)
+const newArticle = ref({ title: '', body: '' })
+function saveArticle() {
+  if (!newArticle.value.title.trim() || !newArticle.value.body.trim())
+    return
+  brand.submitArticle(newArticle.value.title.trim(), newArticle.value.body.trim())
+  articleDialog.value = false
+  newArticle.value = { title: '', body: '' }
+  notifications.push({ icon: 'mdi-post-outline', color: 'info', title: 'أُرسل مقالك للمراجعة', body: 'سيُنشر في ملفك العام فور اعتماده.', category: 'system' })
+}
 
 function acceptRequest(a: AgendaItem) {
   store.acceptRequest(a.id)
@@ -219,6 +271,98 @@ function addSuggestion(s: EvalElementSuggestion) {
         </VCard>
       </VCol>
 
+      <!-- Personal marketing & growth panel (شريك نجاح) -->
+      <VCol cols="12">
+        <VCard class="pa-5">
+          <div class="d-flex align-center justify-space-between flex-wrap ga-2 mb-1">
+            <div class="d-flex align-center ga-2">
+              <VIcon icon="mdi-bullhorn-outline" color="accent" />
+              <h2 class="text-subtitle-1 font-weight-bold">التسويق الشخصي</h2>
+              <VChip v-if="brand.isAmbassador" size="x-small" color="accent" label prepend-icon="mdi-shield-star-outline">سفير المنصة</VChip>
+            </div>
+            <div class="d-flex ga-2">
+              <VBtn size="small" color="primary" variant="tonal" prepend-icon="mdi-open-in-new" :to="`/${brand.publicPath}`" target="_blank">
+                ملفي العام
+              </VBtn>
+              <VBtn size="small" color="secondary" variant="tonal" :prepend-icon="linkCopied ? 'mdi-check' : 'mdi-link-variant'" @click="copyPublicLink">
+                {{ linkCopied ? 'نُسخ الرابط' : 'مشاركة الملف' }}
+              </VBtn>
+            </div>
+          </div>
+          <p class="text-caption text-medium-emphasis mb-3">ملفك العام بطاقة تسويقية — شاركه على LinkedIn ووسائل التواصل لجذب حجوزات جديدة.</p>
+
+          <!-- مؤشرات الوصول -->
+          <VRow dense class="mb-2">
+            <VCol v-for="m in [
+              { label: 'مشاهدات الملف', value: brand.marketingStats.views, icon: 'mdi-eye-outline', color: 'primary' },
+              { label: 'مرات المشاركة', value: brand.marketingStats.shares, icon: 'mdi-share-variant-outline', color: 'secondary' },
+              { label: 'أضافوني للمفضلة', value: brand.marketingStats.favorites, icon: 'mdi-heart-outline', color: 'error' },
+              { label: 'إحالات ناجحة', value: brand.marketingStats.referrals, icon: 'mdi-account-plus-outline', color: 'accent' },
+            ]" :key="m.label" cols="6" md="3">
+              <div class="text-center pa-3 rounded-lg growth-tile">
+                <VIcon :icon="m.icon" :color="m.color" size="20" class="mb-1" />
+                <div class="text-h6 font-weight-bold">{{ m.value }}</div>
+                <div class="text-caption text-medium-emphasis">{{ m.label }}</div>
+              </div>
+            </VCol>
+          </VRow>
+
+          <VRow>
+            <!-- رابط الدعوة -->
+            <VCol cols="12" md="6">
+              <div class="text-body-2 font-weight-bold mb-1"><VIcon icon="mdi-account-multiple-plus-outline" size="16" /> رابط الدعوة (شريك نمو)</div>
+              <p class="text-caption text-medium-emphasis mb-2">كل مرشح يسجّل عبر رابطك = +50 نقطة في محفظتك.</p>
+              <VTextField :model-value="brand.referralLink" readonly density="compact" hide-details dir="ltr">
+                <template #append-inner>
+                  <VBtn :icon="refCopied ? 'mdi-check' : 'mdi-content-copy'" variant="text" size="small" :color="refCopied ? 'success' : undefined" @click="copyReferral" />
+                </template>
+              </VTextField>
+            </VCol>
+
+            <!-- العروض الترويجية -->
+            <VCol cols="12" md="6">
+              <div class="d-flex align-center justify-space-between mb-1">
+                <div class="text-body-2 font-weight-bold"><VIcon icon="mdi-tag-heart-outline" size="16" /> عروضي الترويجية</div>
+                <VBtn size="x-small" variant="tonal" color="accent" prepend-icon="mdi-plus" @click="promoDialog = true">عرض جديد</VBtn>
+              </div>
+              <div v-for="p in brand.state.promos" :key="p.id" class="d-flex align-center ga-2 py-1">
+                <VSwitch :model-value="p.active" color="accent" hide-details density="compact" @update:model-value="brand.togglePromo(p.id)" />
+                <span class="text-caption flex-grow-1" :class="{ 'text-medium-emphasis': !p.active }">{{ p.title }}<b v-if="p.pct"> ({{ p.pct }}%)</b></span>
+                <VBtn icon="mdi-delete-outline" size="x-small" variant="text" color="error" @click="brand.removePromo(p.id)" />
+              </div>
+              <p v-if="!brand.state.promos.length" class="text-caption text-medium-emphasis">أنشئ عرضًا (خصم أو جلسة تعارف مجانية) لجذب مرشحين جدد.</p>
+            </VCol>
+          </VRow>
+
+          <VDivider class="my-3" />
+
+          <VRow>
+            <!-- توصيات AI للنمو -->
+            <VCol cols="12" md="6">
+              <div class="text-body-2 font-weight-bold mb-2"><VIcon icon="mdi-robot-happy-outline" size="16" color="secondary" /> مستشار النمو الذكي</div>
+              <VAlert color="success" variant="tonal" density="compact" border="start" class="mb-2 text-caption">{{ growth.praise }}</VAlert>
+              <VAlert color="warning" variant="tonal" density="compact" border="start" class="mb-2 text-caption">{{ growth.focus }}</VAlert>
+              <VAlert color="info" variant="tonal" density="compact" border="start" class="text-caption">{{ growth.vsField }}</VAlert>
+            </VCol>
+
+            <!-- مقالاتي -->
+            <VCol cols="12" md="6">
+              <div class="d-flex align-center justify-space-between mb-1">
+                <div class="text-body-2 font-weight-bold"><VIcon icon="mdi-post-outline" size="16" /> مقالاتي المهنية</div>
+                <VBtn size="x-small" variant="tonal" color="secondary" prepend-icon="mdi-pencil-plus-outline" @click="articleDialog = true">مقال جديد</VBtn>
+              </div>
+              <div v-for="a in brand.state.articles" :key="a.id" class="d-flex align-center ga-2 py-1">
+                <VChip size="x-small" :color="a.status === 'published' ? 'success' : 'warning'" label>
+                  {{ a.status === 'published' ? 'منشور' : 'قيد المراجعة' }}
+                </VChip>
+                <span class="text-caption flex-grow-1">{{ a.title }}</span>
+              </div>
+              <p class="text-caption text-medium-emphasis mt-1">المقالات تُعرض في ملفك العام بعد مراجعة المنصة — تبني سلطتك المهنية.</p>
+            </VCol>
+          </VRow>
+        </VCard>
+      </VCol>
+
       <!-- Candidate reviews of me (doc §3.3-ب) -->
       <VCol cols="12">
         <VCard class="pa-5">
@@ -231,6 +375,43 @@ function addSuggestion(s: EvalElementSuggestion) {
         </VCard>
       </VCol>
     </VRow>
+
+    <!-- New promo dialog -->
+    <VDialog v-model="promoDialog" max-width="440">
+      <VCard class="pa-2">
+        <VCardTitle>عرض ترويجي جديد</VCardTitle>
+        <VCardText>
+          <VTextField v-model="newPromo.title" label="عنوان العرض" placeholder="خصم على الحزمة الشاملة" class="mb-3" />
+          <VBtnToggle v-model="newPromo.kind" mandatory color="accent" variant="outlined" divided class="mb-3 w-100">
+            <VBtn value="discount" class="flex-grow-1" prepend-icon="mdi-percent-outline">خصم %</VBtn>
+            <VBtn value="free_intro" class="flex-grow-1" prepend-icon="mdi-gift-outline">جلسة مجانية</VBtn>
+          </VBtnToggle>
+          <VSlider v-if="newPromo.kind === 'discount'" v-model="newPromo.pct" :min="5" :max="50" :step="5" color="accent" thumb-label="always" label="نسبة الخصم" />
+        </VCardText>
+        <VCardActions>
+          <VSpacer />
+          <VBtn variant="text" @click="promoDialog = false">إلغاء</VBtn>
+          <VBtn color="accent" variant="flat" :disabled="!newPromo.title.trim()" @click="savePromo">تفعيل العرض</VBtn>
+        </VCardActions>
+      </VCard>
+    </VDialog>
+
+    <!-- New article dialog -->
+    <VDialog v-model="articleDialog" max-width="560">
+      <VCard class="pa-2">
+        <VCardTitle>مقال مهني جديد</VCardTitle>
+        <VCardText>
+          <VTextField v-model="newArticle.title" label="عنوان المقال" class="mb-3" />
+          <VTextarea v-model="newArticle.body" label="المحتوى" rows="5" auto-grow counter="600" />
+          <p class="text-caption text-medium-emphasis">يُراجَع المقال من المنصة قبل النشر في ملفك العام.</p>
+        </VCardText>
+        <VCardActions>
+          <VSpacer />
+          <VBtn variant="text" @click="articleDialog = false">إلغاء</VBtn>
+          <VBtn color="secondary" variant="flat" :disabled="!newArticle.title.trim() || !newArticle.body.trim()" prepend-icon="mdi-send" @click="saveArticle">إرسال للمراجعة</VBtn>
+        </VCardActions>
+      </VCard>
+    </VDialog>
 
     <!-- Pricing dialog -->
     <VDialog v-model="priceDialog" max-width="460">
@@ -262,5 +443,8 @@ function addSuggestion(s: EvalElementSuggestion) {
 .element-row {
   border: 1px solid rgba(140, 163, 150, 0.2);
   border-radius: var(--ui-radius);
+}
+.growth-tile {
+  background: rgba(var(--v-theme-primary), 0.06);
 }
 </style>
