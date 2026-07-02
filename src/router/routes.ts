@@ -277,6 +277,12 @@ export const routes: RouteRecordRaw[] = [
     meta: { layout: 'default' },
   },
   {
+    path: '/surveys/participate',
+    name: 'surveys-participate',
+    component: () => import('@/modules/surveys/pages/SurveysParticipatePage.vue'),
+    meta: { layout: 'default' },
+  },
+  {
     path: '/surveys/:id/analysis',
     name: 'survey-analysis',
     component: () => import('@/modules/surveys/pages/SurveyAnalysisPage.vue'),

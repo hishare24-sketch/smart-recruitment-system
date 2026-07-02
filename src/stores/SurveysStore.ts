@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
+import { useGamificationStore } from '@/stores/GamificationStore'
 import { useNotificationsStore } from '@/stores/NotificationsStore'
 
 // ===== نظام الاستبيانات — 10 أنماط أسئلة + نشر داخلي/خارجي + استجابات حيّة =====
@@ -41,6 +42,8 @@ export interface SurveySettings {
   oneQuestionPerPage: boolean
   responseLimit: number | null
   closesAt: string | null // ISO date
+  /** نقاط تحفيزية لكل مشارك — تُخصم من محفظة المنشئ */
+  rewardPoints: number
 }
 
 export const DEFAULT_SETTINGS: SurveySettings = {
@@ -52,6 +55,7 @@ export const DEFAULT_SETTINGS: SurveySettings = {
   oneQuestionPerPage: true,
   responseLimit: null,
   closesAt: null,
+  rewardPoints: 0,
 }
 
 export type SurveyStatus = 'draft' | 'active' | 'closed'
@@ -66,7 +70,14 @@ export interface Survey {
   settings: SurveySettings
   status: SurveyStatus
   createdAt: string
+  /** 'me' = من إنشاء المستخدم الحالي؛ 'platform' = استبيانات جهات أخرى متاحة للمشاركة */
+  owner: 'me' | 'platform'
+  ownerName?: string
 }
+
+// خطط الاشتراك (mock): المجانية تسمح بعدد محدود من الاستبيانات النشطة
+export type SurveyPlan = 'free' | 'pro'
+export const FREE_SURVEY_LIMIT = 3
 
 export type AnswerValue = string | number | string[] | Record<string, number>
 
@@ -77,6 +88,8 @@ export interface SurveyResponse {
   at: string
   durationSec: number
   completed: boolean
+  /** true = المستخدم الحالي هو المشارك (لمنع التكرار ولصرف المكافأة) */
+  mine?: boolean
   answers: Record<number, AnswerValue>
 }
 
@@ -97,33 +110,56 @@ const seedQuestions: SurveyQuestion[] = [
 ]
 
 const seed: Survey[] = [
-  { id: 1, title: 'رضا المرشحين - يونيو', type: 'رضا المرشح', audience: 'both', token: 'demo01sat', questions: seedQuestions, settings: { ...DEFAULT_SETTINGS }, status: 'active', createdAt: '2026-06-20' },
+  { id: 1, title: 'رضا المرشحين - يونيو', type: 'رضا المرشح', audience: 'both', token: 'demo01sat', questions: seedQuestions, settings: { ...DEFAULT_SETTINGS }, status: 'active', createdAt: '2026-06-20', owner: 'me' },
   { id: 2, title: 'احتياجات سوق التقنية', type: 'احتياجات السوق', audience: 'external', token: 'demo02mkt', questions: [
     { id: 1, text: 'ما المهارات الأكثر طلبًا لديكم؟', type: 'ranking', options: ['تطوير', 'تصميم', 'بيانات', 'تسويق'] },
     { id: 2, text: 'ما متوسط الرواتب المتوقعة؟', type: 'dropdown', options: ['أقل من 8 آلاف', '8-15 ألفًا', '15-25 ألفًا', 'أكثر من 25 ألفًا'] },
     { id: 3, text: 'كيف تقيّم توفّر المواهب؟', type: 'scale', scaleMin: 'نادر جدًا', scaleMax: 'متوفر بكثرة' },
-  ], settings: { ...DEFAULT_SETTINGS, anonymous: false }, status: 'active', createdAt: '2026-06-12' },
+  ], settings: { ...DEFAULT_SETTINGS, anonymous: false }, status: 'active', createdAt: '2026-06-12', owner: 'me' },
+]
+
+// استبيانات جهات أخرى منشورة داخل المنصة — تظهر لكل المستخدمين للمشاركة بمكافأة
+const platformSeed: Survey[] = [
+  { id: 101, title: 'تجربة التقديم على الفرص التقنية', type: 'رضا المرشح', audience: 'internal', token: 'pf01apply', owner: 'platform', ownerName: 'شركة تقنية المستقبل', status: 'active', createdAt: '2026-06-28', settings: { ...DEFAULT_SETTINGS, rewardPoints: 25 }, questions: [
+    { id: 1, text: 'كيف تقيّم وضوح إعلانات الفرص لدينا؟', type: 'rating', required: true },
+    { id: 2, text: 'ما مدى احتمال أن توصي زميلًا بالتقديم لدينا؟', type: 'nps', required: true },
+    { id: 3, text: 'ما الذي يجذبك أكثر في عروض العمل؟', type: 'ranking', options: ['الراتب', 'المرونة', 'فرص التطور', 'ثقافة الفريق'] },
+    { id: 4, text: 'ما الذي ينقص صفحات الفرص لدينا؟', type: 'longtext' },
+  ] },
+  { id: 102, title: 'جودة تقارير المقيّمين المعتمدين', type: 'جودة الخدمة', audience: 'internal', token: 'pf02rep', owner: 'platform', ownerName: 'منظومة التوظيف الذكية', status: 'active', createdAt: '2026-06-25', settings: { ...DEFAULT_SETTINGS, rewardPoints: 15 }, questions: [
+    { id: 1, text: 'قيّم وضوح تقارير المقيّمين التي اطلعت عليها', type: 'rating', required: true },
+    { id: 2, text: 'قيّم الجوانب التالية في التقارير', type: 'matrix', rows: ['دقة التشخيص', 'عملية التوصيات', 'سهولة القراءة'] },
+    { id: 3, text: 'هل السعر مقابل التقييم عادل؟', type: 'single', options: ['عادل', 'مرتفع قليلًا', 'مرتفع جدًا'] },
+    { id: 4, text: 'ما الذي تضيفه للتقارير لو كان القرار لك؟', type: 'text' },
+  ] },
 ]
 
 function load(): Survey[] {
   const raw = localStorage.getItem(STORAGE_KEY)
   if (!raw)
-    return seed.map(s => structuredClone(s))
+    return [...seed, ...platformSeed].map(s => structuredClone(s))
   try {
     const list = JSON.parse(raw) as (Survey & { responses?: number })[]
     // Migration from the legacy flat shape (no token/settings/questions typing)
-    return list.map(s => ({
+    const migrated = list.map(s => ({
       ...s,
       token: s.token ?? makeToken(),
       settings: { ...DEFAULT_SETTINGS, ...(s.settings ?? {}) },
       questions: s.questions ?? [],
       audience: (['internal', 'external', 'both'].includes(s.audience as string) ? s.audience : 'both') as Survey['audience'],
-      status: (s.status === 'draft' ? 'draft' : s.status) ?? 'draft',
+      status: ((s.status === 'draft' ? 'draft' : s.status) ?? 'draft') as SurveyStatus,
       createdAt: s.createdAt ?? '2026-06-01',
+      owner: (s.owner ?? 'me') as Survey['owner'],
     }))
+    // Ensure the shared platform surveys exist for participation
+    for (const p of platformSeed) {
+      if (!migrated.some(s => s.token === p.token))
+        migrated.push(structuredClone(p))
+    }
+    return migrated
   }
   catch {
-    return seed.map(s => structuredClone(s))
+    return [...seed, ...platformSeed].map(s => structuredClone(s))
   }
 }
 
@@ -164,8 +200,29 @@ export const useSurveysStore = defineStore('surveys', () => {
   const surveys = ref<Survey[]>(load())
   const responses = ref<SurveyResponse[]>(JSON.parse(localStorage.getItem(RESPONSES_KEY) ?? 'null') ?? [])
 
+  // Persist immediately: load() may have generated migration tokens / appended
+  // platform surveys, and share links must survive a full page reload.
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(surveys.value))
+
   watch(surveys, val => localStorage.setItem(STORAGE_KEY, JSON.stringify(val)), { deep: true })
   watch(responses, val => localStorage.setItem(RESPONSES_KEY, JSON.stringify(val)), { deep: true })
+
+  // ===== خطة الاشتراك (mock) =====
+  const plan = ref<SurveyPlan>((localStorage.getItem('surveyPlan') as SurveyPlan) ?? 'free')
+  watch(plan, v => localStorage.setItem('surveyPlan', v))
+  const mySurveys = computed(() => surveys.value.filter(s => s.owner === 'me'))
+  const canCreate = computed(() => plan.value === 'pro' || mySurveys.value.length < FREE_SURVEY_LIMIT)
+  function upgradePlan() {
+    plan.value = 'pro'
+  }
+
+  // ===== قسم المشاركة: استبيانات داخلية نشطة من جهات أخرى =====
+  const participatable = computed(() =>
+    surveys.value.filter(s => s.owner === 'platform' && s.status === 'active' && s.audience !== 'external'),
+  )
+  function hasParticipated(surveyId: number): boolean {
+    return responses.value.some(r => r.surveyId === surveyId && r.mine)
+  }
 
   // Seed live responses for the demo surveys on first run
   if (!responses.value.length) {
@@ -230,7 +287,7 @@ export const useSurveysStore = defineStore('surveys', () => {
       return null
     // JSON round-trip: reactive proxies can't pass through structuredClone
     const plain = JSON.parse(JSON.stringify({ title: s.title, type: s.type, audience: s.audience, questions: s.questions, settings: s.settings }))
-    return add({ ...plain, title: `${s.title} (نسخة)`, status: 'draft' })
+    return add({ ...plain, title: `${s.title} (نسخة)`, status: 'draft', owner: 'me' })
   }
 
   function setStatus(id: number, status: SurveyStatus) {
@@ -240,13 +297,15 @@ export const useSurveysStore = defineStore('surveys', () => {
   }
 
   /** استلام استجابة حقيقية (من صفحة الإجابة الداخلية أو رابط المشاركة الخارجي) */
-  function submitResponse(surveyId: number, answers: Record<number, AnswerValue>, meta: { source: 'internal' | 'external', durationSec: number, completed?: boolean }): boolean {
+  function submitResponse(surveyId: number, answers: Record<number, AnswerValue>, meta: { source: 'internal' | 'external', durationSec: number, completed?: boolean, mine?: boolean }): boolean {
     const s = byId(surveyId)
     if (!s || s.status !== 'active')
       return false
     const limit = s.settings.responseLimit
     if (limit && responsesFor(surveyId).length >= limit)
       return false
+    if (meta.mine && hasParticipated(surveyId))
+      return false // مشاركة واحدة لكل مستخدم
     responses.value.push({
       id: nextResponseId++,
       surveyId,
@@ -254,15 +313,36 @@ export const useSurveysStore = defineStore('surveys', () => {
       at: new Date().toISOString().slice(0, 10),
       durationSec: meta.durationSec,
       completed: meta.completed ?? true,
+      mine: meta.mine,
       answers,
     })
-    useNotificationsStore().push({
-      icon: 'mdi-poll',
-      color: 'secondary',
-      title: 'استجابة جديدة على استبيانك',
-      body: `«${s.title}» — عبر ${meta.source === 'external' ? 'الرابط الخارجي' : 'المنصة'}`,
-      category: 'system',
-    })
+
+    const reward = s.settings.rewardPoints
+    const notifications = useNotificationsStore()
+    if (s.owner === 'me') {
+      // استجابة على استبياني: أُشعَر بها، وتُخصم مكافأة المشارك من محفظتي
+      notifications.push({
+        icon: 'mdi-poll',
+        color: 'secondary',
+        title: 'استجابة جديدة على استبيانك',
+        body: `«${s.title}» — عبر ${meta.source === 'external' ? 'الرابط الخارجي' : 'المنصة'}`,
+        category: 'system',
+      })
+      if (reward > 0 && !meta.mine) {
+        const paid = useGamificationStore().spend(reward)
+        notifications.push({
+          icon: 'mdi-wallet-outline',
+          color: paid ? 'warning' : 'error',
+          title: paid ? `خُصم ${reward} نقطة مكافأة مشارك` : 'رصيد نقاطك لا يغطي مكافأة المشارك',
+          body: `«${s.title}»`,
+          category: 'system',
+        })
+      }
+    }
+    else if (reward > 0 && meta.mine) {
+      // شاركتُ في استبيان جهة أخرى: أكسب المكافأة من محفظة منشئه
+      useGamificationStore().award(reward, `مشاركة في استبيان «${s.title}»`)
+    }
     return true
   }
 
@@ -287,6 +367,8 @@ export const useSurveysStore = defineStore('surveys', () => {
     byId, byToken, responsesFor, statsFor,
     add, update, remove, duplicate, setStatus,
     submitResponse, simulateResponses,
+    plan, mySurveys, canCreate, upgradePlan,
+    participatable, hasParticipated,
   }
 })
 

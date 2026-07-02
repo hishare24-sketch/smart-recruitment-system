@@ -46,8 +46,10 @@ export const navItems: NavItem[] = [
   { title: 'analytics', icon: 'mdi-chart-box-outline', to: 'analytics', roles: ['company'] },
   { title: 'achievements', icon: 'mdi-trophy-outline', to: 'achievements', roles: ['company'] },
 
-  // Shared (admin + company)
-  { title: 'surveys', icon: 'mdi-poll', to: 'surveys', roles: ['admin', 'company'] },
+  // Shared — survey creation per subscription plan (companies + interviewers + admin)
+  { title: 'surveys', icon: 'mdi-poll', to: 'surveys', roles: ['admin', 'company', 'interviewer'] },
+  // Participation is open to every user type
+  { title: 'surveysParticipate', icon: 'mdi-comment-quote-outline', to: 'surveys-participate', roles: ['seeker', 'company', 'interviewer', 'endorser'] },
 ]
 
 export function navForRole(role: UserRole | undefined): NavItem[] {

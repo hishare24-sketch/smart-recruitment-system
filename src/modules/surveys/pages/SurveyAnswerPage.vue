@@ -6,13 +6,17 @@ import type { AnswerValue, SurveyQuestion } from '@/stores/SurveysStore'
 import SurveyQuestionInput from '../components/SurveyQuestionInput.vue'
 
 // Public respondent view — reached in-platform or via the external share link
-type Stage = 'welcome' | 'questions' | 'thanks' | 'closed'
+type Stage = 'welcome' | 'questions' | 'thanks' | 'closed' | 'already'
 
 const route = useRoute()
 const store = useSurveysStore()
 
 const survey = computed(() => store.byToken(String(route.params.token)))
 const source = computed<'internal' | 'external'>(() => (route.query.src === 'in' ? 'internal' : 'external'))
+// من داخل المنصة = المستخدم الحالي هو المشارك (لمنع التكرار وصرف المكافأة)
+const isMine = computed(() => source.value === 'internal')
+const reward = computed(() => survey.value?.settings.rewardPoints ?? 0)
+const earnsReward = computed(() => isMine.value && survey.value?.owner === 'platform' && reward.value > 0)
 
 // Shuffle once per visit when the survey asks for it
 function shuffled<T>(arr: T[]): T[] {
@@ -27,7 +31,11 @@ const questions = ref<SurveyQuestion[]>(
   survey.value ? (survey.value.settings.shuffleQuestions ? shuffled(survey.value.questions) : [...survey.value.questions]) : [],
 )
 
-const stage = ref<Stage>(survey.value && survey.value.status === 'active' ? 'welcome' : 'closed')
+const stage = ref<Stage>(
+  !survey.value || survey.value.status !== 'active'
+    ? 'closed'
+    : isMine.value && store.hasParticipated(survey.value.id) ? 'already' : 'welcome',
+)
 const currentIndex = ref(0)
 const answers = ref<Record<number, AnswerValue>>({})
 const startedAt = ref(0)
@@ -69,6 +77,7 @@ function finish() {
   const ok = store.submitResponse(survey.value.id, { ...answers.value }, {
     source: source.value,
     durationSec: Math.max(5, Math.round((Date.now() - startedAt.value) / 1000)),
+    mine: isMine.value,
   })
   stage.value = ok ? 'thanks' : 'closed'
 }
@@ -95,16 +104,31 @@ function finish() {
           </p>
         </VCard>
 
+        <!-- Already participated -->
+        <VCard v-else-if="stage === 'already' && survey" class="pa-8 text-center">
+          <VAvatar color="success" variant="tonal" size="64" class="mb-3">
+            <VIcon icon="mdi-check-circle-outline" size="36" />
+          </VAvatar>
+          <h2 class="text-h6 font-weight-bold mb-2">شاركت في هذا الاستبيان سابقًا</h2>
+          <p class="text-body-2 text-medium-emphasis">تُحتسب مشاركة واحدة لكل مستخدم — شكرًا لمساهمتك!</p>
+        </VCard>
+
         <!-- Welcome -->
         <VCard v-else-if="stage === 'welcome' && survey" class="pa-8 text-center">
           <VChip size="small" color="secondary" variant="tonal" label class="mb-3">{{ survey.type }}</VChip>
           <h1 class="text-h5 font-weight-bold mb-2">{{ survey.title }}</h1>
+          <p v-if="survey.ownerName" class="text-caption text-medium-emphasis mb-1">من: {{ survey.ownerName }}</p>
           <p class="text-body-2 text-medium-emphasis mb-2">{{ survey.settings.welcomeMessage }}</p>
-          <div class="text-caption text-medium-emphasis mb-5 d-flex align-center justify-center ga-3">
+          <div class="text-caption text-medium-emphasis mb-3 d-flex align-center justify-center ga-3 flex-wrap">
             <span><VIcon icon="mdi-help-circle-outline" size="14" /> {{ survey.questions.length }} أسئلة</span>
             <span v-if="survey.settings.anonymous"><VIcon icon="mdi-incognito" size="14" /> إجاباتك مجهولة الهوية</span>
           </div>
-          <VBtn color="accent" size="large" prepend-icon="mdi-play" @click="start">ابدأ الاستبيان</VBtn>
+          <VChip v-if="earnsReward" color="accent" label class="mb-4" prepend-icon="mdi-star-circle-outline">
+            ستكسب +{{ reward }} نقطة عند الإكمال
+          </VChip>
+          <div>
+            <VBtn color="accent" size="large" prepend-icon="mdi-play" @click="start">ابدأ الاستبيان</VBtn>
+          </div>
         </VCard>
 
         <!-- Questions -->
@@ -151,6 +175,9 @@ function finish() {
             <VIcon icon="mdi-check" size="36" />
           </VAvatar>
           <h2 class="text-h6 font-weight-bold mb-2">{{ survey.settings.thanksMessage }}</h2>
+          <VChip v-if="earnsReward" color="accent" label class="mb-2" prepend-icon="mdi-star-circle-outline">
+            أُضيفت +{{ reward }} نقطة إلى محفظتك
+          </VChip>
           <p class="text-body-2 text-medium-emphasis">وصلت إجاباتك إلى صاحب الاستبيان مباشرة.</p>
         </VCard>
       </VCol>

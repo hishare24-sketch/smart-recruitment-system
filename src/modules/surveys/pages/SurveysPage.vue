@@ -2,8 +2,9 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import PageHeader from '@/components/shared/PageHeader.vue'
-import { DEFAULT_SETTINGS, QUESTION_TYPE_META, generateQuestions, useSurveysStore } from '@/stores/SurveysStore'
+import { DEFAULT_SETTINGS, FREE_SURVEY_LIMIT, QUESTION_TYPE_META, generateQuestions, useSurveysStore } from '@/stores/SurveysStore'
 import type { Survey, SurveyQuestion, SurveyQuestionType, SurveySettings } from '@/stores/SurveysStore'
+import { bankFor } from '../services/questionBanks'
 
 const router = useRouter()
 const store = useSurveysStore()
@@ -30,6 +31,7 @@ const surveyTitle = ref('')
 const audience = ref<Survey['audience']>('both')
 const questions = ref<SurveyQuestion[]>([])
 const settings = ref<SurveySettings>({ ...DEFAULT_SETTINGS })
+const editingId = ref<number | null>(null) // null = إنشاء جديد
 let qId = 1
 
 const AUDIENCES = [
@@ -38,7 +40,24 @@ const AUDIENCES = [
   { value: 'both', title: 'داخل المنصة + رابط خارجي' },
 ]
 
+// بوابة خطة الاشتراك: المجانية = 3 استبيانات
+const upgradeDialog = ref(false)
+function guardPlan(): boolean {
+  if (store.canCreate)
+    return true
+  upgradeDialog.value = true
+  return false
+}
+function upgradeNow() {
+  store.upgradePlan()
+  upgradeDialog.value = false
+  snackbar.value = 'تمت الترقية للخطة الاحترافية — استبيانات بلا حدود'
+}
+
 function createSurvey(name: string) {
+  if (!guardPlan())
+    return
+  editingId.value = null
   selectedType.value = name
   surveyTitle.value = `استبيان ${name}`
   audience.value = 'both'
@@ -46,6 +65,47 @@ function createSurvey(name: string) {
   settings.value = { ...DEFAULT_SETTINGS }
   step.value = 1
   dialog.value = true
+}
+
+// [+] استبيان فارغ من الصفر
+function createBlank() {
+  if (!guardPlan())
+    return
+  editingId.value = null
+  selectedType.value = 'مخصص'
+  surveyTitle.value = ''
+  audience.value = 'both'
+  questions.value = []
+  settings.value = { ...DEFAULT_SETTINGS }
+  step.value = 1
+  dialog.value = true
+}
+
+// تعديل استبيان قائم في صفحته المستقلة (المنشئ نفسه)
+function editSurvey(s: Survey) {
+  editingId.value = s.id
+  selectedType.value = s.type
+  surveyTitle.value = s.title
+  audience.value = s.audience
+  questions.value = JSON.parse(JSON.stringify(s.questions))
+  qId = Math.max(0, ...questions.value.map(q => q.id)) + 1
+  settings.value = { ...DEFAULT_SETTINGS, ...JSON.parse(JSON.stringify(s.settings)) }
+  step.value = 2
+  dialog.value = true
+}
+
+// بنك الأسئلة الثابت (20 سؤالًا لكل نموذج) — يضاف كنسخة قابلة للتعديل
+const bankOpen = ref(false)
+const bankQuestions = computed(() => bankFor(selectedType.value))
+function addFromBank(i: number) {
+  const q = bankQuestions.value[i]
+  questions.value.push({ ...JSON.parse(JSON.stringify(q)), id: qId++ })
+}
+function addAllFromBank() {
+  bankQuestions.value.forEach((_, i) => addFromBank(i))
+}
+function inSurvey(text: string): boolean {
+  return questions.value.some(q => q.text === text)
 }
 
 function addQuestion(type: SurveyQuestionType = 'single') {
@@ -76,16 +136,25 @@ function aiGenerate() {
 
 const savedSurvey = ref<Survey | null>(null)
 function saveSurvey(status: 'active' | 'draft') {
-  const s = store.add({
+  const payload = {
     title: surveyTitle.value || `استبيان ${selectedType.value}`,
     type: selectedType.value,
     audience: audience.value,
     questions: questions.value.filter(q => q.text.trim()),
     settings: { ...settings.value },
     status,
-  })
+  }
+  let s: Survey
+  if (editingId.value !== null) {
+    store.update(editingId.value, payload)
+    s = store.byId(editingId.value)!
+    snackbar.value = 'حُفظت تعديلات الاستبيان'
+  }
+  else {
+    s = store.add({ ...payload, owner: 'me' })
+  }
   dialog.value = false
-  if (status === 'active' && s.audience !== 'internal') {
+  if (editingId.value === null && status === 'active' && s.audience !== 'internal') {
     savedSurvey.value = s
     shareDialog.value = true
   }
@@ -126,16 +195,33 @@ const STATUS_META: Record<Survey['status'], { label: string, color: string }> = 
 
     <h3 class="text-h6 font-weight-bold mb-3">أنشئ استبياناً جديداً</h3>
     <VRow class="mb-5">
+      <!-- [+] استبيان فارغ ببنك الأنماط العشرة -->
+      <VCol cols="12" sm="6" md="3">
+        <VCard class="pa-4 text-center cursor-pointer h-100 d-flex flex-column justify-center blank-card" variant="outlined" @click="createBlank">
+          <VAvatar color="primary" size="52" rounded="lg" class="mb-2 mx-auto"><VIcon icon="mdi-plus" size="30" /></VAvatar>
+          <div class="text-subtitle-2 font-weight-bold">استبيان جديد فارغ</div>
+          <div class="text-caption text-medium-emphasis">ابنِه من الصفر بأنماط الأسئلة العشرة</div>
+        </VCard>
+      </VCol>
       <VCol v-for="s in surveyTypes" :key="s.id" cols="12" sm="6" md="3">
         <VCard class="pa-4 text-center cursor-pointer h-100" @click="createSurvey(s.name)">
           <VAvatar :color="s.color" variant="tonal" size="52" rounded="lg" class="mb-2"><VIcon :icon="s.icon" size="28" /></VAvatar>
           <div class="text-subtitle-2 font-weight-bold">{{ s.name }}</div>
           <div class="text-caption text-medium-emphasis">{{ s.desc }}</div>
+          <VChip size="x-small" variant="tonal" color="secondary" label class="mt-1">بنك 20 سؤالًا</VChip>
         </VCard>
       </VCol>
     </VRow>
 
-    <h3 class="text-h6 font-weight-bold mb-3">استبياناتي ({{ store.surveys.length }})</h3>
+    <div class="d-flex align-center ga-2 mb-3 flex-wrap">
+      <h3 class="text-h6 font-weight-bold">استبياناتي ({{ store.mySurveys.length }})</h3>
+      <VChip size="small" :color="store.plan === 'pro' ? 'success' : 'warning'" label variant="tonal">
+        {{ store.plan === 'pro' ? 'الخطة الاحترافية — بلا حدود' : `الخطة المجانية — ${store.mySurveys.length}/${FREE_SURVEY_LIMIT}` }}
+      </VChip>
+      <VBtn v-if="store.plan === 'free'" size="x-small" color="secondary" variant="tonal" prepend-icon="mdi-arrow-up-bold-circle-outline" @click="upgradeDialog = true">
+        ترقية
+      </VBtn>
+    </div>
     <VCard>
       <VTable>
         <thead>
@@ -149,7 +235,7 @@ const STATUS_META: Record<Survey['status'], { label: string, color: string }> = 
           </tr>
         </thead>
         <tbody>
-          <tr v-for="s in store.surveys" :key="s.id">
+          <tr v-for="s in store.mySurveys" :key="s.id">
             <td>
               <div class="font-weight-bold">{{ s.title }}</div>
               <div class="text-caption text-medium-emphasis">{{ s.type }} · {{ s.createdAt }}</div>
@@ -167,6 +253,11 @@ const STATUS_META: Record<Survey['status'], { label: string, color: string }> = 
             </td>
             <td class="text-no-wrap">
               <VBtn variant="text" size="small" color="primary" prepend-icon="mdi-chart-box-outline" @click="router.push({ name: 'survey-analysis', params: { id: s.id } })">التحليل</VBtn>
+              <VTooltip text="تعديل الأسئلة والإعدادات" location="top">
+                <template #activator="{ props }">
+                  <VBtn v-bind="props" icon="mdi-pencil-outline" variant="text" size="small" @click="editSurvey(s)" />
+                </template>
+              </VTooltip>
               <VTooltip text="مشاركة الرابط الخارجي" location="top">
                 <template #activator="{ props }">
                   <VBtn v-bind="props" icon="mdi-share-variant-outline" variant="text" size="small" color="secondary" :disabled="s.audience === 'internal'" @click="openShare(s)" />
@@ -226,6 +317,26 @@ const STATUS_META: Record<Survey['status'], { label: string, color: string }> = 
                 <span class="text-caption text-medium-emphasis">10 أنماط أسئلة متاحة — اختر النمط لكل سؤال</span>
                 <VBtn color="secondary" variant="tonal" size="small" prepend-icon="mdi-robot-happy-outline" @click="aiGenerate">توليد بالذكاء الاصطناعي</VBtn>
               </div>
+
+              <!-- بنك الأسئلة الثابت (20 سؤالًا) -->
+              <VCard v-if="bankQuestions.length" variant="tonal" color="secondary" class="mb-3">
+                <div class="d-flex align-center pa-3 cursor-pointer" @click="bankOpen = !bankOpen">
+                  <VIcon icon="mdi-bank-outline" class="me-2" />
+                  <span class="text-body-2 font-weight-bold">بنك أسئلة «{{ selectedType }}» ({{ bankQuestions.length }} سؤالًا جاهزًا)</span>
+                  <VSpacer />
+                  <VBtn size="x-small" variant="flat" color="secondary" class="me-2" @click.stop="addAllFromBank">إضافة الكل</VBtn>
+                  <VIcon :icon="bankOpen ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
+                </div>
+                <VExpandTransition>
+                  <div v-show="bankOpen" class="px-3 pb-3" style="max-height: 260px; overflow-y: auto">
+                    <div v-for="(bq, bi) in bankQuestions" :key="bi" class="d-flex align-center ga-2 py-1">
+                      <VChip size="x-small" variant="tonal" label :prepend-icon="QUESTION_TYPE_META[bq.type].icon">{{ QUESTION_TYPE_META[bq.type].label }}</VChip>
+                      <span class="text-caption flex-grow-1">{{ bq.text }}</span>
+                      <VBtn :icon="inSurvey(bq.text) ? 'mdi-check' : 'mdi-plus'" size="x-small" variant="tonal" :color="inSurvey(bq.text) ? 'success' : 'primary'" :disabled="inSurvey(bq.text)" @click="addFromBank(bi)" />
+                    </div>
+                  </div>
+                </VExpandTransition>
+              </VCard>
 
               <VCard v-for="(q, i) in questions" :key="q.id" variant="outlined" class="pa-3 mb-2">
                 <div class="d-flex align-center ga-2 mb-2">
@@ -306,6 +417,13 @@ const STATUS_META: Record<Survey['status'], { label: string, color: string }> = 
                   <VTextField v-model="settings.closesAt" type="date" label="تاريخ الإغلاق التلقائي (اختياري)" clearable density="compact" />
                 </VCol>
               </VRow>
+              <VDivider class="my-3" />
+              <div class="d-flex align-center ga-2 mb-1">
+                <VIcon icon="mdi-gift-outline" color="accent" size="20" />
+                <span class="text-body-2 font-weight-bold">نقاط تحفيزية للمشاركين</span>
+              </div>
+              <p class="text-caption text-medium-emphasis mb-2">تُمنح لكل مشارك داخل المنصة وتُخصم من محفظة نقاطك تلقائيًا — تزيد نسبة المشاركة بوضوح.</p>
+              <VTextField v-model.number="settings.rewardPoints" type="number" min="0" label="النقاط لكل مشارك (0 = بدون مكافأة)" prepend-inner-icon="mdi-star-circle-outline" density="compact" style="max-width: 320px" />
             </VWindowItem>
           </VWindow>
         </VCardText>
@@ -341,8 +459,34 @@ const STATUS_META: Record<Survey['status'], { label: string, color: string }> = 
       </VCard>
     </VDialog>
 
+    <!-- Upgrade plan dialog (mock subscription) -->
+    <VDialog v-model="upgradeDialog" max-width="420">
+      <VCard class="pa-2 text-center">
+        <VCardTitle>الترقية للخطة الاحترافية</VCardTitle>
+        <VCardText>
+          <VIcon icon="mdi-arrow-up-bold-circle-outline" size="48" color="secondary" class="mb-2" />
+          <p class="text-body-2 mb-3">وصلت حدّ الخطة المجانية ({{ FREE_SURVEY_LIMIT }} استبيانات). الخطة الاحترافية تمنحك استبيانات بلا حدود مع كل أدوات التحليل.</p>
+          <div class="d-flex flex-column ga-1 text-body-2 text-start mx-auto" style="max-width: 260px">
+            <span><VIcon icon="mdi-check" color="success" size="16" /> استبيانات غير محدودة</span>
+            <span><VIcon icon="mdi-check" color="success" size="16" /> نشر خارجي + QR</span>
+            <span><VIcon icon="mdi-check" color="success" size="16" /> تحليل AI وتصدير CSV</span>
+          </div>
+        </VCardText>
+        <VCardActions class="justify-center pb-4">
+          <VBtn variant="text" @click="upgradeDialog = false">لاحقًا</VBtn>
+          <VBtn color="accent" variant="flat" prepend-icon="mdi-rocket-launch-outline" @click="upgradeNow">رقِّ الآن (تجريبي)</VBtn>
+        </VCardActions>
+      </VCard>
+    </VDialog>
+
     <VSnackbar :model-value="!!snackbar" color="primary" location="top" timeout="3500" @update:model-value="snackbar = ''">
       {{ snackbar }}
     </VSnackbar>
   </div>
 </template>
+
+<style scoped>
+.blank-card {
+  border-style: dashed;
+}
+</style>

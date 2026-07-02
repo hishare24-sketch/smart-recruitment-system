@@ -208,6 +208,24 @@ export const useGamificationStore = defineStore('gamification', () => {
     recomputeBadges()
   }
 
+  // Wallet-style operations for dynamic amounts (e.g. survey participation rewards)
+  function award(amount: number, label: string) {
+    if (amount <= 0)
+      return
+    points.value += amount
+    lastReward.value = { points: amount, label, at: Date.now() }
+    recomputeBadges()
+  }
+
+  function spend(amount: number): boolean {
+    if (amount <= 0)
+      return true
+    if (points.value < amount)
+      return false
+    points.value -= amount
+    return true
+  }
+
   // Daily streak check-in (call once per app open)
   function checkIn() {
     const today = todayISO()
@@ -255,6 +273,6 @@ export const useGamificationStore = defineStore('gamification', () => {
     tier, nextTier, tierProgress, pointsToNext,
     badges, earnedCount, activeChallenges, doneChallenges,
     leaderboard, myRank,
-    record, checkIn, badgeById,
+    record, checkIn, badgeById, award, spend,
   }
 })
