@@ -16,6 +16,7 @@ import { useThemeStore } from '@/stores/ThemeStore'
 import { usePeerRequestsStore } from '@/stores/PeerRequestsStore'
 import { useWalletStore } from '@/stores/WalletStore'
 import { useDelegationStore } from '@/stores/DelegationStore'
+import { useUnifiedHubStore } from '@/stores/UnifiedHubStore'
 import { navSections } from './navigation'
 
 const { t, locale } = useI18n()
@@ -67,24 +68,26 @@ const sections = computed(() => navSections(authStore.role, { multiRole: authSto
 // التحكم الكامل من القائمة الجانبية: ترويسة «مساحة الدور» تفتح مبدّل الأدوار inline
 const roleControlOpen = ref(false)
 
-// —— سلاسة القائمة: أقسام قابلة للطي (محفوظة) ——
+// —— القائمة بنافذتين: تبويب «المنصة» (السوق الصافي) وتبويب «حسابي» (إدارتي + عملي) ——
+const NAV_TAB_KEY = 'navActiveTab'
+const activeNav = ref<'platform' | 'account'>((localStorage.getItem(NAV_TAB_KEY) as 'platform' | 'account') ?? 'platform')
+watch(activeNav, v => localStorage.setItem(NAV_TAB_KEY, v))
+
+const platformItems = computed(() => sections.value.find(g => g.section === 'platform')?.items ?? [])
+const accountItems = computed(() => sections.value.find(g => g.section === 'account')?.items ?? [])
+const roleItems = computed(() => sections.value.find(g => g.section === 'role')?.items ?? [])
+
+// شارات عابرة للتبويبين: لا يفوتك شيء وأنت في النافذة الأخرى
+const hub = useUnifiedHubStore()
+const accountTabBadge = computed(() => hub.kpis.actionCount)
+const platformTabBadge = computed(() => peerRequests.pendingIncoming)
+
+// طي «مساحة الدور» داخل تبويب حسابي (محفوظ)
 const NAV_COLLAPSED_KEY = 'navCollapsed'
 const collapsedSections = ref<Record<string, boolean>>(JSON.parse(localStorage.getItem(NAV_COLLAPSED_KEY) ?? '{}'))
 watch(collapsedSections, v => localStorage.setItem(NAV_COLLAPSED_KEY, JSON.stringify(v)), { deep: true })
 function toggleSection(s: string) {
   collapsedSections.value = { ...collapsedSections.value, [s]: !collapsedSections.value[s] }
-}
-function sectionTitle(section: string): string {
-  if (section === 'platform')
-    return t('nav.sectionPlatform')
-  if (section === 'account')
-    return t('nav.sectionAccount')
-  return t('nav.sectionRole', { role: roleLabel.value })
-}
-const SECTION_ICONS: Record<string, string> = {
-  platform: 'mdi-storefront-outline',
-  account: 'mdi-account-circle-outline',
-  role: 'mdi-account-convert-outline',
 }
 
 // —— طريقتا عرض للقائمة على الموبايل: قائمة تفصيلية أو شبكة أيقونات سريعة ——
@@ -167,6 +170,24 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
 
     <VDivider />
 
+    <!-- نافذتا القائمة: تبويب «المنصة» (السوق) وتبويب «حسابي» (إدارتي + عملي) -->
+    <VTabs v-if="!rail" v-model="activeNav" grow density="compact" color="primary" class="px-2 pt-1">
+      <VTab value="platform" size="small">
+        <VIcon icon="mdi-storefront-outline" size="18" class="me-1" />{{ t('nav.sectionPlatform') }}
+        <VBadge v-if="platformTabBadge" color="error" :content="platformTabBadge" inline class="ms-1" />
+      </VTab>
+      <VTab value="account" size="small">
+        <VIcon icon="mdi-account-circle-outline" size="18" class="me-1" />{{ t('nav.sectionAccount') }}
+        <VBadge v-if="accountTabBadge" color="error" :content="accountTabBadge" inline class="ms-1" />
+      </VTab>
+    </VTabs>
+    <!-- وضع rail المصغّر: التبويبان أيقونتان متراكبتان -->
+    <div v-else class="d-flex flex-column align-center ga-1 pt-2">
+      <VBtn :variant="activeNav === 'platform' ? 'tonal' : 'text'" color="primary" icon="mdi-storefront-outline" size="small" @click="activeNav = 'platform'" />
+      <VBtn :variant="activeNav === 'account' ? 'tonal' : 'text'" color="primary" icon="mdi-account-circle-outline" size="small" @click="activeNav = 'account'" />
+      <VDivider class="my-1 w-100" />
+    </div>
+
     <!-- تبديل طريقة العرض (موبايل): قائمة تفصيلية أو شبكة سريعة -->
     <div v-if="mobile" class="d-flex justify-end px-3 pt-2">
       <VBtnToggle v-model="navView" mandatory density="compact" variant="outlined" color="primary">
@@ -175,80 +196,126 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
       </VBtnToggle>
     </div>
 
-    <!-- الأقسام الثلاثة: المنصة أولًا (النافذة قبل المرآة) ثم حسابي ثم مساحة الدور -->
     <VList nav density="comfortable" class="px-2 mt-1">
-      <template v-for="group in sections" :key="group.section">
-        <!-- ترويسة القسم: قابلة للطي، وترويسة الدور تحمل مبدّل الأدوار أيضًا -->
+      <!-- ===== نافذة المنصة: السوق الصافي ===== -->
+      <template v-if="activeNav === 'platform'">
+        <VRow v-if="gridMode && !rail" dense class="px-1 mb-2">
+          <VCol v-for="item in platformItems" :key="`gp-${item.title}-${item.to}`" cols="4">
+            <VCard variant="tonal" color="primary" class="pa-2 text-center nav-grid-tile" :to="{ name: item.to }" @click="drawer = false">
+              <VBadge :model-value="navBadge(item.to) > 0" color="error" dot>
+                <VIcon :icon="item.icon" size="22" />
+              </VBadge>
+              <div class="text-caption mt-1 nav-grid-label">{{ t(`nav.${item.title}`) }}</div>
+            </VCard>
+          </VCol>
+        </VRow>
+        <template v-else>
+          <VListItem
+            v-for="item in platformItems"
+            :key="`p-${item.title}-${item.to}`"
+            :prepend-icon="item.icon"
+            :title="t(`nav.${item.title}`)"
+            :to="{ name: item.to }"
+            rounded="lg"
+            color="primary"
+            class="mb-1 nav-item"
+            @click="mobile && (drawer = false)"
+          >
+            <template v-if="!rail && navBadge(item.to)" #append>
+              <VChip size="x-small" color="error" label>{{ navBadge(item.to) }}</VChip>
+            </template>
+          </VListItem>
+        </template>
+      </template>
+
+      <!-- ===== نافذة حسابي: إدارتي ثم مساحة دوري ===== -->
+      <template v-else>
+        <VRow v-if="gridMode && !rail" dense class="px-1 mb-2">
+          <VCol v-for="item in accountItems" :key="`ga-${item.title}-${item.to}`" cols="4">
+            <VCard variant="tonal" color="primary" class="pa-2 text-center nav-grid-tile" :to="{ name: item.to }" @click="drawer = false">
+              <VBadge :model-value="navBadge(item.to) > 0" color="error" dot>
+                <VIcon :icon="item.icon" size="22" />
+              </VBadge>
+              <div class="text-caption mt-1 nav-grid-label">{{ t(`nav.${item.title}`) }}</div>
+            </VCard>
+          </VCol>
+        </VRow>
+        <template v-else>
+          <VListItem
+            v-for="item in accountItems"
+            :key="`a-${item.title}-${item.to}`"
+            :prepend-icon="item.icon"
+            :title="t(`nav.${item.title}`)"
+            :to="{ name: item.to }"
+            rounded="lg"
+            color="primary"
+            class="mb-1 nav-item"
+            @click="mobile && (drawer = false)"
+          >
+            <template v-if="!rail && navBadge(item.to)" #append>
+              <VChip size="x-small" color="error" label>{{ navBadge(item.to) }}</VChip>
+            </template>
+          </VListItem>
+        </template>
+
+        <!-- مساحة الدور: ترويسة قابلة للطي تحمل مبدّل الأدوار -->
         <VListItem
-          v-if="!rail"
-          class="nav-section-header mb-1"
+          v-if="!rail && roleItems.length"
+          class="nav-section-header mb-1 mt-2"
           density="compact"
-          @click="toggleSection(group.section)"
+          @click="toggleSection('role')"
         >
           <template #prepend>
-            <VIcon :icon="SECTION_ICONS[group.section]" size="16" color="medium-emphasis" class="me-1" />
+            <VIcon icon="mdi-account-convert-outline" size="16" color="medium-emphasis" class="me-1" />
           </template>
           <VListItemTitle class="text-caption font-weight-bold text-medium-emphasis">
-            {{ sectionTitle(group.section) }}
+            {{ t('nav.sectionRole', { role: roleLabel }) }}
           </VListItemTitle>
           <template #append>
             <VBtn
-              v-if="group.section === 'role'"
               icon="mdi-swap-horizontal"
               size="x-small"
               variant="text"
               color="primary"
-              @click.stop="roleControlOpen = !roleControlOpen; collapsedSections[group.section] && toggleSection(group.section)"
+              @click.stop="roleControlOpen = !roleControlOpen; collapsedSections.role && toggleSection('role')"
             />
-            <VIcon :icon="collapsedSections[group.section] ? 'mdi-chevron-down' : 'mdi-chevron-up'" size="16" color="medium-emphasis" />
+            <VIcon :icon="collapsedSections.role ? 'mdi-chevron-down' : 'mdi-chevron-up'" size="16" color="medium-emphasis" />
           </template>
         </VListItem>
-        <VDivider v-else class="my-2" />
+        <VDivider v-if="rail" class="my-2" />
 
-        <div v-if="!collapsedSections[group.section] || rail">
-            <!-- مبدّل الأدوار الكامل داخل القائمة -->
-            <VExpandTransition>
-              <div v-if="group.section === 'role' && roleControlOpen && !rail" class="role-switcher-inline mb-2">
-                <RoleSwitcher />
-              </div>
-            </VExpandTransition>
+        <div v-if="!collapsedSections.role || rail">
+          <VExpandTransition>
+            <div v-if="roleControlOpen && !rail" class="role-switcher-inline mb-2">
+              <RoleSwitcher />
+            </div>
+          </VExpandTransition>
 
-            <!-- عرض الشبكة (موبايل): وصول سريع بأيقونات كبيرة -->
-            <VRow v-if="gridMode && !rail" dense class="px-1 mb-2">
-              <VCol v-for="item in group.items" :key="`g-${item.title}-${item.to}`" cols="4">
-                <VCard
-                  variant="tonal"
-                  color="primary"
-                  class="pa-2 text-center nav-grid-tile"
-                  :to="{ name: item.to }"
-                  @click="drawer = false"
-                >
-                  <VBadge :model-value="navBadge(item.to) > 0" color="error" dot>
-                    <VIcon :icon="item.icon" size="22" />
-                  </VBadge>
-                  <div class="text-caption mt-1 nav-grid-label">{{ t(`nav.${item.title}`) }}</div>
-                </VCard>
-              </VCol>
-            </VRow>
-
-            <!-- عرض القائمة الافتراضي -->
-            <template v-else>
-              <VListItem
-                v-for="item in group.items"
-                :key="`${item.title}-${item.to}`"
-                :prepend-icon="item.icon"
-                :title="t(`nav.${item.title}`)"
-                :to="{ name: item.to }"
-                rounded="lg"
-                color="primary"
-                class="mb-1 nav-item"
-                @click="mobile && (drawer = false)"
-              >
-                <template v-if="!rail && navBadge(item.to)" #append>
-                  <VChip size="x-small" color="error" label>{{ navBadge(item.to) }}</VChip>
-                </template>
-              </VListItem>
-            </template>
+          <VRow v-if="gridMode && !rail" dense class="px-1 mb-2">
+            <VCol v-for="item in roleItems" :key="`gr-${item.title}-${item.to}`" cols="4">
+              <VCard variant="tonal" color="secondary" class="pa-2 text-center nav-grid-tile" :to="{ name: item.to }" @click="drawer = false">
+                <VIcon :icon="item.icon" size="22" />
+                <div class="text-caption mt-1 nav-grid-label">{{ t(`nav.${item.title}`) }}</div>
+              </VCard>
+            </VCol>
+          </VRow>
+          <template v-else>
+            <VListItem
+              v-for="item in roleItems"
+              :key="`r-${item.title}-${item.to}`"
+              :prepend-icon="item.icon"
+              :title="t(`nav.${item.title}`)"
+              :to="{ name: item.to }"
+              rounded="lg"
+              color="primary"
+              class="mb-1 nav-item"
+              @click="mobile && (drawer = false)"
+            >
+              <template v-if="!rail && navBadge(item.to)" #append>
+                <VChip size="x-small" color="error" label>{{ navBadge(item.to) }}</VChip>
+              </template>
+            </VListItem>
+          </template>
         </div>
       </template>
     </VList>
