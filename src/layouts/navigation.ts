@@ -50,6 +50,8 @@ export const navItems: NavItem[] = [
   { title: 'surveys', icon: 'mdi-poll', to: 'surveys', roles: ['admin', 'company', 'interviewer'] },
   // Participation is open to every user type
   { title: 'surveysParticipate', icon: 'mdi-comment-quote-outline', to: 'surveys-participate', roles: ['seeker', 'company', 'interviewer', 'endorser'] },
+  // Wallet — every user type has balances, methods and statements
+  { title: 'wallet', icon: 'mdi-wallet-outline', to: 'wallet', roles: ['seeker', 'company', 'interviewer', 'endorser', 'admin'] },
 ]
 
 export function navForRole(role: UserRole | undefined): NavItem[] {

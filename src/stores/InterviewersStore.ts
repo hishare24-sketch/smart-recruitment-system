@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { ai } from '@/services/ai'
+import { useWalletStore } from '@/stores/WalletStore'
 
 export type InterviewerType = 'technical' | 'leadership' | 'behavioral' | 'specialist'
 export type MarketInterviewKind = 'skills' | 'level' | 'leadership' | 'behavioral' | 'comprehensive'
@@ -393,6 +394,10 @@ export const useInterviewersStore = defineStore('interviewers', () => {
     if (item) {
       item.status = 'completed'
       item.report = report
+      // صافي الأرباح (بعد متوسط عمولة المنصة) يدخل المحفظة معلقًا حتى التسوية
+      const commission = (PLATFORM_COMMISSION.min + PLATFORM_COMMISSION.max) / 200
+      const net = Math.round(item.price * (1 - commission))
+      useWalletStore().credit(net, `أرباح جلسة تقييم — ${item.candidateName}`, { pending: true })
     }
   }
   function setPrice(kind: MarketInterviewKind, value: number) {

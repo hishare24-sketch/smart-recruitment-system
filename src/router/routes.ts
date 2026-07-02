@@ -211,6 +211,12 @@ export const routes: RouteRecordRaw[] = [
     meta: { layout: 'default' },
   },
   {
+    path: '/wallet',
+    name: 'wallet',
+    component: () => import('@/modules/wallet/pages/WalletPage.vue'),
+    meta: { layout: 'default' },
+  },
+  {
     path: '/settings',
     name: 'settings',
     component: () => import('@/modules/settings/pages/SettingsPage.vue'),
