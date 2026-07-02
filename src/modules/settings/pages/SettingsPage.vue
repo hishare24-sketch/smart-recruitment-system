@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useTheme } from 'vuetify'
 import PageHeader from '@/components/shared/PageHeader.vue'
+import ThemeCustomizer from '@/components/shared/ThemeCustomizer.vue'
 import { useAuthStore } from '@/stores/AuthStore'
 
 const { locale } = useI18n()
-const theme = useTheme()
 const authStore = useAuthStore()
 
 const tab = ref('general')
@@ -17,7 +16,6 @@ const email = ref(authStore.authUser?.email ?? '')
 const phone = ref(authStore.authUser?.phone ?? '')
 
 // Preferences
-const appearance = ref(theme.global.current.value.dark ? 'dark' : 'light')
 const fontSize = ref('medium')
 
 // Notifications
@@ -54,10 +52,6 @@ const integrations = ref([
   { name: 'Google', icon: 'mdi-google', connected: true },
 ])
 
-function applyAppearance(val: string) {
-  appearance.value = val
-  theme.global.name.value = val === 'dark' ? 'darkTheme' : 'lightTheme'
-}
 function toggleLocale(val: string) {
   locale.value = val as 'ar' | 'en'
 }
@@ -100,6 +94,8 @@ function toggleLocale(val: string) {
 
       <!-- Preferences -->
       <VWindowItem value="preferences">
+        <!-- المظهر: 5 هويات × 3 أوضاع + ألوان مخصصة (نفس لوحة أيقونة 🎨 في الشريط) -->
+        <ThemeCustomizer class="mb-4" max-width="100%" />
         <VCard class="pa-5">
           <h3 class="text-subtitle-1 font-weight-bold mb-4">التفضيلات</h3>
           <div class="mb-4">
@@ -107,13 +103,6 @@ function toggleLocale(val: string) {
             <VBtnToggle :model-value="locale" mandatory color="primary" variant="outlined" @update:model-value="toggleLocale">
               <VBtn value="ar">العربية</VBtn>
               <VBtn value="en">English</VBtn>
-            </VBtnToggle>
-          </div>
-          <div class="mb-4">
-            <div class="text-body-2 font-weight-medium mb-2">المظهر</div>
-            <VBtnToggle :model-value="appearance" mandatory color="primary" variant="outlined" @update:model-value="applyAppearance">
-              <VBtn value="light" prepend-icon="mdi-weather-sunny">فاتح</VBtn>
-              <VBtn value="dark" prepend-icon="mdi-weather-night">داكن</VBtn>
             </VBtnToggle>
           </div>
           <div>
