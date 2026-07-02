@@ -1,47 +1,76 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useRoute } from 'vue-router'
+import { useSurveysStore } from '@/stores/SurveysStore'
+import type { AnswerValue, SurveyQuestion } from '@/stores/SurveysStore'
+import SurveyQuestionInput from '../components/SurveyQuestionInput.vue'
 
-// Public respondent view (inside/outside platform via link)
-type Stage = 'welcome' | 'questions' | 'thanks'
+// Public respondent view — reached in-platform or via the external share link
+type Stage = 'welcome' | 'questions' | 'thanks' | 'closed'
 
-interface SurveyQuestion {
-  id: number
-  text: string
-  type: 'single' | 'scale' | 'text'
-  options?: string[]
+const route = useRoute()
+const store = useSurveysStore()
+
+const survey = computed(() => store.byToken(String(route.params.token)))
+const source = computed<'internal' | 'external'>(() => (route.query.src === 'in' ? 'internal' : 'external'))
+
+// Shuffle once per visit when the survey asks for it
+function shuffled<T>(arr: T[]): T[] {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
 }
+const questions = ref<SurveyQuestion[]>(
+  survey.value ? (survey.value.settings.shuffleQuestions ? shuffled(survey.value.questions) : [...survey.value.questions]) : [],
+)
 
-const survey = {
-  title: 'استبيان رضا المرشحين',
-  sender: 'شركة تقنية المستقبل',
-  estimated: '3 دقائق',
-  questions: [
-    { id: 1, text: 'كيف تقيّم سرعة الرد على طلبك؟', type: 'scale' },
-    { id: 2, text: 'هل كانت عملية التوظيف واضحة؟', type: 'single', options: ['نعم، واضحة تماماً', 'واضحة نوعاً ما', 'غير واضحة'] },
-    { id: 3, text: 'ما الذي يمكن تحسينه في تجربتك؟', type: 'text' },
-  ] as SurveyQuestion[],
-}
-
-const stage = ref<Stage>('welcome')
+const stage = ref<Stage>(survey.value && survey.value.status === 'active' ? 'welcome' : 'closed')
 const currentIndex = ref(0)
-const answers = ref<Record<number, string | number>>({})
+const answers = ref<Record<number, AnswerValue>>({})
+const startedAt = ref(0)
 
-const current = computed(() => survey.questions[currentIndex.value])
-const progress = computed(() => ((currentIndex.value + 1) / survey.questions.length) * 100)
-const isLast = computed(() => currentIndex.value === survey.questions.length - 1)
-const hasAnswer = computed(() => answers.value[current.value.id] !== undefined && answers.value[current.value.id] !== '')
+const onePerPage = computed(() => survey.value?.settings.oneQuestionPerPage ?? true)
+const current = computed(() => questions.value[currentIndex.value])
+const progress = computed(() => (questions.value.length ? ((currentIndex.value + 1) / questions.value.length) * 100 : 0))
+const isLast = computed(() => currentIndex.value === questions.value.length - 1)
 
-function setAnswer(val: string | number) {
-  answers.value[current.value.id] = val
+function answered(q: SurveyQuestion): boolean {
+  const v = answers.value[q.id]
+  if (v === undefined || v === '')
+    return false
+  if (Array.isArray(v))
+    return v.length > 0
+  if (typeof v === 'object')
+    return Object.keys(v).length > 0
+  return true
+}
+const canProceed = computed(() => !current.value?.required || answered(current.value))
+const missingRequired = computed(() => questions.value.filter(q => q.required && !answered(q)))
+
+function start() {
+  stage.value = 'questions'
+  startedAt.value = Date.now()
 }
 function next() {
   if (isLast.value)
-    stage.value = 'thanks'
+    finish()
   else currentIndex.value++
 }
 function prev() {
   if (currentIndex.value > 0)
     currentIndex.value--
+}
+function finish() {
+  if (!survey.value)
+    return
+  const ok = store.submitResponse(survey.value.id, { ...answers.value }, {
+    source: source.value,
+    durationSec: Math.max(5, Math.round((Date.now() - startedAt.value) / 1000)),
+  })
+  stage.value = ok ? 'thanks' : 'closed'
 }
 </script>
 
@@ -52,94 +81,77 @@ function prev() {
         <!-- Brand -->
         <div class="text-center mb-6">
           <VAvatar color="primary" size="56" rounded="lg" class="mb-2">
-            <VIcon icon="mdi-poll" color="white" size="30" />
+            <VIcon icon="mdi-poll" size="30" />
           </VAvatar>
           <div class="text-h6 font-weight-bold">منظومة التوظيف الذكية</div>
         </div>
 
-        <VCard class="pa-6">
-          <!-- Welcome -->
-          <div v-if="stage === 'welcome'" class="text-center">
-            <h1 class="text-h5 font-weight-bold mb-2">{{ survey.title }}</h1>
-            <p class="text-body-2 text-medium-emphasis mb-1">من: {{ survey.sender }}</p>
-            <VChip prepend-icon="mdi-clock-outline" size="small" class="mb-5">
-              الوقت المقدّر: {{ survey.estimated }}
-            </VChip>
-            <p class="text-body-2 text-medium-emphasis mb-6">
-              إجاباتك تساعدنا على تحسين تجربة التوظيف. شكراً لوقتك!
-            </p>
-            <VBtn color="accent" size="large" block prepend-icon="mdi-play" @click="stage = 'questions'">
-              ابدأ
-            </VBtn>
+        <!-- Closed / not found -->
+        <VCard v-if="stage === 'closed'" class="pa-8 text-center">
+          <VIcon icon="mdi-clipboard-off-outline" size="48" color="medium-emphasis" class="mb-3" />
+          <h2 class="text-h6 font-weight-bold mb-2">هذا الاستبيان غير متاح</h2>
+          <p class="text-body-2 text-medium-emphasis">
+            {{ survey ? 'أُغلق الاستبيان أو اكتمل عدد الاستجابات المطلوب. شكرًا لاهتمامك!' : 'الرابط غير صحيح أو أُزيل الاستبيان.' }}
+          </p>
+        </VCard>
+
+        <!-- Welcome -->
+        <VCard v-else-if="stage === 'welcome' && survey" class="pa-8 text-center">
+          <VChip size="small" color="secondary" variant="tonal" label class="mb-3">{{ survey.type }}</VChip>
+          <h1 class="text-h5 font-weight-bold mb-2">{{ survey.title }}</h1>
+          <p class="text-body-2 text-medium-emphasis mb-2">{{ survey.settings.welcomeMessage }}</p>
+          <div class="text-caption text-medium-emphasis mb-5 d-flex align-center justify-center ga-3">
+            <span><VIcon icon="mdi-help-circle-outline" size="14" /> {{ survey.questions.length }} أسئلة</span>
+            <span v-if="survey.settings.anonymous"><VIcon icon="mdi-incognito" size="14" /> إجاباتك مجهولة الهوية</span>
           </div>
+          <VBtn color="accent" size="large" prepend-icon="mdi-play" @click="start">ابدأ الاستبيان</VBtn>
+        </VCard>
 
-          <!-- Questions -->
-          <div v-else-if="stage === 'questions'">
-            <div class="d-flex justify-space-between text-caption mb-1">
-              <span class="text-medium-emphasis">السؤال {{ currentIndex + 1 }} من {{ survey.questions.length }}</span>
-            </div>
-            <VProgressLinear :model-value="progress" color="accent" height="6" rounded class="mb-5" />
+        <!-- Questions -->
+        <template v-else-if="stage === 'questions' && survey">
+          <VProgressLinear v-if="survey.settings.showProgress && onePerPage" :model-value="progress" color="primary" height="6" rounded class="mb-4" />
 
-            <div class="text-h6 font-weight-bold mb-4">{{ current.text }}</div>
-
-            <!-- Scale -->
-            <div v-if="current.type === 'scale'" class="d-flex justify-space-between ga-2 mb-2">
-              <VBtn
-                v-for="n in 5"
-                :key="n"
-                :variant="answers[current.id] === n ? 'flat' : 'outlined'"
-                :color="answers[current.id] === n ? 'primary' : undefined"
-                size="large"
-                class="flex-grow-1"
-                @click="setAnswer(n)"
-              >
-                {{ n }}
-              </VBtn>
-            </div>
-
-            <!-- Single choice -->
-            <div v-else-if="current.type === 'single'" class="d-flex flex-column ga-2">
-              <VCard
-                v-for="opt in current.options"
-                :key="opt"
-                :variant="answers[current.id] === opt ? 'flat' : 'outlined'"
-                :color="answers[current.id] === opt ? 'primary' : undefined"
-                class="pa-3 cursor-pointer"
-                @click="setAnswer(opt)"
-              >
-                {{ opt }}
-              </VCard>
-            </div>
-
-            <!-- Text -->
-            <VTextarea
-              v-else
-              :model-value="String(answers[current.id] ?? '')"
-              rows="4"
-              placeholder="اكتب إجابتك هنا..."
-              @update:model-value="setAnswer($event)"
-            />
-
-            <div class="d-flex justify-space-between mt-5">
-              <VBtn variant="outlined" :disabled="currentIndex === 0" prepend-icon="mdi-arrow-right" @click="prev">
-                السابق
-              </VBtn>
-              <VBtn color="accent" :disabled="!hasAnswer" :append-icon="isLast ? 'mdi-check' : 'mdi-arrow-left'" @click="next">
+          <!-- One question per page -->
+          <VCard v-if="onePerPage" class="pa-6">
+            <div class="text-caption text-medium-emphasis mb-2">سؤال {{ currentIndex + 1 }} من {{ questions.length }}</div>
+            <h2 class="text-subtitle-1 font-weight-bold mb-4">
+              {{ current.text }}
+              <span v-if="current.required" class="text-error">*</span>
+            </h2>
+            <SurveyQuestionInput v-model="answers[current.id]" :question="current" />
+            <div class="d-flex justify-space-between mt-6">
+              <VBtn variant="text" :disabled="currentIndex === 0" prepend-icon="mdi-chevron-right" @click="prev">السابق</VBtn>
+              <VBtn color="primary" :disabled="!canProceed" append-icon="mdi-chevron-left" @click="next">
                 {{ isLast ? 'إرسال' : 'التالي' }}
               </VBtn>
             </div>
-          </div>
+          </VCard>
 
-          <!-- Thanks -->
-          <div v-else class="text-center py-6">
-            <VAvatar color="success" variant="tonal" size="80" class="mb-3">
-              <VIcon icon="mdi-check-circle-outline" size="48" />
-            </VAvatar>
-            <h2 class="text-h5 font-weight-bold mb-2">شكراً لك!</h2>
-            <p class="text-body-2 text-medium-emphasis">
-              تم تسجيل إجاباتك بنجاح. نقدّر مساهمتك في تحسين المنصة.
+          <!-- All questions in one list -->
+          <template v-else>
+            <VCard v-for="(q, i) in questions" :key="q.id" class="pa-5 mb-3">
+              <h2 class="text-subtitle-2 font-weight-bold mb-3">
+                {{ i + 1 }}. {{ q.text }}
+                <span v-if="q.required" class="text-error">*</span>
+              </h2>
+              <SurveyQuestionInput v-model="answers[q.id]" :question="q" />
+            </VCard>
+            <VBtn color="primary" size="large" block :disabled="missingRequired.length > 0" @click="finish">
+              إرسال الإجابات
+            </VBtn>
+            <p v-if="missingRequired.length" class="text-caption text-error text-center mt-2">
+              تبقّى {{ missingRequired.length }} أسئلة إلزامية
             </p>
-          </div>
+          </template>
+        </template>
+
+        <!-- Thanks -->
+        <VCard v-else-if="stage === 'thanks' && survey" class="pa-8 text-center">
+          <VAvatar color="success" variant="tonal" size="64" class="mb-3">
+            <VIcon icon="mdi-check" size="36" />
+          </VAvatar>
+          <h2 class="text-h6 font-weight-bold mb-2">{{ survey.settings.thanksMessage }}</h2>
+          <p class="text-body-2 text-medium-emphasis">وصلت إجاباتك إلى صاحب الاستبيان مباشرة.</p>
         </VCard>
       </VCol>
     </VRow>

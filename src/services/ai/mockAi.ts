@@ -26,6 +26,8 @@ import type {
   DayPeriod,
   OptimalTimesResult,
   TimeSuggestion,
+  SurveyInsights,
+  SurveyInsightsInput,
 } from './types'
 import { ALL_SKILLS, TAXONOMY, categorizeSkill, getCategory } from '@/services/taxonomy'
 
@@ -710,6 +712,47 @@ function peerRequestTip(type: string): string {
   return tips[type] ?? 'كن محددًا في سبب طلبك وأرفق ما يدعمه — الطلبات الواضحة تُقبل أسرع.'
 }
 
+// — Survey results analysis —
+function surveyInsights(ctx: SurveyInsightsInput): SurveyInsights {
+  const positives = ['ممتاز', 'رائع', 'سلس', 'أعجب', 'سهلة', 'ميزة'].reduce((n, w) => n + ctx.textAnswers.filter(a => a.includes(w)).length, 0)
+  const negatives = ['بطيء', 'سيئ', 'صعب', 'غير واضح', 'مشكلة'].reduce((n, w) => n + ctx.textAnswers.filter(a => a.includes(w)).length, 0)
+  const improvements = ctx.textAnswers.filter(a => a.includes('تحسين') || a.includes('أقترح') || a.includes('أتمنى')).length
+
+  const score = (ctx.nps ?? 0) + (ctx.avgRating ? ctx.avgRating * 10 : 0) + positives * 5 - negatives * 10
+  const sentiment = score >= 40 ? 'positive' : score >= 10 ? 'neutral' : 'negative'
+  const sentimentLabel = { positive: 'إيجابي عام', neutral: 'محايد مائل للإيجابية', negative: 'يحتاج انتباهًا' }[sentiment]
+
+  const themes: string[] = []
+  if (ctx.avgRating && ctx.avgRating >= 4)
+    themes.push('رضا مرتفع عن التجربة العامة')
+  if (ctx.nps !== null)
+    themes.push(ctx.nps >= 30 ? 'ولاء قوي واستعداد للتوصية' : ctx.nps >= 0 ? 'ولاء متوسط — فرصة لتعزيز التوصية' : 'خطر تسرّب — المنتقدون أكثر من المروّجين')
+  if (improvements > 0)
+    themes.push(`${improvements} إجابات تتضمن اقتراحات تحسين قابلة للتنفيذ`)
+  if (ctx.completion < 60)
+    themes.push('نسبة إكمال منخفضة — الاستبيان قد يكون طويلًا')
+
+  const recommendations: string[] = []
+  if (ctx.completion < 70)
+    recommendations.push('قلّص عدد الأسئلة أو فعّل سؤالًا واحدًا لكل صفحة لرفع نسبة الإكمال.')
+  if ((ctx.nps ?? 100) < 30)
+    recommendations.push('تواصل مع المنتقدين (0-6) لفهم أسباب عدم الرضا ومعالجة أهمها.')
+  if (improvements > 0)
+    recommendations.push('راجع الإجابات النصية المصنّفة كاقتراحات وحوّل أعلاها تكرارًا إلى خطة عمل.')
+  if (ctx.responses < 30)
+    recommendations.push('شارك الرابط الخارجي على قنوات إضافية لبلوغ عيّنة ممثّلة (30+ استجابة).')
+  if (!recommendations.length)
+    recommendations.push('النتائج صحية — كرّر الاستبيان دوريًا لقياس الاتجاه الزمني.')
+
+  return {
+    summary: `استبيان «${ctx.title}» جمع ${ctx.responses} استجابة بنسبة إكمال ${ctx.completion}%. الانطباع العام ${sentimentLabel}${ctx.nps !== null ? `، وصافي نقاط الترويج (NPS) بلغ ${ctx.nps}` : ''}${ctx.avgRating ? `، بمتوسط تقييم ${ctx.avgRating} من 5` : ''}.`,
+    sentiment,
+    sentimentLabel,
+    themes,
+    recommendations,
+  }
+}
+
 export const mockAi: AiService = {
   skillLevel,
   trustAnalysis,
@@ -750,4 +793,5 @@ export const mockAi: AiService = {
   suggestOptimalTimes,
   peerRequestTip,
   autoClassify,
+  surveyInsights,
 }

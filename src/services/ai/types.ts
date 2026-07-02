@@ -212,4 +212,23 @@ export interface AiService {
   peerRequestTip: (type: string) => string
   // — auto-classification —
   autoClassify: (text: string) => AutoClassification
+  // — survey results analysis —
+  surveyInsights: (ctx: SurveyInsightsInput) => SurveyInsights
+}
+
+export interface SurveyInsightsInput {
+  title: string
+  responses: number
+  completion: number
+  nps: number | null
+  avgRating: number | null
+  textAnswers: string[]
+}
+
+export interface SurveyInsights {
+  summary: string
+  sentiment: 'positive' | 'neutral' | 'negative'
+  sentimentLabel: string
+  themes: string[]
+  recommendations: string[]
 }
