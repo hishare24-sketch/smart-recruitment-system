@@ -1,7 +1,25 @@
+import { mkdirSync, writeFileSync } from 'node:fs'
 import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
+import type { Plugin } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vuetify from 'vite-plugin-vuetify'
+
+// GitHub Pages caches index.html for ~10 minutes, so mid-session users kept
+// seeing stale bundles after each deploy. The app compares its baked-in build
+// id against dist/version.json (fetched with no-store) and reloads once.
+const BUILD_ID = String(Date.now())
+function versionFile(): Plugin {
+  return {
+    name: 'emit-version-json',
+    apply: 'build',
+    writeBundle(options) {
+      const dir = options.dir ?? 'dist'
+      mkdirSync(dir, { recursive: true })
+      writeFileSync(`${dir}/version.json`, JSON.stringify({ buildId: BUILD_ID }))
+    },
+  }
+}
 
 // https://vite.dev/config/
 // Base path differs per deploy target:
@@ -11,9 +29,13 @@ import vuetify from 'vite-plugin-vuetify'
 const isRootHost = !!process.env.NETLIFY || !!process.env.VERCEL
 export default defineConfig(({ command }) => ({
   base: command === 'build' && !isRootHost ? '/smart-recruitment-system/' : '/',
+  define: {
+    __BUILD_ID__: JSON.stringify(BUILD_ID),
+  },
   plugins: [
     vue(),
     vuetify({ autoImport: true }),
+    versionFile(),
   ],
   resolve: {
     alias: {
