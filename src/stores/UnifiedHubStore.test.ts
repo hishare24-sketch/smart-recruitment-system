@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import type { User } from '@/interfaces/Auth'
+import { landingFor } from '@/services/roles'
 import { useAuthStore } from './AuthStore'
 import { filterItems, groupItems, parseAmount, sortItems, useUnifiedHubStore } from './UnifiedHubStore'
 import type { WorkItem } from './UnifiedHubStore'
@@ -58,12 +59,40 @@ describe('unifiedHubStore adapters', () => {
     expect(hub.kpis.pendingMoney).toBe(manualPending)
   })
 
+  it('resolves inbox decisions through the owning store', () => {
+    loginWithRoles(['interviewer', 'seeker'])
+    const hub = useUnifiedHubStore()
+    const req = hub.allItems.find(i => i.kind === 'interview_request')!
+    expect(hub.resolveItem(req, true)).toBe(true)
+    // بعد القبول يخرج الطلب من الصندوق ويتحول لمقابلة قادمة
+    expect(hub.allItems.some(i => i.id === req.id)).toBe(false)
+    expect(hub.allItems.some(i => i.kind === 'interview_upcoming' && i.sourceId === req.sourceId)).toBe(true)
+
+    const wish = hub.allItems.find(i => i.kind === 'wish_incoming')!
+    expect(hub.resolveItem(wish, false)).toBe(true)
+    expect(hub.allItems.some(i => i.id === wish.id)).toBe(false)
+
+    const booking = hub.allItems.find(i => i.kind === 'my_booking')
+    if (booking)
+      expect(hub.resolveItem(booking, true)).toBe(false) // يحتاج صفحته
+  })
+
   it('builds a summary card per owned role', () => {
     loginWithRoles(['seeker', 'interviewer', 'consultant'])
     const hub = useUnifiedHubStore()
     const roles = hub.roleSummaries.map(r => r.role)
     expect(roles).toEqual(['seeker', 'interviewer', 'consultant'])
     hub.roleSummaries.forEach(r => expect(r.facts.length).toBeGreaterThanOrEqual(2))
+  })
+})
+
+describe('landingFor', () => {
+  it('routes multi-role owners to the hub and single-role users to their board', () => {
+    expect(landingFor('seeker', 1)).toBe('dashboard')
+    expect(landingFor('interviewer', 1)).toBe('interviewer-dashboard')
+    expect(landingFor('seeker', 2)).toBe('unified-hub')
+    expect(landingFor('consultant', 4)).toBe('unified-hub')
+    expect(landingFor(undefined, 0)).toBe('dashboard')
   })
 })
 

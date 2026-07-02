@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { landingFor } from '@/services/roles'
 import { useAuthStore } from '@/stores/AuthStore'
 import { authService } from '../services/AuthService'
 
@@ -29,8 +30,12 @@ async function submit() {
   try {
     const user = await authService.login({ email: email.value, password: password.value })
     authStore.setAuthUser(user)
-    const redirect = (route.query.redirect as string) || '/dashboard'
-    router.push(redirect)
+    // مالك دورين نشطين فأكثر يهبط على المركز الموحّد؛ أحادي الدور على لوحته مباشرة
+    const redirect = route.query.redirect as string | undefined
+    if (redirect)
+      router.push(redirect)
+    else
+      router.push({ name: landingFor(authStore.role, authStore.activeRoles.length) })
   }
   catch {
     error.value = 'فشل تسجيل الدخول. تحقق من بياناتك.'

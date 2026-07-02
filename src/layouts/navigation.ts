@@ -9,6 +9,8 @@ export interface NavItem {
 
 // Single source of truth for sidebar items, filtered by role
 export const navItems: NavItem[] = [
+  // المركز الموحّد — كل الأدوار المهنية في شاشة واحدة (أول عنصر لأنه نقطة البداية)
+  { title: 'hub', icon: 'mdi-view-dashboard-variant-outline', to: 'unified-hub', roles: ['seeker', 'company', 'interviewer', 'coach', 'trainer', 'consultant'] },
   { title: 'dashboard', icon: 'mdi-view-dashboard-outline', to: 'dashboard', roles: ['seeker', 'company'] },
 
   // Wallet — high in the list: money must never hide below the fold

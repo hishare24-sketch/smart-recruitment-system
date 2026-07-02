@@ -79,6 +79,7 @@
     "extraRolesHint": "You can activate more roles now or later from your account menu."
   },
   "nav": {
+    "hub": "Unified Hub",
     "dashboard": "Dashboard",
     "profile": "My Profile",
     "opportunities": "Opportunities",

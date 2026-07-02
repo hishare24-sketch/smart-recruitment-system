@@ -448,8 +448,41 @@ export const useUnifiedHubStore = defineStore('unifiedHub', () => {
     return rows
   })
 
+  /**
+   * تنفيذ قرار قبول/رفض من الصندوق الموحّد مباشرة — يفوّض للمخزن الأصلي.
+   * يعيد false للأنواع التي تحتاج سياقًا أعمق (تُفتح صفحتها عبر actionTo).
+   */
+  function resolveItem(item: WorkItem, accept: boolean): boolean {
+    switch (item.kind) {
+      case 'interview_request':
+        accept ? interviewersStore.acceptRequest(item.sourceId) : interviewersStore.declineRequest(item.sourceId)
+        return true
+      case 'peer_request':
+        accept ? peerStore.accept(item.sourceId) : peerStore.reject(item.sourceId)
+        return true
+      case 'consulting_request': {
+        const r = expertStore.state.consulting.find(c => c.id === item.sourceId)
+        if (r?.status !== 'new')
+          return false // قيد التنفيذ: الإنجاز والتحصيل من لوحة المستشار
+        expertStore.respondConsulting(item.sourceId, accept)
+        return true
+      }
+      case 'wish_incoming':
+        wishesStore.setStatus(item.sourceId, accept ? 'accepted' : 'rejected')
+        return true
+      case 'offer_incoming':
+        wishesStore.respondOffer(item.sourceId, accept ? 'accepted' : 'declined')
+        return true
+      case 'role_approval':
+        roleRequestsStore.decide(item.sourceId, accept)
+        return true
+      default:
+        return false // trainee_referral / my_booking / interview_upcoming: عبر صفحتها
+    }
+  }
+
   return {
     allItems, actionItems, upcomingItems,
-    kpis, roleSummaries,
+    kpis, roleSummaries, resolveItem,
   }
 })

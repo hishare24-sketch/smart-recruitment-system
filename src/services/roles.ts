@@ -44,6 +44,11 @@ export function roleHome(role: UserRole | undefined): string {
   return role ? ROLE_META[role].home : 'dashboard'
 }
 
+/** الوجهة بعد الدخول: المركز الموحّد لمالكي دورين نشطين فأكثر، وإلا لوحة الدور مباشرة */
+export function landingFor(role: UserRole | undefined, activeRolesCount: number): string {
+  return activeRolesCount >= 2 ? 'unified-hub' : roleHome(role)
+}
+
 function entry(role: UserRole, status: RoleEntry['status'] = 'active'): RoleEntry {
   const now = new Date().toISOString()
   return { role, status, created_at: now, activated_at: status === 'active' ? now : undefined }

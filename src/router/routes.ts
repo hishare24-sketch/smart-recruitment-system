@@ -61,6 +61,12 @@ export const routes: RouteRecordRaw[] = [
     meta: { layout: 'default' },
   },
   {
+    path: '/hub',
+    name: 'unified-hub',
+    component: () => import('@/modules/hub/pages/UnifiedHubPage.vue'),
+    meta: { layout: 'default' },
+  },
+  {
     path: '/profile',
     name: 'profile',
     component: () => import('@/modules/profile/pages/ProfilePage.vue'),

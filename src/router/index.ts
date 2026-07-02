@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { routes } from './routes'
 import type { UserRole } from '@/interfaces/Auth'
-import { roleHome } from '@/services/roles'
+import { landingFor, roleHome } from '@/services/roles'
 import { useAuthStore } from '@/stores/AuthStore'
 
 const router = createRouter({
@@ -21,9 +21,10 @@ router.beforeEach((to) => {
     return { name: 'login', query: { redirect: to.fullPath } }
   }
 
-  // Send logged-in users away from auth/landing pages to their dashboard
+  // Send logged-in users away from auth/landing pages — multi-role owners land
+  // on the unified hub, single-role users go straight to their board
   if (authStore.isAuthUser && (to.name === 'login' || to.name === 'register' || to.name === 'home')) {
-    return { name: roleHome(authStore.role) }
+    return { name: landingFor(authStore.role, authStore.activeRoles.length) }
   }
 
   // Role-owned routes: switch the active role automatically when the user owns
