@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
+import { useAccountPlanStore } from './AccountPlanStore'
 import { useMessagesStore } from './MessagesStore'
 import { useNotificationsStore } from './NotificationsStore'
 import { usePublicProfileStore } from './PublicProfileStore'
-import { useWalletStore } from './WalletStore'
 
 beforeEach(() => {
   localStorage.clear()
@@ -74,35 +74,20 @@ describe('publicProfileStore', () => {
     expect(p.strength.nextTip ?? '').not.toContain('إنجازات')
   })
 
-  it('gates sections by subscription tier and owner toggle together', () => {
+  it('gates sections by the unified account plan and owner toggle together', () => {
     const p = usePublicProfileStore()
-    p.state.tier = 'free'
+    const plan = useAccountPlanStore()
+    plan.tier = 'free'
     expect(p.canShow('story')).toBe(true)
     expect(p.canShow('portfolio')).toBe(false) // يتطلب الاحترافية
     expect(p.canShow('comments')).toBe(false) // يتطلب النخبة
-    p.state.tier = 'pro'
+    plan.tier = 'pro'
     expect(p.canShow('portfolio')).toBe(true)
     expect(p.canShow('comments')).toBe(false)
-    p.state.tier = 'elite'
+    plan.tier = 'elite'
     expect(p.canShow('comments')).toBe(true)
     p.state.sections.comments = false // مفتاح صاحب الملف يتغلب على الباقة
     expect(p.canShow('comments')).toBe(false)
-  })
-
-  it('charges the wallet on upgrade and blocks it when balance is low', () => {
-    const p = usePublicProfileStore()
-    const wallet = useWalletStore()
-    p.state.tier = 'free'
-    const before = wallet.available
-    expect(p.setTier('pro')).toBe(true)
-    expect(wallet.available).toBe(before - 49)
-    // تخفيض بلا رسوم
-    expect(p.setTier('free')).toBe(true)
-    expect(wallet.available).toBe(before - 49)
-    // ترقية أكبر من الرصيد تُرفض
-    wallet.pay(wallet.available, 'تصفير الرصيد للاختبار')
-    expect(p.setTier('elite')).toBe(false)
-    expect(p.state.tier).toBe('free')
   })
 
   it('follows, rates without double counting, and moderates comments', () => {

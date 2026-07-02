@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
+import { useAccountPlanStore } from '@/stores/AccountPlanStore'
 import { useGamificationStore } from '@/stores/GamificationStore'
 import { useNotificationsStore } from '@/stores/NotificationsStore'
 
@@ -277,13 +278,18 @@ export const useSurveysStore = defineStore('surveys', () => {
   watch(surveys, val => localStorage.setItem(STORAGE_KEY, JSON.stringify(val)), { deep: true })
   watch(responses, val => localStorage.setItem(RESPONSES_KEY, JSON.stringify(val)), { deep: true })
 
-  // ===== خطة الاشتراك (mock) =====
-  const plan = ref<SurveyPlan>((localStorage.getItem('surveyPlan') as SurveyPlan) ?? 'free')
-  watch(plan, v => localStorage.setItem('surveyPlan', v))
+  // ===== التمكين حسب باقة الحساب الموحّدة (بديل surveyPlan القديمة) =====
+  const accountPlan = useAccountPlanStore()
+  /** اسم قديم يبقى للتوافق: pro = أي باقة مدفوعة */
+  const plan = computed<SurveyPlan>(() => (accountPlan.tier === 'free' ? 'free' : 'pro'))
   const mySurveys = computed(() => surveys.value.filter(s => s.owner === 'me'))
-  const canCreate = computed(() => plan.value === 'pro' || mySurveys.value.length < FREE_SURVEY_LIMIT)
-  function upgradePlan() {
-    plan.value = 'pro'
+  const canCreate = computed(() => {
+    const limit = accountPlan.surveyLimit
+    return limit == null || mySurveys.value.length < limit
+  })
+  /** الترقية تمر عبر باقة الحساب الموحّدة (مدفوعة من المحفظة) */
+  function upgradePlan(): boolean {
+    return accountPlan.setTier(accountPlan.tier === 'free' ? 'pro' : 'elite')
   }
 
   // ===== قسم المشاركة: استبيانات داخلية نشطة من جهات أخرى =====

@@ -121,13 +121,24 @@ describe('SurveysStore participation & rewards', () => {
     expect(g.points).toBe(before - 20)
   })
 
-  it('gates creation by subscription plan (free = 3) and upgrades', () => {
+  it('gates creation by the unified account plan (free = 3) and upgrades through it', async () => {
+    const { useAccountPlanStore } = await import('./AccountPlanStore')
     const s = useSurveysStore()
+    const plan = useAccountPlanStore()
+    plan.tier = 'free'
     // seed has 2 my-surveys → add one more reaches the free limit
     s.add({ title: 'ثالث', type: 'مخصص', audience: 'both', questions: [], settings: { ...DEFAULT_SETTINGS }, status: 'draft', owner: 'me' })
     expect(s.canCreate).toBe(false)
-    s.upgradePlan()
+    expect(s.upgradePlan()).toBe(true) // مدفوعة من محفظة الـ seed
+    expect(plan.tier).toBe('pro')
     expect(s.plan).toBe('pro')
+    expect(s.canCreate).toBe(true)
+    // حد الاحترافية 10: بعد بلوغه يلزم النخبة
+    for (let i = 0; i < 7; i++)
+      s.add({ title: `إضافي ${i}`, type: 'مخصص', audience: 'both', questions: [], settings: { ...DEFAULT_SETTINGS }, status: 'draft', owner: 'me' })
+    expect(s.mySurveys.length).toBe(10)
+    expect(s.canCreate).toBe(false)
+    plan.tier = 'elite'
     expect(s.canCreate).toBe(true)
   })
 })

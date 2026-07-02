@@ -52,9 +52,9 @@ function guardPlan(): boolean {
   return false
 }
 function upgradeNow() {
-  store.upgradePlan()
+  const ok = store.upgradePlan() // يمر عبر باقة الحساب الموحّدة (مدفوعة من المحفظة)
   upgradeDialog.value = false
-  snackbar.value = 'تمت الترقية للخطة الاحترافية — استبيانات بلا حدود'
+  snackbar.value = ok ? 'ترقّت باقة حسابك — سعة استبيانات أكبر' : 'رصيد المحفظة لا يكفي — اشحن ثم أعد المحاولة'
 }
 
 function createSurvey(name: string) {
@@ -215,7 +215,7 @@ const STATUS_META = SURVEY_STATUS_META
     <div class="d-flex align-center ga-2 mb-3 flex-wrap">
       <h3 class="text-h6 font-weight-bold">استبياناتي ({{ store.mySurveys.length }})</h3>
       <VChip size="small" :color="store.plan === 'pro' ? 'success' : 'warning'" label variant="tonal">
-        {{ store.plan === 'pro' ? 'الخطة الاحترافية — بلا حدود' : `الخطة المجانية — ${store.mySurveys.length}/${FREE_SURVEY_LIMIT}` }}
+        {{ store.plan === 'pro' ? 'باقة مدفوعة — سعة موسّعة' : `الباقة الأساسية — ${store.mySurveys.length}/${FREE_SURVEY_LIMIT}` }}
       </VChip>
       <VBtn v-if="store.plan === 'free'" size="x-small" color="secondary" variant="tonal" prepend-icon="mdi-arrow-up-bold-circle-outline" @click="upgradeDialog = true">
         ترقية

@@ -14,16 +14,22 @@ afterEach(() => {
 })
 
 describe('role approval pipeline', () => {
-  it('auto-accept policy: ecosystem roles activate instantly, wizard-gated interviewer stays approval', () => {
-    for (const r of ['coach', 'trainer', 'consultant'] as const)
+  it('policy: every professional role is instant — only admin keeps the approval gate', () => {
+    for (const r of ['seeker', 'company', 'interviewer', 'endorser', 'coach', 'trainer', 'consultant'] as const)
       expect(ROLE_META[r].activation).toBe('instant')
-    expect(ROLE_META.interviewer.activation).toBe('approval') // ينضم عبر معالج الاعتماد (يقبل تلقائيًا عند إكماله)
+    expect(ROLE_META.admin.activation).toBe('approval')
   })
 
-  it('queues a pending request and activates my role on admin approval (mechanism stays ready)', () => {
+  // آلية الطابور تبقى جاهزة: نحاكي دورًا معلّقًا يدويًا (كما لو أُعيدت بوابة الموافقة)
+  function loginWithPendingInterviewer() {
     const auth = useAuthStore()
     auth.setAuthUser({ id: 1, uuid: 'u', name: 'أنا', email: 'x@x.com', token: 't', role: 'seeker', roles: defaultRoleEntries('seeker'), permissions: ROLE_PERMISSIONS.seeker })
-    auth.requestRole('interviewer') // approval → pending حتى المعالج/المدير
+    auth.authUser!.roles = [...auth.roleEntries, { role: 'interviewer', status: 'pending' }]
+    return auth
+  }
+
+  it('queues a pending request and activates my role on admin approval (mechanism stays ready)', () => {
+    const auth = loginWithPendingInterviewer()
     expect(auth.hasRole('interviewer')).toBe(false)
 
     const q = useRoleRequestsStore()
@@ -35,9 +41,7 @@ describe('role approval pipeline', () => {
   })
 
   it('rejection keeps the role inactive', () => {
-    const auth = useAuthStore()
-    auth.setAuthUser({ id: 1, uuid: 'u', name: 'أنا', email: 'x@x.com', token: 't', role: 'seeker', roles: defaultRoleEntries('seeker'), permissions: ROLE_PERMISSIONS.seeker })
-    auth.requestRole('interviewer')
+    const auth = loginWithPendingInterviewer()
     const q = useRoleRequestsStore()
     const req = q.add('interviewer', 'اختبار', true)
     q.decide(req.id, false)
@@ -46,9 +50,7 @@ describe('role approval pipeline', () => {
   })
 
   it('simulated platform review approves after the delay', () => {
-    const auth = useAuthStore()
-    auth.setAuthUser({ id: 1, uuid: 'u', name: 'أنا', email: 'x@x.com', token: 't', role: 'seeker', roles: defaultRoleEntries('seeker'), permissions: ROLE_PERMISSIONS.seeker })
-    auth.requestRole('interviewer')
+    const auth = loginWithPendingInterviewer()
     const q = useRoleRequestsStore()
     const req = q.add('interviewer', 'اختبار', true)
     q.simulatePlatformReview(req.id)

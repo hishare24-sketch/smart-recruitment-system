@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import type { UserRole } from '@/interfaces/Auth'
+import type { AccountTier } from '@/stores/AccountPlanStore'
+import { TIER_RANK, useAccountPlanStore } from '@/stores/AccountPlanStore'
 import { useAuthStore } from '@/stores/AuthStore'
-import { useWalletStore } from '@/stores/WalletStore'
 import { useExpertRolesStore } from '@/stores/ExpertRolesStore'
 import { useInterviewersStore } from '@/stores/InterviewersStore'
 import { useInterviewsStore } from '@/stores/InterviewsStore'
@@ -75,16 +76,9 @@ export interface PageComment {
   hidden: boolean
 }
 
-// ===== باقات الاشتراك — الباقة تحدد أقسام الصفحة المتاحة للإظهار =====
-export type ProfileTier = 'free' | 'pro' | 'elite'
-
-export const TIER_META: Record<ProfileTier, { label: string, price: number, color: string, icon: string, pitch: string }> = {
-  free: { label: 'الأساسية', price: 0, color: 'surface-variant', icon: 'mdi-account-outline', pitch: 'هويتك الأساسية: القصة والمهارات والمصداقية' },
-  pro: { label: 'الاحترافية', price: 49, color: 'primary', icon: 'mdi-briefcase-outline', pitch: 'أضف الإنجازات والخبرات ومعرض الأعمال والتوصيات وشارات الأدوار' },
-  elite: { label: 'النخبة', price: 99, color: 'accent', icon: 'mdi-crown-outline', pitch: 'التفاعل الكامل: متابعون وتقييم الزوار وتعليقاتهم' },
-}
-
-const TIER_RANK: Record<ProfileTier, number> = { free: 0, pro: 1, elite: 2 }
+// ===== التمكين حسب باقة الحساب الموحّدة (AccountPlanStore) =====
+// «لا فرق بين الحسابات ولا الأدوار — الباقة وحدها تحدد التمكين»
+export type ProfileTier = AccountTier
 
 /** الحد الأدنى من الباقة لكل قسم */
 export const SECTION_TIER: Record<keyof PublicSections, ProfileTier> = {
@@ -110,7 +104,6 @@ interface PublicProfileState {
   story: string
   contactEnabled: boolean
   links: ContactLinks
-  tier: ProfileTier
   sections: PublicSections
   /** المهارات المختارة للعرض العام (قد تكون مجموعة جزئية من مهارات الملف الخاص) */
   selectedSkillIds: number[]
@@ -144,7 +137,6 @@ const seed: PublicProfileState = {
     github: 'https://github.com/ahmed-almansour',
     twitter: 'https://x.com/ahmed_dev',
   },
-  tier: 'elite',
   sections: { stats: true, story: true, achievements: true, testimonials: true, skills: true, experience: true, portfolio: true, roles: true, followers: true, ratings: true, comments: true },
   selectedSkillIds: [1, 2, 3],
   achievements: [
@@ -280,36 +272,14 @@ export const usePublicProfileStore = defineStore('publicProfile', () => {
       : [...list, skillId]
   }
 
-  // ===== الباقة والبوابات =====
-  /** هل يسمح مستوى الباقة بإظهار هذا القسم؟ (بمعزل عن مفتاح الإظهار) */
+  // ===== البوابات — مصدر الحقيقة باقة الحساب الموحّدة =====
+  /** هل تسمح باقة الحساب بإظهار هذا القسم؟ (بمعزل عن مفتاح الإظهار) */
   function tierAllows(key: keyof PublicSections): boolean {
-    return TIER_RANK[state.value.tier] >= TIER_RANK[SECTION_TIER[key]]
+    return TIER_RANK[useAccountPlanStore().tier] >= TIER_RANK[SECTION_TIER[key]]
   }
   /** القسم يظهر للزوار فقط إذا سمحت الباقة وفعّله صاحب الملف */
   function canShow(key: keyof PublicSections): boolean {
     return tierAllows(key) && state.value.sections[key]
-  }
-  /** ترقية/تخفيض الباقة — الترقية مدفوعة من المحفظة (محاكاة اشتراك شهري) */
-  function setTier(tier: ProfileTier): boolean {
-    if (tier === state.value.tier)
-      return true
-    const upgrade = TIER_RANK[tier] > TIER_RANK[state.value.tier]
-    if (upgrade) {
-      const paid = useWalletStore().pay(TIER_META[tier].price, `اشتراك باقة «${TIER_META[tier].label}» — الصفحة التعريفية`)
-      if (!paid)
-        return false
-    }
-    state.value.tier = tier
-    useNotificationsStore().push({
-      icon: TIER_META[tier].icon,
-      color: upgrade ? 'success' : 'info',
-      title: upgrade ? `ترقّيت إلى باقة «${TIER_META[tier].label}»` : `انتقلت إلى باقة «${TIER_META[tier].label}»`,
-      body: TIER_META[tier].pitch,
-      category: 'system',
-      actionTo: '/my-public-profile',
-      actionLabel: 'إدارة صفحتي',
-    })
-    return true
   }
 
   // ===== التفاعل الاجتماعي (جانب الزائر) =====
@@ -426,7 +396,7 @@ export const usePublicProfileStore = defineStore('publicProfile', () => {
     addPortfolio, removePortfolio,
     toggleTestimonial, toggleSkill,
     contact, strength,
-    tierAllows, canShow, setTier,
+    tierAllows, canShow,
     toggleFollow, avgRating, rate,
     visibleComments, addComment, setCommentHidden, removeComment,
     publicPath, publicUrl, shareOnLinkedIn,

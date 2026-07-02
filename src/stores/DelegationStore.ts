@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import type { User, UserRole } from '@/interfaces/Auth'
 import { ROLE_PERMISSIONS, defaultRoleEntries } from '@/services/roles'
+import { useAccountPlanStore } from '@/stores/AccountPlanStore'
 import { useAuthStore } from '@/stores/AuthStore'
 import { useNotificationsStore } from '@/stores/NotificationsStore'
 
@@ -53,12 +54,24 @@ export const useDelegationStore = defineStore('delegation', () => {
   const isDelegating = computed(() => activeId.value != null && !!originalUser.value)
   const activeAccount = computed(() => accounts.value.find(a => a.id === activeId.value) ?? null)
 
-  /** الدخول لإدارة حساب مفوَّض — تُحفظ هويتك وتُستعاد بالخروج */
+  /** الدخول لإدارة حساب مفوَّض — تُحفظ هويتك وتُستعاد بالخروج (ميزة باقة الاحترافية+) */
   function enterAccount(id: number): boolean {
     const auth = useAuthStore()
     const target = accounts.value.find(a => a.id === id)
     if (!target || !auth.authUser || isDelegating.value)
       return false
+    if (!useAccountPlanStore().canDelegate) {
+      useNotificationsStore().push({
+        icon: 'mdi-crown-outline',
+        color: 'warning',
+        title: 'إدارة الحسابات المفوَّضة ميزة الباقة الاحترافية',
+        body: 'رقِّ باقة حسابك لتدخل الحسابات المفوَّض لك إدارتها.',
+        category: 'system',
+        actionTo: '/plan',
+        actionLabel: 'ترقية الباقة',
+      })
+      return false
+    }
     originalUser.value = JSON.parse(JSON.stringify(auth.authUser))
     auth.setAuthUser({
       id: 9000 + target.id,

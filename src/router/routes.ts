@@ -79,6 +79,12 @@ export const routes: RouteRecordRaw[] = [
     meta: { layout: 'default' },
   },
   {
+    path: '/plan',
+    name: 'account-plan',
+    component: () => import('@/modules/account/pages/AccountPlanPage.vue'),
+    meta: { layout: 'default' },
+  },
+  {
     path: '/my-public-profile',
     name: 'public-profile-manage',
     component: () => import('@/modules/profile/pages/PublicProfileManagePage.vue'),

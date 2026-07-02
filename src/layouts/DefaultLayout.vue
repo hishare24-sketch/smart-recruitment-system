@@ -353,6 +353,32 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
     </VContainer>
   </VMain>
 
+  <!-- تنقّل سفلي للموبايل: أهم وجهات «حسابي» في متناول الإبهام -->
+  <VBottomNavigation v-if="mobile" grow color="primary" :theme="chromeTheme" density="comfortable">
+    <VBtn :to="{ name: 'unified-hub' }" size="small">
+      <VIcon icon="mdi-view-dashboard-variant-outline" />
+      <span class="text-caption">المركز</span>
+    </VBtn>
+    <VBtn :to="{ name: 'public-profile-manage' }" size="small">
+      <VIcon icon="mdi-card-account-details-star-outline" />
+      <span class="text-caption">صفحتي</span>
+    </VBtn>
+    <VBtn :to="{ name: 'surveys-hub' }" size="small">
+      <VIcon icon="mdi-poll" />
+      <span class="text-caption">الاستبيانات</span>
+    </VBtn>
+    <VBtn :to="{ name: 'wallet' }" size="small">
+      <VIcon icon="mdi-wallet-outline" />
+      <span class="text-caption">محفظتي</span>
+    </VBtn>
+    <VBtn size="small" @click="drawer = !drawer">
+      <VBadge :model-value="peerRequests.pendingIncoming > 0" color="error" dot>
+        <VIcon icon="mdi-menu" />
+      </VBadge>
+      <span class="text-caption">القائمة</span>
+    </VBtn>
+  </VBottomNavigation>
+
   <!-- Global reward toasts + badge-unlock celebrations -->
   <RewardFeedback />
 

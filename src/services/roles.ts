@@ -24,21 +24,22 @@ export interface RoleMeta {
   activation: 'instant' | 'approval'
 }
 
+// السياسة المعتمدة: «لا فرق بين الأدوار» — كلها فورية لكل مستخدم،
+// والاعتماد (كمعالج المقيّم) شارة جودة اختيارية ترفع الترتيب والثقة، لا بوابة دخول.
+// (طابور اعتماد المدير باقٍ جاهزًا؛ إرجاع أي دور لـ approval يعيد تفعيل البوابة.)
 export const ROLE_META: Record<UserRole, RoleMeta> = {
   seeker: { icon: 'mdi-account-search-outline', labelKey: 'seeker', home: 'dashboard', requestable: true, activation: 'instant' },
-  interviewer: { icon: 'mdi-star-check-outline', labelKey: 'interviewer', home: 'interviewer-dashboard', requestable: true, activation: 'approval' },
+  interviewer: { icon: 'mdi-star-check-outline', labelKey: 'interviewer', home: 'interviewer-dashboard', requestable: true, activation: 'instant' },
   company: { icon: 'mdi-office-building-outline', labelKey: 'company', home: 'dashboard', requestable: true, activation: 'instant' },
-  endorser: { icon: 'mdi-hand-heart-outline', labelKey: 'endorser', home: 'endorser-home', requestable: false, activation: 'approval' },
+  endorser: { icon: 'mdi-hand-heart-outline', labelKey: 'endorser', home: 'endorser-home', requestable: true, activation: 'instant' },
   admin: { icon: 'mdi-shield-crown-outline', labelKey: 'admin', home: 'admin-dashboard', requestable: false, activation: 'approval' },
-  // أدوار توسعة النظام البيئي — سياسة الانضمام الحالية: قبول تلقائي فوري
-  // (طابور اعتماد المدير جاهز؛ يكفي إرجاع activation إلى 'approval' لتفعيله)
   coach: { icon: 'mdi-compass-outline', labelKey: 'coach', home: 'coach-dashboard', requestable: true, activation: 'instant' },
   trainer: { icon: 'mdi-school-outline', labelKey: 'trainer', home: 'trainer-dashboard', requestable: true, activation: 'instant' },
   consultant: { icon: 'mdi-lightbulb-on-outline', labelKey: 'consultant', home: 'consultant-dashboard', requestable: true, activation: 'instant' },
 }
 
-/** الأدوار المهنية القابلة للتعدد والتبديل (admin حساب منفصل، endorser يبقى كما هو حاليًا) */
-export const SWITCHABLE_ROLES: UserRole[] = ['seeker', 'interviewer', 'company', 'coach', 'trainer', 'consultant']
+/** الأدوار المهنية القابلة للتعدد والتبديل — الكل عدا المدير (حساب تشغيل المنصة، الاستثناء الوحيد) */
+export const SWITCHABLE_ROLES: UserRole[] = ['seeker', 'interviewer', 'company', 'endorser', 'coach', 'trainer', 'consultant']
 
 export function roleHome(role: UserRole | undefined): string {
   return role ? ROLE_META[role].home : 'dashboard'
@@ -57,10 +58,10 @@ function entry(role: UserRole, status: RoleEntry['status'] = 'active'): RoleEntr
 /**
  * يبني قائمة أدوار افتراضية لمستخدم دوره الأساسي `primary`.
  * الباحث يُفعّل تلقائيًا لكل مستخدم مهني (وفق سياسة المنصة)؛
- * admin/endorser حسابان مستقلان بدور واحد.
+ * admin وحده حساب مستقل بدور واحد (تشغيل المنصة).
  */
 export function defaultRoleEntries(primary: UserRole): RoleEntry[] {
-  if (primary === 'admin' || primary === 'endorser')
+  if (primary === 'admin')
     return [entry(primary)]
   if (primary === 'seeker')
     return [entry('seeker')]

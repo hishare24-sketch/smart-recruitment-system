@@ -40,9 +40,9 @@ describe('authStore multi-role core', () => {
     expect(s.activeRoles).toContain('interviewer')
   })
 
-  it('keeps admin and endorser as single-role accounts', () => {
+  it('keeps admin as the only single-role account (endorser is a normal role now)', () => {
     expect(defaultRoleEntries('admin').map(e => e.role)).toEqual(['admin'])
-    expect(defaultRoleEntries('endorser').map(e => e.role)).toEqual(['endorser'])
+    expect(defaultRoleEntries('endorser').map(e => e.role)).toEqual(['seeker', 'endorser'])
   })
 })
 
@@ -63,7 +63,8 @@ describe('authStore.switchRole', () => {
     const s = useAuthStore()
     s.setAuthUser(mockUser())
     expect(s.switchRole('company')).toBe(false)
-    s.requestRole('interviewer') // pending — not switchable yet
+    // أدوار pending لا تُبدَّل (admin هو الوحيد الباقي على approval — نحاكيها يدويًا)
+    s.authUser!.roles = [...s.roleEntries, { role: 'interviewer', status: 'pending' }]
     expect(s.switchRole('interviewer')).toBe(false)
     expect(s.role).toBe('seeker')
   })
@@ -78,17 +79,24 @@ describe('authStore.requestRole / activateRole', () => {
     expect(s.hasRole('company')).toBe(true)
   })
 
-  it('keeps approval roles (interviewer) pending until activation', () => {
+  it('activates every professional role instantly (policy: no gates, certification is a badge)', () => {
     const s = useAuthStore()
     s.setAuthUser(mockUser())
-    const entry = s.requestRole('interviewer')
-    expect(entry?.status).toBe('pending')
-    expect(s.hasRole('interviewer')).toBe(false)
-    expect(s.ownsRole('interviewer')).toBe(true)
-    s.activateRole('interviewer')
-    expect(s.hasRole('interviewer')).toBe(true)
-    expect(s.roleStatus('interviewer')).toBe('active')
+    for (const r of ['interviewer', 'endorser', 'coach'] as const) {
+      const entry = s.requestRole(r)
+      expect(entry?.status).toBe('active')
+      expect(s.hasRole(r)).toBe(true)
+    }
     expect(s.switchRole('interviewer')).toBe(true)
+  })
+
+  it('activateRole flips a pending entry to active (admin approval flows)', () => {
+    const s = useAuthStore()
+    s.setAuthUser(mockUser())
+    s.authUser!.roles = [...s.roleEntries, { role: 'interviewer', status: 'pending' }]
+    expect(s.hasRole('interviewer')).toBe(false)
+    s.activateRole('interviewer')
+    expect(s.roleStatus('interviewer')).toBe('active')
   })
 
   it('does not duplicate an already-owned role', () => {

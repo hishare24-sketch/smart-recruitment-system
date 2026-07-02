@@ -40,25 +40,24 @@ function switchTo(r: UserRole) {
   router.push({ name: roleHome(r) })
 }
 
+// السياسة: كل الأدوار فورية — والمعالجات (اعتماد المقيّم / ملف الانضمام)
+// شارات جودة اختيارية تُقترح بعد التفعيل، لا بوابات دخول.
+const QUALITY_PATH: Partial<Record<UserRole, { to: string, params?: Record<string, string>, hint: string }>> = {
+  interviewer: { to: 'interviewer-register', hint: 'أكمل اعتماد الجودة لتحصل على شارة «مقيّم معتمد ✓» وترتفع في السوق' },
+  coach: { to: 'role-join', params: { role: 'coach' }, hint: 'أكمل ملف الانضمام (خبرات وتزكيات) ليقوى عرضك في سوق الخبراء' },
+  trainer: { to: 'role-join', params: { role: 'trainer' }, hint: 'أكمل ملف الانضمام (خبرات وتزكيات) ليقوى عرضك في سوق الخبراء' },
+  consultant: { to: 'role-join', params: { role: 'consultant' }, hint: 'أكمل ملف الانضمام (خبرات وتزكيات) ليقوى عرضك في سوق الخبراء' },
+}
+
 function requestRole(r: UserRole) {
   requestDialog.value = false
-  if (r === 'interviewer') {
-    // Certification wizard handles eligibility + activation
-    router.push({ name: 'interviewer-register' })
-    return
-  }
-  if (r === 'coach' || r === 'trainer' || r === 'consultant') {
-    // القبول التلقائي مشروط بمسار الانضمام (بيانات + مرفقات + تزكيات)
-    router.push({ name: 'role-join', params: { role: r } })
-    return
-  }
   if (r === 'company') {
     companyDialog.value = true
     return
   }
   const entry = authStore.requestRole(r)
   if (entry?.status === 'pending') {
-    // أدوار الموافقة: يدخل الطلب طابور اعتماد المدير، وتُحاكى مراجعة المنصة
+    // احتياط: إن أُعيدت بوابة الموافقة لأي دور مستقبلًا يدخل طابور الاعتماد
     const requests = useRoleRequestsStore()
     const req = requests.add(r, `طلب دور ${t(`roles.${r}`)} عبر مبدّل الأدوار`, true)
     requests.simulatePlatformReview(req.id)
@@ -67,6 +66,18 @@ function requestRole(r: UserRole) {
   }
   useGamificationStore().record('roleActivated', t('roleSwitcher.activated', { role: t(`roles.${r}`) }))
   snackbar.value = t('roleSwitcher.activated', { role: t(`roles.${r}`) })
+  const quality = QUALITY_PATH[r]
+  if (quality) {
+    notifications.push({
+      icon: 'mdi-check-decagram-outline',
+      color: 'info',
+      title: `دورك «${t(`roles.${r}`)}» نشط — والشارة تنتظرك`,
+      body: quality.hint,
+      category: 'system',
+      actionTo: quality.params ? `/join/${quality.params.role}` : '/interviewers/register',
+      actionLabel: 'ابدأ مسار الشارة',
+    })
+  }
   switchTo(r)
 }
 

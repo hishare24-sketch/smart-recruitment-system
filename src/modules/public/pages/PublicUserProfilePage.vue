@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import type { UserRole } from '@/interfaces/Auth'
 import { ROLE_META } from '@/services/roles'
+import { useAccountPlanStore } from '@/stores/AccountPlanStore'
 import { useProfileStore } from '@/stores/ProfileStore'
 import { usePublicProfileStore } from '@/stores/PublicProfileStore'
 
@@ -12,6 +13,7 @@ const { t } = useI18n()
 const route = useRoute()
 const pub = usePublicProfileStore()
 const profile = useProfileStore()
+const plan = useAccountPlanStore()
 
 const isFound = computed(() => String(route.params.slug) === pub.state.slug)
 const s = computed(() => pub.state)
@@ -116,7 +118,7 @@ function postComment() {
             <div class="flex-grow-1">
               <div class="d-flex align-center ga-2 flex-wrap">
                 <h1 class="text-h5 font-weight-bold text-white">{{ pub.displayName }}</h1>
-                <VChip v-if="s.tier === 'elite'" size="x-small" color="accent" label prepend-icon="mdi-crown-outline">نخبة</VChip>
+                <VChip v-if="plan.tier === 'elite'" size="x-small" color="accent" label prepend-icon="mdi-crown-outline">نخبة</VChip>
               </div>
               <div class="text-body-1 text-white opacity-90">{{ s.publicHeadline }}</div>
               <div class="text-caption text-white opacity-75 d-flex align-center ga-2 flex-wrap">

@@ -19,6 +19,7 @@ export const navItems: NavItem[] = [
   { title: 'hub', icon: 'mdi-view-dashboard-variant-outline', to: 'unified-hub', roles: ALL_ROLES, section: 'account' },
   { title: 'publicProfile', icon: 'mdi-card-account-details-star-outline', to: 'public-profile-manage', roles: ALL_ROLES, section: 'account' },
   { title: 'wallet', icon: 'mdi-wallet-outline', to: 'wallet', roles: ALL_ROLES, section: 'account' },
+  { title: 'accountPlan', icon: 'mdi-crown-outline', to: 'account-plan', roles: ALL_ROLES, section: 'account' },
   { title: 'surveysHub', icon: 'mdi-poll', to: 'surveys-hub', roles: ALL_ROLES, section: 'account' },
   { title: 'unifiedAnalytics', icon: 'mdi-chart-multiple', to: 'unified-analytics', roles: ALL_ROLES, section: 'account' },
   { title: 'assistant', icon: 'mdi-robot-happy-outline', to: 'assistant', roles: ALL_ROLES, section: 'account' },

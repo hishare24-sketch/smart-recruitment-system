@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import PageHeader from '@/components/shared/PageHeader.vue'
+import { ACCOUNT_TIER_META, useAccountPlanStore } from '@/stores/AccountPlanStore'
 import { useNotificationsStore } from '@/stores/NotificationsStore'
 import { useProfileStore } from '@/stores/ProfileStore'
-import type { ProfileTier } from '@/stores/PublicProfileStore'
-import { SECTION_TIER, TIER_META, usePublicProfileStore } from '@/stores/PublicProfileStore'
+import { SECTION_TIER, usePublicProfileStore } from '@/stores/PublicProfileStore'
 import { useRoleProfilesStore } from '@/stores/RoleProfilesStore'
-import { useWalletStore } from '@/stores/WalletStore'
 
 // ===== إدارة الصفحة التعريفية العامة — التحكم الكامل بما يراه العالم =====
 const pub = usePublicProfileStore()
@@ -63,23 +62,8 @@ const SECTION_LABELS: Record<keyof typeof s.value.sections, string> = {
   comments: 'تعليقات الزوار',
 }
 
-// —— الباقات ——
-const wallet = useWalletStore()
-const TIERS: ProfileTier[] = ['free', 'pro', 'elite']
-function changeTier(tier: ProfileTier) {
-  const ok = pub.setTier(tier)
-  if (!ok) {
-    notifications.push({
-      icon: 'mdi-wallet-outline',
-      color: 'error',
-      title: 'رصيد المحفظة لا يكفي',
-      body: `ترقية «${TIER_META[tier].label}» تتطلب ${TIER_META[tier].price} ر.س — اشحن محفظتك ثم أعد المحاولة.`,
-      category: 'system',
-      actionTo: '/wallet',
-      actionLabel: 'شحن المحفظة',
-    })
-  }
-}
+// —— التمكين من باقة الحساب الموحّدة ——
+const plan = useAccountPlanStore()
 
 function saved() {
   notifications.push({
@@ -149,25 +133,18 @@ function saved() {
           </VRow>
         </VCard>
 
-        <!-- باقة الاشتراك -->
+        <!-- التمكين من باقة الحساب الموحّدة -->
         <VCard class="pa-5 mb-4">
-          <h2 class="text-subtitle-1 font-weight-bold mb-1"><VIcon icon="mdi-crown-outline" size="20" color="accent" class="me-1" />باقة صفحتك</h2>
-          <p class="text-caption text-medium-emphasis mb-3">الباقة تحدد الأقسام والتفاعلات المتاحة للإظهار. رصيد محفظتك: <b>{{ wallet.available }} ر.س</b></p>
-          <div v-for="t in TIERS" :key="t" class="tier-row pa-3 mb-2" :class="{ 'tier-active': s.tier === t }">
-            <div class="d-flex align-center ga-2">
-              <VIcon :icon="TIER_META[t].icon" :color="TIER_META[t].color" size="20" />
-              <span class="text-body-2 font-weight-bold">{{ TIER_META[t].label }}</span>
-              <VChip size="x-small" variant="tonal" :color="TIER_META[t].color" label>
-                {{ TIER_META[t].price ? `${TIER_META[t].price} ر.س/شهر` : 'مجانية' }}
-              </VChip>
-              <VSpacer />
-              <VChip v-if="s.tier === t" size="x-small" color="success" label>باقتك</VChip>
-              <VBtn v-else size="x-small" variant="tonal" :color="TIER_META[t].color" @click="changeTier(t)">
-                {{ TIER_META[t].price > TIER_META[s.tier].price ? 'ترقية' : 'انتقال' }}
-              </VBtn>
-            </div>
-            <p class="text-caption text-medium-emphasis mb-0 mt-1">{{ TIER_META[t].pitch }}</p>
+          <div class="d-flex align-center ga-2 mb-1">
+            <VIcon :icon="ACCOUNT_TIER_META[plan.tier].icon" :color="ACCOUNT_TIER_META[plan.tier].color" size="20" />
+            <h2 class="text-subtitle-1 font-weight-bold">باقة حسابك: {{ ACCOUNT_TIER_META[plan.tier].label }}</h2>
           </div>
+          <p class="text-caption text-medium-emphasis mb-3">
+            باقة واحدة تحكم كل التمكين — أقسام هذه الصفحة والاستبيانات والتفويض وغيرها.
+          </p>
+          <VBtn size="small" color="accent" variant="tonal" block prepend-icon="mdi-crown-outline" :to="{ name: 'account-plan' }">
+            إدارة باقة الحساب
+          </VBtn>
         </VCard>
 
         <!-- التحكم بالأقسام -->
@@ -185,8 +162,8 @@ function saved() {
               class="flex-grow-1"
               @update:model-value="saved"
             />
-            <VChip v-if="!pub.tierAllows(key)" size="x-small" :color="TIER_META[SECTION_TIER[key]].color" variant="tonal" label prepend-icon="mdi-lock-outline">
-              {{ TIER_META[SECTION_TIER[key]].label }}
+            <VChip v-if="!pub.tierAllows(key)" size="x-small" :color="ACCOUNT_TIER_META[SECTION_TIER[key]].color" variant="tonal" label prepend-icon="mdi-lock-outline">
+              {{ ACCOUNT_TIER_META[SECTION_TIER[key]].label }}
             </VChip>
           </div>
           <VDivider class="my-3" />
