@@ -1,11 +1,18 @@
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
+import type { DirectMessageRow } from '@/services/directMessages'
+import { fetchMyMessages, markThreadRead, sendDirectMessage, subscribeInbound } from '@/services/directMessages'
+import { getSupabase } from '@/services/supabase'
 import { syncPrivateDoc } from '@/services/cloudSync'
+import { useAuthStore } from '@/stores/AuthStore'
+import { useNotificationsStore } from '@/stores/NotificationsStore'
 
 export interface ChatLine {
   from: 'me' | 'them'
   text: string
   time: string
+  /** معرّف صفّ الرسالة المباشرة (لمنع التكرار عند وصولها من قناتين) */
+  mid?: string
 }
 
 export interface Conversation {
@@ -15,6 +22,8 @@ export interface Conversation {
   role: string
   unread: number
   messages: ChatLine[]
+  /** معرّف الطرف الآخر (Supabase uid) للمحادثات الحقيقية بين المستخدمين */
+  peerId?: string
 }
 
 const STORAGE_KEY = 'conversations'
@@ -88,14 +97,117 @@ export const useMessagesStore = defineStore('messages', () => {
 
   function markRead(id: number) {
     const c = conversations.value.find(x => x.id === id)
-    if (c)
-      c.unread = 0
+    if (!c)
+      return
+    c.unread = 0
+    // محادثة حقيقية: علّم الوارد مقروءًا خادميًا أيضًا
+    const uid = currentUid()
+    if (c.peerId && uid)
+      markThreadRead(uid, c.peerId)
   }
 
   function send(id: number, text: string) {
     const c = conversations.value.find(x => x.id === id)
-    if (c && text.trim())
-      c.messages.push({ from: 'me', text: text.trim(), time: 'الآن' })
+    if (!c || !text.trim())
+      return
+    // محادثة حقيقية بين مستخدمين → تسليم فعلي؛ وإلا سلوك المحاكاة المحلي
+    if (c.peerId) {
+      sendToPeer(c.peerId, c.name, text)
+      return
+    }
+    c.messages.push({ from: 'me', text: text.trim(), time: 'الآن' })
+  }
+
+  // ===== الرسائل المباشرة الحقيقية (بين المستخدمين) =====
+  let nextPeerConvId = 10_000
+  function currentUid(): string | null {
+    return useAuthStore().authUser?.uuid ?? null
+  }
+
+  /** يُدمج صفّ رسالة مباشرة في المحادثات (مفتاحها الطرف الآخر)، بلا تكرار */
+  function ingest(row: DirectMessageRow, uid: string) {
+    const outbound = row.sender_id === uid
+    const peerId = outbound ? row.recipient_id : row.sender_id
+    const peerName = outbound ? row.recipient_name : row.sender_name
+    const mid = String(row.id)
+    let conv = conversations.value.find(c => c.peerId === peerId)
+    if (!conv) {
+      conv = {
+        id: nextPeerConvId++,
+        name: peerName,
+        initial: peerName.trim().charAt(0),
+        role: 'مستخدم',
+        unread: 0,
+        messages: [],
+        peerId,
+      }
+      conversations.value.unshift(conv)
+    }
+    if (conv.messages.some(m => m.mid === mid))
+      return // وصلت من قناة أخرى — تجاهل
+    conv.messages.push({
+      from: outbound ? 'me' : 'them',
+      text: row.body,
+      time: row.created_at.slice(11, 16),
+      mid,
+    })
+    if (!outbound)
+      conv.unread++
+  }
+
+  /** يرسل رسالة حقيقية لمستخدم آخر ويعرضها فورًا لدى المرسِل */
+  async function sendToPeer(recipientId: string, recipientName: string, body: string) {
+    const auth = useAuthStore()
+    const uid = auth.authUser?.uuid
+    if (!uid || !body.trim())
+      return
+    const row = await sendDirectMessage({
+      senderId: uid,
+      senderName: auth.authUser?.name ?? 'مستخدم',
+      recipientId,
+      recipientName,
+      body: body.trim(),
+    })
+    if (row)
+      ingest(row, uid) // اعرضها للمرسِل فورًا
+  }
+
+  // —— التوصيل: جلب المحادثات الحقيقية عند الجلسة + اشتراك الوارد لحظيًا ——
+  const remote = getSupabase()
+  let detachInbound: (() => void) | null = null
+  async function wireInbound() {
+    if (!remote)
+      return
+    detachInbound?.()
+    detachInbound = null
+    const uid = (await remote.auth.getSession()).data.session?.user?.id
+    if (!uid)
+      return
+    for (const row of await fetchMyMessages(uid))
+      ingest(row, uid)
+    detachInbound = subscribeInbound(uid, (row) => {
+      ingest(row, uid)
+      useNotificationsStore().push({
+        icon: 'mdi-message-text-outline',
+        color: 'info',
+        title: `رسالة جديدة من ${row.sender_name}`,
+        body: row.body.slice(0, 60) + (row.body.length > 60 ? '…' : ''),
+        category: 'message',
+        actionTo: '/messages',
+        actionLabel: 'فتح المحادثة',
+      })
+    })
+  }
+  if (remote) {
+    remote.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')
+        wireInbound()
+      else if (event === 'SIGNED_OUT') {
+        detachInbound?.()
+        detachInbound = null
+      }
+    })
+    wireInbound()
   }
 
   /** محادثة جديدة واردة من طرف خارجي (مثل زائر الصفحة التعريفية) */
@@ -112,5 +224,5 @@ export const useMessagesStore = defineStore('messages', () => {
     return c
   }
 
-  return { conversations, syncStatus, totalUnread, markRead, send, startConversation }
+  return { conversations, syncStatus, totalUnread, markRead, send, startConversation, sendToPeer }
 })

@@ -5,8 +5,11 @@ import { useI18n } from 'vue-i18n'
 import type { UserRole } from '@/interfaces/Auth'
 import type { PortfolioItem, PublicSections } from '@/stores/PublicProfileStore'
 import type { ProofType, Skill } from '@/stores/ProfileStore'
+import { resolveProfileOwner } from '@/services/directMessages'
 import { ROLE_META } from '@/services/roles'
 import { useAccountPlanStore } from '@/stores/AccountPlanStore'
+import { useAuthStore } from '@/stores/AuthStore'
+import { useMessagesStore } from '@/stores/MessagesStore'
 import { PROOF_META, useProfileStore } from '@/stores/ProfileStore'
 import { usePublicProfileStore } from '@/stores/PublicProfileStore'
 
@@ -16,6 +19,8 @@ const route = useRoute()
 const pub = usePublicProfileStore()
 const profile = useProfileStore()
 const plan = useAccountPlanStore()
+const auth = useAuthStore()
+const messages = useMessagesStore()
 
 const isFound = computed(() => String(route.params.slug) === pub.state.slug)
 const s = computed(() => pub.state)
@@ -322,10 +327,19 @@ const contactDialog = ref(false)
 const visitorName = ref('')
 const visitorMsg = ref('')
 const contactSent = ref(false)
-function sendContact() {
+async function sendContact() {
   if (!visitorName.value.trim() || !visitorMsg.value.trim())
     return
-  pub.contact(visitorName.value.trim(), visitorMsg.value.trim())
+  // زائر مسجّل يتواصل مع صفحة مُدّعاة لمستخدم آخر → تسليم حقيقي؛ وإلا محاكاة محلية
+  const me = auth.authUser?.uuid
+  const owner = me ? await resolveProfileOwner(String(route.params.slug)) : null
+  if (owner && owner.ownerId !== me) {
+    await messages.sendToPeer(owner.ownerId, owner.name, visitorMsg.value.trim())
+    pub.state.contacts++
+  }
+  else {
+    pub.contact(visitorName.value.trim(), visitorMsg.value.trim())
+  }
   contactSent.value = true
   setTimeout(() => {
     contactDialog.value = false
