@@ -202,6 +202,16 @@ function saved() {
           </div>
         </div>
         <VSpacer />
+        <VChip
+          v-if="pub.syncStatus !== 'off'"
+          size="small"
+          variant="tonal"
+          :color="pub.syncStatus === 'synced' ? 'success' : pub.syncStatus === 'saving' ? 'info' : 'warning'"
+          :prepend-icon="pub.syncStatus === 'synced' ? 'mdi-cloud-check-outline' : pub.syncStatus === 'saving' ? 'mdi-cloud-sync-outline' : 'mdi-cloud-alert-outline'"
+          label
+        >
+          {{ pub.syncStatus === 'synced' ? 'مُزامَنة سحابيًا' : pub.syncStatus === 'saving' ? 'تُزامَن...' : 'تعذّرت المزامنة' }}
+        </VChip>
         <VBtn size="small" variant="tonal" color="primary" prepend-icon="mdi-open-in-new" :to="`/${pub.publicPath}`" target="_blank">معاينة</VBtn>
         <VBtn size="small" variant="tonal" color="secondary" :prepend-icon="linkCopied ? 'mdi-check' : 'mdi-link-variant'" @click="copyLink">
           {{ linkCopied ? 'نُسخ' : 'نسخ الرابط' }}

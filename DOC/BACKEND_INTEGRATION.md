@@ -78,3 +78,30 @@ async function toggleFollow() {
 - **الاختبارات الحالية تبقى على المحاكاة** — لا تعتمد اختبارات المخازن على شبكة أبدًا.
 - أخطاء كل النداءات تمر عبر `normalizeApiError` → `{ status, message, fieldErrors? }`.
 - أي مسار جديد يُضاف إلى `api/openapi.yaml` **قبل** إضافته إلى `API_PATHS`.
+
+---
+
+# Supabase — أول باك-إند حقيقي (مُفعَّل جزئيًا)
+
+المشروع: `maqogxdksjpibsnkskiq` — <https://maqogxdksjpibsnkskiq.supabase.co> (مربوط بحساب GitHub).
+
+| المكوّن | المسار | الدور |
+|---|---|---|
+| العميل | [`src/services/supabase.ts`](../src/services/supabase.ts) | عميل كسول — `null` عند غياب المفاتيح (محاكاة كاملة) |
+| المخطط | [`supabase/schema.sql`](../supabase/schema.sql) | جدول `public_profiles` (slug + data jsonb) مع RLS |
+| المزامنة التجريبية | `PublicProfileStore` | قراءة عند الإقلاع + upsert مؤجل (1.2s) لكل تعديل + مؤشر `syncStatus` |
+
+## خطوات التفعيل (مرة واحدة)
+
+1. **المخطط**: لوحة Supabase → SQL Editor → الصق محتوى `supabase/schema.sql` → Run.
+2. **المفتاح محليًا**: Project Settings → API → انسخ `anon public`، ثم أنشئ `.env.local` (غير متتبع):
+   ```bash
+   VITE_SUPABASE_ANON_KEY=eyJ...
+   ```
+3. **المفتاح للنسخة الحية**: GitHub → Settings → Secrets and variables → Actions → New repository secret باسم `SUPABASE_ANON_KEY` — سير النشر يقرؤه تلقائيًا.
+
+## حدود المرحلة التجريبية (مقصودة)
+
+- **الكتابة مفتوحة لمفتاح anon** لأن المنصة بلا Auth حقيقي بعد — عند اعتماد Supabase Auth يُضاف عمود `owner_id` وتُشدَّد سياسات الكتابة إلى `auth.uid()`.
+- المزامنة تشمل الصفحة التعريفية فقط (أغنى مخزن وأكثره قيمة للعرض العابر للأجهزة)؛ بقية المخازن تتحول store-by-store بنفس النمط.
+- مفتاح `anon` علني بطبيعته (يُشحن للمتصفح دومًا) — الحماية مسؤولية سياسات RLS لا سريّة المفتاح.

@@ -10,6 +10,7 @@ import { useInterviewsStore } from '@/stores/InterviewsStore'
 import { useMessagesStore } from '@/stores/MessagesStore'
 import { useNotificationsStore } from '@/stores/NotificationsStore'
 import { usePostedOpportunitiesStore } from '@/stores/PostedOpportunitiesStore'
+import { debounce, getSupabase } from '@/services/supabase'
 import { useProfileStore } from '@/stores/ProfileStore'
 import { useRoleProfilesStore } from '@/stores/RoleProfilesStore'
 import { useTrustStore } from '@/stores/TrustStore'
@@ -345,30 +346,36 @@ const seed: PublicProfileState = {
   ],
 }
 
+/**
+ * دمج حالة مخزنة (من localStorage أو Supabase) مع الـseed —
+ * دمج عميق للكائنات المتداخلة كي تكتسب الجلسات القديمة المفاتيح الجديدة.
+ */
+function mergeStored(stored: Partial<PublicProfileState> & Record<string, unknown>): PublicProfileState {
+  const base = structuredClone(seed)
+  // ترتيب الأقسام: نحافظ على ترتيب المستخدم ونُلحق أي أقسام جديدة لم يعرفها تخزينه القديم
+  const storedOrder: string[] = Array.isArray(stored.sectionOrder) ? stored.sectionOrder : []
+  const sectionOrder = [
+    ...storedOrder.filter((k): k is OrderableSection => (ORDERABLE_SECTIONS as readonly string[]).includes(k)),
+    ...ORDERABLE_SECTIONS.filter(k => !storedOrder.includes(k)),
+  ]
+  // التوصيات المخزنة قديمًا لا تعرف حقلي الإعجاب — تُطبَّع بأصفار
+  const testimonials = ((stored.testimonials ?? base.testimonials) as Testimonial[])
+    .map(t => ({ ...t, likes: t.likes ?? 0, visitorLiked: t.visitorLiked ?? false }))
+  return {
+    ...base,
+    ...stored,
+    links: { ...base.links, ...(stored.links ?? {}) },
+    sections: { ...base.sections, ...(stored.sections ?? {}) },
+    availability: { ...base.availability, ...(stored.availability ?? {}) },
+    appearance: { ...base.appearance, ...(stored.appearance ?? {}) },
+    sectionOrder,
+    testimonials,
+  }
+}
+
 function load(): PublicProfileState {
   try {
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}')
-    const base = structuredClone(seed)
-    // دمج عميق للكائنات المتداخلة كي تكتسب الجلسات القديمة المفاتيح الجديدة
-    // ترتيب الأقسام: نحافظ على ترتيب المستخدم ونُلحق أي أقسام جديدة لم يعرفها تخزينه القديم
-    const storedOrder: string[] = Array.isArray(stored.sectionOrder) ? stored.sectionOrder : []
-    const sectionOrder = [
-      ...storedOrder.filter((k): k is OrderableSection => (ORDERABLE_SECTIONS as readonly string[]).includes(k)),
-      ...ORDERABLE_SECTIONS.filter(k => !storedOrder.includes(k)),
-    ]
-    // التوصيات المخزنة قديمًا لا تعرف حقلي الإعجاب — تُطبَّع بأصفار
-    const testimonials = ((stored.testimonials ?? base.testimonials) as Testimonial[])
-      .map(t => ({ ...t, likes: t.likes ?? 0, visitorLiked: t.visitorLiked ?? false }))
-    return {
-      ...base,
-      ...stored,
-      links: { ...base.links, ...(stored.links ?? {}) },
-      sections: { ...base.sections, ...(stored.sections ?? {}) },
-      availability: { ...base.availability, ...(stored.availability ?? {}) },
-      appearance: { ...base.appearance, ...(stored.appearance ?? {}) },
-      sectionOrder,
-      testimonials,
-    }
+    return mergeStored(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}'))
   }
   catch {
     return structuredClone(seed)
@@ -380,6 +387,37 @@ let nextId = 800
 export const usePublicProfileStore = defineStore('publicProfile', () => {
   const state = ref<PublicProfileState>(load())
   watch(state, v => localStorage.setItem(STORAGE_KEY, JSON.stringify(v)), { deep: true })
+
+  // ===== مزامنة Supabase — تعمل فقط عند اكتمال مفاتيح البيئة (وإلا محاكاة كاملة) =====
+  // القراءة عند الإقلاع تدمج آخر نسخة سحابية بنفس مطبِّع localStorage،
+  // والكتابة مؤجلة تجمع التعديلات المتلاحقة في upsert واحد.
+  const remote = getSupabase()
+  /** حالة المزامنة للواجهات: off = محاكاة | synced | saving | error */
+  const syncStatus = ref<'off' | 'synced' | 'saving' | 'error'>(remote ? 'saving' : 'off')
+  if (remote) {
+    let applyingRemote = false
+    remote.from('public_profiles').select('data').eq('slug', state.value.slug).maybeSingle()
+      .then(({ data, error }) => {
+        if (!error && data?.data) {
+          applyingRemote = true
+          state.value = mergeStored(data.data as Partial<PublicProfileState>)
+        }
+        syncStatus.value = error ? 'error' : 'synced'
+      })
+    const push = debounce((v: PublicProfileState) => {
+      remote.from('public_profiles')
+        .upsert({ slug: v.slug, data: v, updated_at: new Date().toISOString() })
+        .then(({ error }) => (syncStatus.value = error ? 'error' : 'synced'))
+    }, 1200)
+    watch(state, (v) => {
+      if (applyingRemote) {
+        applyingRemote = false
+        return
+      }
+      syncStatus.value = 'saving'
+      push(JSON.parse(JSON.stringify(v)))
+    }, { deep: true })
+  }
 
   const auth = useAuthStore()
   const profile = useProfileStore()
@@ -795,7 +833,7 @@ export const usePublicProfileStore = defineStore('publicProfile', () => {
   }
 
   return {
-    state, displayName,
+    state, displayName, syncStatus,
     verifiedFacts, publicSkills, visibleTestimonials, roleBadges,
     availabilityMeta, themeStyles, themeIsLight, setTheme, fontFamily,
     saveThemeTemplate, applyThemeTemplate, removeThemeTemplate,

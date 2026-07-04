@@ -31,6 +31,11 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          # مفتاح anon العلني — يُضاف كسر مستودع باسم SUPABASE_ANON_KEY
+          # (Settings → Secrets and variables → Actions) ليتفعل التزامن على النسخة الحية.
+          VITE_SUPABASE_URL: https://maqogxdksjpibsnkskiq.supabase.co
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
 
       - uses: actions/configure-pages@v5
         # Auto-enable Pages (source: GitHub Actions) so no manual settings step is needed
