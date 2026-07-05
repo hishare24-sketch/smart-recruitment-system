@@ -5,6 +5,24 @@ import PageHeader from '@/components/shared/PageHeader.vue'
 import { DEFAULT_SETTINGS, FREE_SURVEY_LIMIT, QUESTION_TYPE_META, SURVEY_STATUS_META, generateQuestions, useSurveysStore } from '@/stores/SurveysStore'
 import type { Survey, SurveyQuestion, SurveyQuestionType, SurveySettings } from '@/stores/SurveysStore'
 import { bankFor } from '../services/questionBanks'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseChip from '@/components/ui/BaseChip.vue'
+import BaseIcon from '@/components/ui/BaseIcon.vue'
+import BaseAvatar from '@/components/ui/BaseAvatar.vue'
+import BaseInput from '@/components/ui/BaseInput.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
+import BaseSwitch from '@/components/ui/BaseSwitch.vue'
+import BaseTextarea from '@/components/ui/BaseTextarea.vue'
+import BaseTagInput from '@/components/ui/BaseTagInput.vue'
+import BaseProgressBar from '@/components/ui/BaseProgressBar.vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
+import BaseSnackbar from '@/components/ui/BaseSnackbar.vue'
+
+type BaseColor = 'brand' | 'emerald' | 'accent' | 'success' | 'info' | 'warning' | 'error' | 'neutral'
+function mapColor(c: string): BaseColor {
+  return (({ primary: 'brand', secondary: 'emerald', 'medium-emphasis': 'neutral' } as Record<string, BaseColor>)[c] ?? c) as BaseColor
+}
 
 // embedded: تُعرض داخل مركز الاستبيانات الموحّد بلا ترويسة مكررة
 withDefaults(defineProps<{ embedded?: boolean }>(), { embedded: false })
@@ -13,17 +31,17 @@ const router = useRouter()
 const store = useSurveysStore()
 
 const surveyTypes = [
-  { id: 1, name: 'تقييم وظيفي', desc: 'تقييم أداء المرشح من مديره السابق', icon: 'mdi-star-check-outline', color: 'primary' },
-  { id: 2, name: 'توصية مهنية', desc: 'جمع توصيات من زملاء العمل', icon: 'mdi-account-star-outline', color: 'secondary' },
+  { id: 1, name: 'تقييم وظيفي', desc: 'تقييم أداء المرشح من مديره السابق', icon: 'mdi-star-check-outline', color: 'brand' },
+  { id: 2, name: 'توصية مهنية', desc: 'جمع توصيات من زملاء العمل', icon: 'mdi-account-star-outline', color: 'emerald' },
   { id: 3, name: 'رضا المرشح', desc: 'انطباع المرشح عن عملية التوظيف', icon: 'mdi-emoticon-happy-outline', color: 'success' },
   { id: 4, name: 'رضا جهة التوظيف', desc: 'تقييم جودة الترشيحات وسرعة الإنجاز', icon: 'mdi-domain', color: 'info' },
   { id: 5, name: 'تحليل شخصية', desc: 'فهم السمات الشخصية للباحث', icon: 'mdi-head-cog-outline', color: 'accent' },
   { id: 6, name: 'احتياجات السوق', desc: 'مهارات مطلوبة، رواتب، اتجاهات', icon: 'mdi-chart-line', color: 'warning' },
-  { id: 7, name: 'جودة الخدمة', desc: 'تقييم تجربة المستخدم مع المنصة', icon: 'mdi-thumb-up-outline', color: 'primary' },
-  { id: 8, name: 'التدريب والتطوير', desc: 'احتياجات المستخدمين من دورات', icon: 'mdi-school-outline', color: 'secondary' },
-]
+  { id: 7, name: 'جودة الخدمة', desc: 'تقييم تجربة المستخدم مع المنصة', icon: 'mdi-thumb-up-outline', color: 'brand' },
+  { id: 8, name: 'التدريب والتطوير', desc: 'احتياجات المستخدمين من دورات', icon: 'mdi-school-outline', color: 'emerald' },
+] as const
 
-const QUESTION_TYPES = Object.entries(QUESTION_TYPE_META).map(([value, m]) => ({ value: value as SurveyQuestionType, title: m.label, props: { prependIcon: m.icon, subtitle: m.hint } }))
+const QUESTION_TYPES = Object.entries(QUESTION_TYPE_META).map(([value, m]) => ({ value: value as SurveyQuestionType, title: m.label, icon: m.icon }))
 const needsOptions = (t: SurveyQuestionType) => ['single', 'multiple', 'dropdown', 'ranking'].includes(t)
 
 // ===== Builder (3 steps: أساسي → أسئلة → إعدادات) =====
@@ -41,6 +59,11 @@ const AUDIENCES = [
   { value: 'internal', title: 'داخل المنصة فقط' },
   { value: 'external', title: 'رابط خارجي فقط' },
   { value: 'both', title: 'داخل المنصة + رابط خارجي' },
+]
+const STEPS = [
+  { value: 1, label: 'أساسي', icon: 'mdi-information-outline' },
+  { value: 2, label: 'الأسئلة', icon: 'mdi-format-list-numbered' },
+  { value: 3, label: 'إعدادات احترافية', icon: 'mdi-cog-outline' },
 ]
 
 // بوابة خطة الاشتراك: المجانية = 3 استبيانات
@@ -186,311 +209,300 @@ function simulate() {
 
 const snackbar = ref('')
 const STATUS_META = SURVEY_STATUS_META
+
+const canPublish = computed(() => questions.value.some(q => q.text.trim()))
 </script>
 
 <template>
   <div>
     <PageHeader v-if="!embedded" title="الاستبيانات التفاعلية" subtitle="منشئ احترافي بعشرة أنماط أسئلة، نشر داخلي وخارجي، وتحليل ذكي للنتائج" icon="mdi-poll" />
 
-    <h3 class="text-h6 font-weight-bold mb-3">أنشئ استبياناً جديداً</h3>
-    <VRow class="mb-5">
+    <h3 class="mb-3 text-lg font-bold text-content">أنشئ استبياناً جديداً</h3>
+    <div class="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
       <!-- [+] استبيان فارغ ببنك الأنماط العشرة -->
-      <VCol cols="12" sm="6" md="3">
-        <VCard class="pa-4 text-center cursor-pointer h-100 d-flex flex-column justify-center blank-card" variant="outlined" @click="createBlank">
-          <VAvatar color="primary" size="52" rounded="lg" class="mb-2 mx-auto"><VIcon icon="mdi-plus" size="30" /></VAvatar>
-          <div class="text-subtitle-2 font-weight-bold">استبيان جديد فارغ</div>
-          <div class="text-caption text-medium-emphasis">ابنِه من الصفر بأنماط الأسئلة العشرة</div>
-        </VCard>
-      </VCol>
-      <VCol v-for="s in surveyTypes" :key="s.id" cols="12" sm="6" md="3">
-        <VCard class="pa-4 text-center cursor-pointer h-100" @click="createSurvey(s.name)">
-          <VAvatar :color="s.color" variant="tonal" size="52" rounded="lg" class="mb-2"><VIcon :icon="s.icon" size="28" /></VAvatar>
-          <div class="text-subtitle-2 font-weight-bold">{{ s.name }}</div>
-          <div class="text-caption text-medium-emphasis">{{ s.desc }}</div>
-          <VChip size="x-small" variant="tonal" color="secondary" label class="mt-1">بنك 20 سؤالًا</VChip>
-        </VCard>
-      </VCol>
-    </VRow>
-
-    <div class="d-flex align-center ga-2 mb-3 flex-wrap">
-      <h3 class="text-h6 font-weight-bold">استبياناتي ({{ store.mySurveys.length }})</h3>
-      <VChip size="small" :color="store.plan === 'pro' ? 'success' : 'warning'" label variant="tonal">
-        {{ store.plan === 'pro' ? 'باقة مدفوعة — سعة موسّعة' : `الباقة الأساسية — ${store.mySurveys.length}/${FREE_SURVEY_LIMIT}` }}
-      </VChip>
-      <VBtn v-if="store.plan === 'free'" size="x-small" color="secondary" variant="tonal" prepend-icon="mdi-arrow-up-bold-circle-outline" @click="upgradeDialog = true">
-        ترقية
-      </VBtn>
+      <button
+        type="button"
+        class="flex flex-col items-center justify-center rounded-ui-lg border border-dashed border-ui bg-surface p-4 text-center transition hover:brightness-105"
+        @click="createBlank"
+      >
+        <BaseAvatar color="brand" tonal square :size="52" class="mx-auto mb-2"><BaseIcon name="mdi-plus" :size="30" /></BaseAvatar>
+        <div class="text-sm font-bold text-content">استبيان جديد فارغ</div>
+        <div class="text-xs text-muted">ابنِه من الصفر بأنماط الأسئلة العشرة</div>
+      </button>
+      <button
+        v-for="s in surveyTypes"
+        :key="s.id"
+        type="button"
+        class="flex flex-col items-center rounded-ui-lg border-ui bg-surface p-4 text-center transition hover:brightness-105"
+        @click="createSurvey(s.name)"
+      >
+        <BaseAvatar :color="s.color" tonal square :size="52" class="mb-2"><BaseIcon :name="s.icon" :size="28" /></BaseAvatar>
+        <div class="text-sm font-bold text-content">{{ s.name }}</div>
+        <div class="text-xs text-muted">{{ s.desc }}</div>
+        <BaseChip color="emerald" class="mt-1">بنك 20 سؤالًا</BaseChip>
+      </button>
     </div>
-    <VCard>
-      <VTable>
+
+    <div class="mb-3 flex flex-wrap items-center gap-2">
+      <h3 class="text-lg font-bold text-content">استبياناتي ({{ store.mySurveys.length }})</h3>
+      <BaseChip :color="store.plan === 'pro' ? 'success' : 'warning'">
+        {{ store.plan === 'pro' ? 'باقة مدفوعة — سعة موسّعة' : `الباقة الأساسية — ${store.mySurveys.length}/${FREE_SURVEY_LIMIT}` }}
+      </BaseChip>
+      <BaseButton v-if="store.plan === 'free'" variant="tonal-emerald" size="sm" @click="upgradeDialog = true">
+        <BaseIcon name="mdi-arrow-up-bold-circle-outline" :size="16" /> ترقية
+      </BaseButton>
+    </div>
+
+    <BaseCard :padded="false" class="overflow-x-auto">
+      <table class="w-full text-sm">
         <thead>
-          <tr>
-            <th class="text-start">الاستبيان</th>
-            <th class="text-start">الحالة</th>
-            <th class="text-start">الأسئلة</th>
-            <th class="text-start">المستجيبون</th>
-            <th class="text-start">نسبة الإكمال</th>
-            <th class="text-start">إجراءات</th>
+          <tr class="border-b border-ui text-muted">
+            <th class="p-3 text-start font-medium">الاستبيان</th>
+            <th class="p-3 text-start font-medium">الحالة</th>
+            <th class="p-3 text-start font-medium">الأسئلة</th>
+            <th class="p-3 text-start font-medium">المستجيبون</th>
+            <th class="p-3 text-start font-medium">نسبة الإكمال</th>
+            <th class="p-3 text-start font-medium">إجراءات</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="s in store.mySurveys" :key="s.id">
-            <td>
-              <div class="font-weight-bold">{{ s.title }}</div>
-              <div class="text-caption text-medium-emphasis">{{ s.type }} · {{ s.createdAt }}</div>
+          <tr v-for="s in store.mySurveys" :key="s.id" class="border-b border-ui last:border-0">
+            <td class="p-3">
+              <div class="font-bold text-content">{{ s.title }}</div>
+              <div class="text-xs text-muted">{{ s.type }} · {{ s.createdAt }}</div>
             </td>
-            <td><VChip :color="STATUS_META[s.status].color" size="small" label>{{ STATUS_META[s.status].label }}</VChip></td>
-            <td>{{ s.questions.length || '—' }}</td>
-            <td>
+            <td class="p-3"><BaseChip :color="mapColor(STATUS_META[s.status].color)">{{ STATUS_META[s.status].label }}</BaseChip></td>
+            <td class="p-3 text-content">{{ s.questions.length || '—' }}</td>
+            <td class="p-3 text-content">
               {{ store.statsFor(s.id).responses }}
-              <span class="text-caption text-medium-emphasis">({{ store.statsFor(s.id).external }} خارجي)</span>
+              <span class="text-xs text-muted">({{ store.statsFor(s.id).external }} خارجي)</span>
             </td>
-            <td style="min-width: 140px">
-              <VProgressLinear :model-value="store.statsFor(s.id).completion" color="success" height="16" rounded>
-                <span class="text-caption on-success">{{ store.statsFor(s.id).completion }}%</span>
-              </VProgressLinear>
+            <td class="min-w-[150px] p-3">
+              <div class="flex items-center gap-2">
+                <BaseProgressBar :value="store.statsFor(s.id).completion" color="success" :height="8" class="flex-1" />
+                <span class="text-xs font-bold text-content">{{ store.statsFor(s.id).completion }}%</span>
+              </div>
             </td>
-            <td class="text-no-wrap">
-              <VBtn variant="text" size="small" color="primary" prepend-icon="mdi-chart-box-outline" @click="router.push({ name: 'survey-analysis', params: { id: s.id } })">التحليل</VBtn>
-              <VTooltip text="الإدارة الاحترافية: الجدولة والاستهداف والحوافز والمستبينون" location="top">
-                <template #activator="{ props }">
-                  <VBtn v-bind="props" icon="mdi-cog-transfer-outline" variant="text" size="small" color="accent" @click="router.push({ name: 'survey-admin', params: { id: s.id } })" />
-                </template>
-              </VTooltip>
-              <VTooltip text="تعديل الأسئلة والإعدادات" location="top">
-                <template #activator="{ props }">
-                  <VBtn v-bind="props" icon="mdi-pencil-outline" variant="text" size="small" @click="editSurvey(s)" />
-                </template>
-              </VTooltip>
-              <VTooltip text="مشاركة الرابط الخارجي" location="top">
-                <template #activator="{ props }">
-                  <VBtn v-bind="props" icon="mdi-share-variant-outline" variant="text" size="small" color="secondary" :disabled="s.audience === 'internal'" @click="openShare(s)" />
-                </template>
-              </VTooltip>
-              <VTooltip text="معاينة" location="top">
-                <template #activator="{ props }">
-                  <VBtn v-bind="props" icon="mdi-eye-outline" variant="text" size="small" @click="router.push({ name: 'survey-answer', params: { token: s.token }, query: { src: 'in' } })" />
-                </template>
-              </VTooltip>
-              <VTooltip text="نسخ" location="top">
-                <template #activator="{ props }">
-                  <VBtn v-bind="props" icon="mdi-content-copy" variant="text" size="small" @click="store.duplicate(s.id); snackbar = 'أُنشئت نسخة كمسودة'" />
-                </template>
-              </VTooltip>
-              <VTooltip :text="s.status === 'active' ? 'إغلاق الاستقبال' : 'تفعيل'" location="top">
-                <template #activator="{ props }">
-                  <VBtn v-bind="props" :icon="s.status === 'active' ? 'mdi-lock-outline' : 'mdi-lock-open-variant-outline'" variant="text" size="small" color="warning" @click="store.setStatus(s.id, s.status === 'active' ? 'closed' : 'active')" />
-                </template>
-              </VTooltip>
-              <VBtn icon="mdi-delete-outline" variant="text" size="small" color="error" @click="store.remove(s.id)" />
+            <td class="whitespace-nowrap p-3">
+              <div class="flex items-center gap-0.5">
+                <BaseButton variant="ghost" size="sm" title="التحليل" @click="router.push({ name: 'survey-analysis', params: { id: s.id } })">
+                  <BaseIcon name="mdi-chart-box-outline" :size="18" style="color: rgb(var(--v-theme-primary))" />
+                </BaseButton>
+                <button class="icon-btn h-9 w-9" title="الإدارة الاحترافية: الجدولة والاستهداف والحوافز والمستبينون" @click="router.push({ name: 'survey-admin', params: { id: s.id } })">
+                  <BaseIcon name="mdi-cog-transfer-outline" :size="18" style="color: rgb(var(--v-theme-accent))" />
+                </button>
+                <button class="icon-btn h-9 w-9" title="تعديل الأسئلة والإعدادات" @click="editSurvey(s)">
+                  <BaseIcon name="mdi-pencil-outline" :size="18" />
+                </button>
+                <button
+                  class="icon-btn h-9 w-9 disabled:opacity-40"
+                  title="مشاركة الرابط الخارجي"
+                  :disabled="s.audience === 'internal'"
+                  @click="openShare(s)"
+                >
+                  <BaseIcon name="mdi-share-variant-outline" :size="18" style="color: rgb(var(--v-theme-secondary))" />
+                </button>
+                <button class="icon-btn h-9 w-9" title="معاينة" @click="router.push({ name: 'survey-answer', params: { token: s.token }, query: { src: 'in' } })">
+                  <BaseIcon name="mdi-eye-outline" :size="18" />
+                </button>
+                <button class="icon-btn h-9 w-9" title="نسخ" @click="store.duplicate(s.id); snackbar = 'أُنشئت نسخة كمسودة'">
+                  <BaseIcon name="mdi-content-copy" :size="18" />
+                </button>
+                <button class="icon-btn h-9 w-9" :title="s.status === 'active' ? 'إغلاق الاستقبال' : 'تفعيل'" @click="store.setStatus(s.id, s.status === 'active' ? 'closed' : 'active')">
+                  <BaseIcon :name="s.status === 'active' ? 'mdi-lock-outline' : 'mdi-lock-open-variant-outline'" :size="18" style="color: rgb(var(--v-theme-warning))" />
+                </button>
+                <button class="icon-btn h-9 w-9" title="حذف" @click="store.remove(s.id)">
+                  <BaseIcon name="mdi-delete-outline" :size="18" style="color: rgb(var(--v-theme-error))" />
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
-      </VTable>
-    </VCard>
+      </table>
+    </BaseCard>
 
     <!-- ===== Builder dialog (3 steps) ===== -->
-    <VDialog v-model="dialog" max-width="760" scrollable persistent>
-      <VCard>
-        <VCardTitle class="d-flex justify-space-between align-center">
-          <span>منشئ الاستبيان: {{ selectedType }}</span>
-          <VBtn icon="mdi-close" variant="text" size="small" @click="dialog = false" />
-        </VCardTitle>
+    <BaseModal v-model="dialog" :title="`منشئ الاستبيان: ${selectedType}`" :max-width="760">
+      <!-- steps tabs -->
+      <div class="seg mb-4 flex">
+        <button
+          v-for="t in STEPS"
+          :key="t.value"
+          type="button"
+          class="seg-btn flex flex-1 items-center justify-center gap-1"
+          :class="{ 'is-active': step === t.value }"
+          @click="step = t.value"
+        >
+          <BaseIcon :name="t.icon" :size="16" />
+          {{ t.label }}<template v-if="t.value === 2"> ({{ questions.length }})</template>
+        </button>
+      </div>
 
-        <VTabs v-model="step" color="primary" density="comfortable" class="px-4">
-          <VTab :value="1" prepend-icon="mdi-information-outline">أساسي</VTab>
-          <VTab :value="2" prepend-icon="mdi-format-list-numbered">الأسئلة ({{ questions.length }})</VTab>
-          <VTab :value="3" prepend-icon="mdi-cog-outline">إعدادات احترافية</VTab>
-        </VTabs>
-        <VDivider />
+      <div class="max-h-[62vh] overflow-y-auto pe-1">
+        <!-- Step 1: basics -->
+        <div v-if="step === 1">
+          <BaseInput v-model="surveyTitle" label="عنوان الاستبيان" class="mb-3" />
+          <div class="mb-3">
+            <label class="mb-1 block text-sm font-medium text-muted">قنوات النشر</label>
+            <BaseSelect v-model="audience" :items="AUDIENCES" />
+          </div>
+          <div class="rounded-ui p-3 text-sm" style="background: rgba(var(--v-theme-secondary), 0.12); color: rgb(var(--v-theme-secondary))">
+            النشر الخارجي يولّد رابط مشاركة عامًا — كل استجابة عبره تصل مباشرة لحسابك مع إشعار.
+          </div>
+        </div>
 
-        <VCardText style="max-height: 62vh">
-          <VWindow v-model="step">
-            <!-- Step 1: basics -->
-            <VWindowItem :value="1">
-              <VTextField v-model="surveyTitle" label="عنوان الاستبيان" class="mb-3" />
-              <VSelect v-model="audience" label="قنوات النشر" :items="AUDIENCES" class="mb-3" />
-              <VAlert color="secondary" variant="tonal" density="compact" border="start">
-                النشر الخارجي يولّد رابط مشاركة عامًا — كل استجابة عبره تصل مباشرة لحسابك مع إشعار.
-              </VAlert>
-            </VWindowItem>
+        <!-- Step 2: questions (10 types) -->
+        <div v-else-if="step === 2">
+          <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <span class="text-xs text-muted">10 أنماط أسئلة متاحة — اختر النمط لكل سؤال</span>
+            <BaseButton variant="tonal-emerald" size="sm" @click="aiGenerate">
+              <BaseIcon name="mdi-robot-happy-outline" :size="16" /> توليد بالذكاء الاصطناعي
+            </BaseButton>
+          </div>
 
-            <!-- Step 2: questions (10 types) -->
-            <VWindowItem :value="2">
-              <div class="d-flex align-center justify-space-between mb-3 flex-wrap ga-2">
-                <span class="text-caption text-medium-emphasis">10 أنماط أسئلة متاحة — اختر النمط لكل سؤال</span>
-                <VBtn color="secondary" variant="tonal" size="small" prepend-icon="mdi-robot-happy-outline" @click="aiGenerate">توليد بالذكاء الاصطناعي</VBtn>
-              </div>
-
-              <!-- بنك الأسئلة الثابت (20 سؤالًا) -->
-              <VCard v-if="bankQuestions.length" variant="tonal" color="secondary" class="mb-3">
-                <div class="d-flex align-center pa-3 cursor-pointer" @click="bankOpen = !bankOpen">
-                  <VIcon icon="mdi-bank-outline" class="me-2" />
-                  <span class="text-body-2 font-weight-bold">بنك أسئلة «{{ selectedType }}» ({{ bankQuestions.length }} سؤالًا جاهزًا)</span>
-                  <VSpacer />
-                  <VBtn size="x-small" variant="flat" color="secondary" class="me-2" @click.stop="addAllFromBank">إضافة الكل</VBtn>
-                  <VIcon :icon="bankOpen ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
-                </div>
-                <VExpandTransition>
-                  <div v-show="bankOpen" class="px-3 pb-3" style="max-height: 260px; overflow-y: auto">
-                    <div v-for="(bq, bi) in bankQuestions" :key="bi" class="d-flex align-center ga-2 py-1">
-                      <VChip size="x-small" variant="tonal" label :prepend-icon="QUESTION_TYPE_META[bq.type].icon">{{ QUESTION_TYPE_META[bq.type].label }}</VChip>
-                      <span class="text-caption flex-grow-1">{{ bq.text }}</span>
-                      <VBtn :icon="inSurvey(bq.text) ? 'mdi-check' : 'mdi-plus'" size="x-small" variant="tonal" :color="inSurvey(bq.text) ? 'success' : 'primary'" :disabled="inSurvey(bq.text)" @click="addFromBank(bi)" />
-                    </div>
-                  </div>
-                </VExpandTransition>
-              </VCard>
-
-              <VCard v-for="(q, i) in questions" :key="q.id" variant="outlined" class="pa-3 mb-2">
-                <div class="d-flex align-center ga-2 mb-2">
-                  <div class="d-flex flex-column">
-                    <VBtn icon="mdi-chevron-up" variant="text" size="x-small" :disabled="i === 0" @click="moveQuestion(i, -1)" />
-                    <VBtn icon="mdi-chevron-down" variant="text" size="x-small" :disabled="i === questions.length - 1" @click="moveQuestion(i, 1)" />
-                  </div>
-                  <span class="text-body-2 font-weight-bold">{{ i + 1 }}.</span>
-                  <VTextField v-model="q.text" placeholder="نص السؤال" hide-details density="compact" class="flex-grow-1" />
-                  <VBtn icon="mdi-delete-outline" variant="text" size="small" color="error" @click="removeQuestion(q.id)" />
-                </div>
-                <div class="d-flex align-center flex-wrap ga-3">
-                  <VSelect
-                    v-model="q.type"
-                    :items="QUESTION_TYPES"
-                    density="compact"
-                    hide-details
-                    style="max-width: 230px"
-                    @update:model-value="onTypeChange(q)"
-                  />
-                  <VSwitch v-model="q.required" label="إلزامي" color="primary" hide-details density="compact" />
-                </div>
-                <VCombobox
-                  v-if="q.options"
-                  v-model="q.options"
-                  label="الخيارات"
-                  multiple
-                  chips
-                  closable-chips
-                  density="compact"
-                  hide-details
-                  class="mt-2"
-                />
-                <VCombobox
-                  v-if="q.rows"
-                  v-model="q.rows"
-                  label="عناصر المصفوفة (كل عنصر يُقيَّم على حدة)"
-                  multiple
-                  chips
-                  closable-chips
-                  density="compact"
-                  hide-details
-                  class="mt-2"
-                />
-                <div v-if="q.type === 'scale'" class="d-flex ga-2 mt-2">
-                  <VTextField v-model="q.scaleMin" label="تسمية الطرف الأدنى" density="compact" hide-details />
-                  <VTextField v-model="q.scaleMax" label="تسمية الطرف الأعلى" density="compact" hide-details />
-                </div>
-              </VCard>
-
-              <div class="d-flex flex-wrap ga-1 mt-3">
-                <VBtn
-                  v-for="qt in QUESTION_TYPES"
-                  :key="qt.value"
-                  variant="tonal"
-                  size="x-small"
-                  :prepend-icon="QUESTION_TYPE_META[qt.value].icon"
-                  @click="addQuestion(qt.value)"
+          <!-- بنك الأسئلة الثابت (20 سؤالًا) -->
+          <div v-if="bankQuestions.length" class="mb-3 rounded-ui" style="background: rgba(var(--v-theme-secondary), 0.1)">
+            <div class="flex cursor-pointer items-center gap-2 p-3" @click="bankOpen = !bankOpen">
+              <BaseIcon name="mdi-bank-outline" :size="18" style="color: rgb(var(--v-theme-secondary))" />
+              <span class="text-sm font-bold text-content">بنك أسئلة «{{ selectedType }}» ({{ bankQuestions.length }} سؤالًا جاهزًا)</span>
+              <BaseButton variant="emerald" size="sm" class="ms-auto" @click.stop="addAllFromBank">إضافة الكل</BaseButton>
+              <BaseIcon :name="bankOpen ? 'mdi-chevron-up' : 'mdi-chevron-down'" :size="20" class="text-muted" />
+            </div>
+            <div v-show="bankOpen" class="max-h-[260px] overflow-y-auto px-3 pb-3">
+              <div v-for="(bq, bi) in bankQuestions" :key="bi" class="flex items-center gap-2 py-1">
+                <BaseChip color="neutral"><BaseIcon :name="QUESTION_TYPE_META[bq.type].icon" :size="12" /> {{ QUESTION_TYPE_META[bq.type].label }}</BaseChip>
+                <span class="flex-1 text-xs text-content">{{ bq.text }}</span>
+                <button
+                  class="icon-btn h-8 w-8 disabled:opacity-40"
+                  :disabled="inSurvey(bq.text)"
+                  :title="inSurvey(bq.text) ? 'مُضاف' : 'إضافة'"
+                  @click="addFromBank(bi)"
                 >
-                  {{ qt.title }}
-                </VBtn>
+                  <BaseIcon :name="inSurvey(bq.text) ? 'mdi-check' : 'mdi-plus'" :size="16" :style="{ color: inSurvey(bq.text) ? 'rgb(var(--v-theme-success))' : 'rgb(var(--v-theme-primary))' }" />
+                </button>
               </div>
-            </VWindowItem>
+            </div>
+          </div>
 
-            <!-- Step 3: professional settings -->
-            <VWindowItem :value="3">
-              <VTextarea v-model="settings.welcomeMessage" label="رسالة الترحيب" rows="2" auto-grow class="mb-2" />
-              <VTextarea v-model="settings.thanksMessage" label="رسالة الشكر" rows="2" auto-grow class="mb-3" />
-              <VRow dense>
-                <VCol cols="12" sm="6"><VSwitch v-model="settings.anonymous" label="استجابات مجهولة الهوية" color="primary" hide-details /></VCol>
-                <VCol cols="12" sm="6"><VSwitch v-model="settings.showProgress" label="إظهار شريط التقدم" color="primary" hide-details /></VCol>
-                <VCol cols="12" sm="6"><VSwitch v-model="settings.oneQuestionPerPage" label="سؤال واحد لكل صفحة" color="primary" hide-details /></VCol>
-                <VCol cols="12" sm="6"><VSwitch v-model="settings.shuffleQuestions" label="ترتيب عشوائي للأسئلة" color="primary" hide-details /></VCol>
-                <VCol cols="12" sm="6">
-                  <VTextField v-model.number="settings.responseLimit" type="number" label="حد أقصى للاستجابات (اختياري)" clearable density="compact" />
-                </VCol>
-                <VCol cols="12" sm="6">
-                  <VTextField v-model="settings.closesAt" type="date" label="تاريخ الإغلاق التلقائي (اختياري)" clearable density="compact" />
-                </VCol>
-              </VRow>
-              <VDivider class="my-3" />
-              <div class="d-flex align-center ga-2 mb-1">
-                <VIcon icon="mdi-gift-outline" color="accent" size="20" />
-                <span class="text-body-2 font-weight-bold">نقاط تحفيزية للمشاركين</span>
+          <div v-for="(q, i) in questions" :key="q.id" class="mb-2 rounded-ui border-ui p-3">
+            <div class="mb-2 flex items-center gap-2">
+              <div class="flex flex-col">
+                <button class="icon-btn h-6 w-6 disabled:opacity-30" :disabled="i === 0" aria-label="لأعلى" @click="moveQuestion(i, -1)"><BaseIcon name="mdi-chevron-up" :size="16" /></button>
+                <button class="icon-btn h-6 w-6 disabled:opacity-30" :disabled="i === questions.length - 1" aria-label="لأسفل" @click="moveQuestion(i, 1)"><BaseIcon name="mdi-chevron-down" :size="16" /></button>
               </div>
-              <p class="text-caption text-medium-emphasis mb-2">تُمنح لكل مشارك داخل المنصة وتُخصم من محفظة نقاطك تلقائيًا — تزيد نسبة المشاركة بوضوح.</p>
-              <VTextField v-model.number="settings.rewardPoints" type="number" min="0" label="النقاط لكل مشارك (0 = بدون مكافأة)" prepend-inner-icon="mdi-star-circle-outline" density="compact" style="max-width: 320px" />
-            </VWindowItem>
-          </VWindow>
-        </VCardText>
+              <span class="text-sm font-bold text-content">{{ i + 1 }}.</span>
+              <BaseInput v-model="q.text" placeholder="نص السؤال" class="flex-1" />
+              <button class="icon-btn h-9 w-9" aria-label="حذف السؤال" @click="removeQuestion(q.id)"><BaseIcon name="mdi-delete-outline" :size="18" style="color: rgb(var(--v-theme-error))" /></button>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+              <BaseSelect v-model="q.type" :items="QUESTION_TYPES" class="w-[230px]" @update:model-value="onTypeChange(q)" />
+              <BaseSwitch v-model="q.required" label="إلزامي" />
+            </div>
+            <BaseTagInput v-if="q.options" v-model="q.options" label="الخيارات" class="mt-2" />
+            <BaseTagInput v-if="q.rows" v-model="q.rows" label="عناصر المصفوفة (كل عنصر يُقيَّم على حدة)" class="mt-2" />
+            <div v-if="q.type === 'scale'" class="mt-2 flex gap-2">
+              <BaseInput v-model="q.scaleMin" label="تسمية الطرف الأدنى" class="flex-1" />
+              <BaseInput v-model="q.scaleMax" label="تسمية الطرف الأعلى" class="flex-1" />
+            </div>
+          </div>
 
-        <VCardActions class="justify-end">
-          <VBtn variant="text" @click="dialog = false">إلغاء</VBtn>
-          <VBtn variant="tonal" prepend-icon="mdi-content-save-outline" @click="saveSurvey('draft')">حفظ كمسودة</VBtn>
-          <VBtn color="accent" :disabled="!questions.some(q => q.text.trim())" prepend-icon="mdi-send" @click="saveSurvey('active')">نشر الاستبيان</VBtn>
-        </VCardActions>
-      </VCard>
-    </VDialog>
+          <div class="mt-3 flex flex-wrap gap-1">
+            <button
+              v-for="qt in QUESTION_TYPES"
+              :key="qt.value"
+              type="button"
+              class="btn-tonal-brand inline-flex items-center gap-1 rounded-ui px-2.5 py-1 text-xs font-medium transition"
+              @click="addQuestion(qt.value)"
+            >
+              <BaseIcon :name="QUESTION_TYPE_META[qt.value].icon" :size="14" /> {{ qt.title }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 3: professional settings -->
+        <div v-else-if="step === 3">
+          <BaseTextarea v-model="settings.welcomeMessage" label="رسالة الترحيب" :rows="2" class="mb-2" />
+          <BaseTextarea v-model="settings.thanksMessage" label="رسالة الشكر" :rows="2" class="mb-3" />
+          <div class="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+            <BaseSwitch v-model="settings.anonymous" label="استجابات مجهولة الهوية" />
+            <BaseSwitch v-model="settings.showProgress" label="إظهار شريط التقدم" />
+            <BaseSwitch v-model="settings.oneQuestionPerPage" label="سؤال واحد لكل صفحة" />
+            <BaseSwitch v-model="settings.shuffleQuestions" label="ترتيب عشوائي للأسئلة" />
+          </div>
+          <div class="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <BaseInput v-model.number="settings.responseLimit" type="number" label="حد أقصى للاستجابات (اختياري)" />
+            <BaseInput v-model="settings.closesAt" type="date" label="تاريخ الإغلاق التلقائي (اختياري)" />
+          </div>
+          <div class="my-3 border-t border-ui" />
+          <div class="mb-1 flex items-center gap-2">
+            <BaseIcon name="mdi-gift-outline" :size="20" style="color: rgb(var(--v-theme-accent))" />
+            <span class="text-sm font-bold text-content">نقاط تحفيزية للمشاركين</span>
+          </div>
+          <p class="mb-2 text-xs text-muted">تُمنح لكل مشارك داخل المنصة وتُخصم من محفظة نقاطك تلقائيًا — تزيد نسبة المشاركة بوضوح.</p>
+          <BaseInput v-model.number="settings.rewardPoints" type="number" label="النقاط لكل مشارك (0 = بدون مكافأة)" prefix-icon="mdi-star-circle-outline" class="max-w-[320px]" />
+        </div>
+      </div>
+
+      <template #actions>
+        <BaseButton variant="ghost" size="sm" @click="dialog = false">إلغاء</BaseButton>
+        <BaseButton variant="outline" size="sm" @click="saveSurvey('draft')">
+          <BaseIcon name="mdi-content-save-outline" :size="16" /> حفظ كمسودة
+        </BaseButton>
+        <BaseButton variant="accent" size="sm" :disabled="!canPublish" @click="saveSurvey('active')">
+          <BaseIcon name="mdi-send" :size="16" /> نشر الاستبيان
+        </BaseButton>
+      </template>
+    </BaseModal>
 
     <!-- ===== Share dialog ===== -->
-    <VDialog v-model="shareDialog" max-width="440">
-      <VCard class="pa-2 text-center">
-        <VCardTitle>مشاركة «{{ shareTarget?.title }}»</VCardTitle>
-        <VCardText>
-          <p class="text-body-2 text-medium-emphasis mb-3">كل من يفتح الرابط يمكنه الإجابة — حتى من خارج المنصة — وتصلك النتيجة فورًا.</p>
-          <VTextField :model-value="shareLink" readonly density="compact" dir="ltr" class="mb-2">
-            <template #append-inner>
-              <VBtn :icon="copied ? 'mdi-check' : 'mdi-content-copy'" :color="copied ? 'success' : undefined" variant="text" size="small" @click="copyLink" />
-            </template>
-          </VTextField>
-          <img v-if="qrUrl" :src="qrUrl" alt="QR" width="140" height="140" class="rounded-lg my-2">
-          <div class="d-flex ga-2 justify-center mt-2">
-            <VBtn color="secondary" variant="tonal" size="small" prepend-icon="mdi-account-multiple-plus-outline" @click="simulate">محاكاة مستجيبين</VBtn>
-            <VBtn variant="tonal" size="small" prepend-icon="mdi-open-in-new" :href="shareLink" target="_blank">فتح الرابط</VBtn>
-          </div>
-        </VCardText>
-        <VCardActions class="justify-end">
-          <VBtn variant="text" @click="shareDialog = false">إغلاق</VBtn>
-        </VCardActions>
-      </VCard>
-    </VDialog>
+    <BaseModal v-model="shareDialog" :title="`مشاركة «${shareTarget?.title ?? ''}»`" :max-width="440">
+      <div class="text-center">
+        <p class="mb-3 text-sm text-muted">كل من يفتح الرابط يمكنه الإجابة — حتى من خارج المنصة — وتصلك النتيجة فورًا.</p>
+        <BaseInput :model-value="shareLink" readonly dir="ltr" class="mb-2">
+          <template #suffix>
+            <button class="icon-btn h-8 w-8" aria-label="نسخ" @click="copyLink">
+              <BaseIcon :name="copied ? 'mdi-check' : 'mdi-content-copy'" :size="16" :style="copied ? 'color: rgb(var(--v-theme-success))' : ''" />
+            </button>
+          </template>
+        </BaseInput>
+        <img v-if="qrUrl" :src="qrUrl" alt="QR" width="140" height="140" class="my-2 inline-block rounded-ui">
+        <div class="mt-2 flex justify-center gap-2">
+          <BaseButton variant="tonal-emerald" size="sm" @click="simulate">
+            <BaseIcon name="mdi-account-multiple-plus-outline" :size="16" /> محاكاة مستجيبين
+          </BaseButton>
+          <a
+            :href="shareLink"
+            target="_blank"
+            rel="noopener"
+            class="border-ui inline-flex h-8 items-center gap-1.5 rounded-ui px-3 text-sm font-semibold text-content transition hover:bg-surfalt"
+          >
+            <BaseIcon name="mdi-open-in-new" :size="16" /> فتح الرابط
+          </a>
+        </div>
+      </div>
+    </BaseModal>
 
     <!-- Upgrade plan dialog (mock subscription) -->
-    <VDialog v-model="upgradeDialog" max-width="420">
-      <VCard class="pa-2 text-center">
-        <VCardTitle>الترقية للخطة الاحترافية</VCardTitle>
-        <VCardText>
-          <VIcon icon="mdi-arrow-up-bold-circle-outline" size="48" color="secondary" class="mb-2" />
-          <p class="text-body-2 mb-3">وصلت حدّ الخطة المجانية ({{ FREE_SURVEY_LIMIT }} استبيانات). الخطة الاحترافية تمنحك استبيانات بلا حدود مع كل أدوات التحليل.</p>
-          <div class="d-flex flex-column ga-1 text-body-2 text-start mx-auto" style="max-width: 260px">
-            <span><VIcon icon="mdi-check" color="success" size="16" /> استبيانات غير محدودة</span>
-            <span><VIcon icon="mdi-check" color="success" size="16" /> نشر خارجي + QR</span>
-            <span><VIcon icon="mdi-check" color="success" size="16" /> تحليل AI وتصدير CSV</span>
-          </div>
-        </VCardText>
-        <VCardActions class="justify-center pb-4">
-          <VBtn variant="text" @click="upgradeDialog = false">لاحقًا</VBtn>
-          <VBtn color="accent" variant="flat" prepend-icon="mdi-rocket-launch-outline" @click="upgradeNow">رقِّ الآن (تجريبي)</VBtn>
-        </VCardActions>
-      </VCard>
-    </VDialog>
+    <BaseModal v-model="upgradeDialog" title="الترقية للخطة الاحترافية" :max-width="420">
+      <div class="text-center">
+        <BaseIcon name="mdi-arrow-up-bold-circle-outline" :size="48" style="color: rgb(var(--v-theme-secondary))" class="mb-2" />
+        <p class="mb-3 text-sm text-content">وصلت حدّ الخطة المجانية ({{ FREE_SURVEY_LIMIT }} استبيانات). الخطة الاحترافية تمنحك استبيانات بلا حدود مع كل أدوات التحليل.</p>
+        <div class="mx-auto flex max-w-[260px] flex-col gap-1 text-start text-sm text-content">
+          <span><BaseIcon name="mdi-check" :size="16" style="color: rgb(var(--v-theme-success))" /> استبيانات غير محدودة</span>
+          <span><BaseIcon name="mdi-check" :size="16" style="color: rgb(var(--v-theme-success))" /> نشر خارجي + QR</span>
+          <span><BaseIcon name="mdi-check" :size="16" style="color: rgb(var(--v-theme-success))" /> تحليل AI وتصدير CSV</span>
+        </div>
+      </div>
+      <template #actions>
+        <BaseButton variant="ghost" size="sm" @click="upgradeDialog = false">لاحقًا</BaseButton>
+        <BaseButton variant="accent" size="sm" @click="upgradeNow">
+          <BaseIcon name="mdi-rocket-launch-outline" :size="16" /> رقِّ الآن (تجريبي)
+        </BaseButton>
+      </template>
+    </BaseModal>
 
-    <VSnackbar :model-value="!!snackbar" color="primary" location="top" timeout="3500" @update:model-value="snackbar = ''">
+    <BaseSnackbar :model-value="!!snackbar" color="primary" @update:model-value="snackbar = ''">
       {{ snackbar }}
-    </VSnackbar>
+    </BaseSnackbar>
   </div>
 </template>
-
-<style scoped>
-.blank-card {
-  border-style: dashed;
-}
-</style>

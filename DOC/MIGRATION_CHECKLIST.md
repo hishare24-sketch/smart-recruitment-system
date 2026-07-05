@@ -64,6 +64,17 @@
   - [x] **`RequestsFeedPage` (سوق الطلبات) Tailwind 100%** (`vuetifyInMain`=0). بدائيّان جديدان: `BaseDrawer` (درج جانبي Teleport من الجهة المنطقية end، إغلاق خلفية/Escape، الخلفية v-if فوري بلا Transition) و`BaseSwitch` (مفتاح تبديل، thumb عبر justify-start/end المنطقي RTL). يستهلك `TaxonomyTree` المحوّل. اقتراحات البحث الذكية لوحة CSS-animated. **مُتحقَّق حيًّا:** بحث + 5 بطاقات بحلقات تطابق + 4 رقائق ذكية + top-match؛ درج الفلترة (شجرة + 4 أنواع + مجال + منزلقان + مفتاح): المفتاح «عن بُعد» يفلتر 5→4، نوع «وظيفة» يركّب لـ0، إعادة تعيين→5، إغلاق بالخلفية والدرج ينزلق خارج الشاشة؛ اقتراحات البحث (تركيز→4 اقتراحات، نقر يطبّق). 0 أخطاء. typecheck + 185 اختبار + build خضراء.
   - [x] **`WalletPage` (المحفظة) Tailwind 100%** (`vuetifyInMain`=0) — أضخم صفحة حتى الآن (4 نوافذ + 3 رسوم + سجل + وسائل دفع). حُوّل معها المشتركان `EmptyState`. `BaseInput` وُسِّع ليحترم `v-model.number` (يقرأ `modelModifiers`) + قبول `null`. النوافذ الأربع عبر `BaseModal`، الإشعار عبر `BaseSnackbar`، تبويبا «بطاقة/بنك» segmented inline، تلميحات الرسوم عبر `title`، الرسم الدائري conic-gradient يبقى كما هو. **مُتحقَّق حيًّا:** إضافة وسيلة دفع (تبويبان + تحقّق `methodValid` + حفظ + إشعار + ظهور في القائمة)، **الشحن دورة كاملة** (مبلغ سريع 500 → اختيار وسيلة → تأكيد → الرصيد 556,185→556,685) — وزر التأكيد يُعطّل صحيحًا حين لا وسيلة، فلترة السجل (4→3→4)، `EmptyState` يظهر لنوع فارغ («سحب»). 0 أخطاء. typecheck + 185 اختبار + build خضراء.
   - [x] **`TaxonomyTree` (المكوّن المشترك)** صار Tailwind → **`OpportunitiesPage` Tailwind 100% (`vuetifyInMain`=0)**. صفوف التصنيف/الفرع أزرار بحالة نشطة، بحث بـ BaseInput، عدّادات BaseChip، ألوان التصنيفات من رموز الثيم. **مُتحقَّق حيًّا:** اختيار تصنيف 18→8، توسيع يُظهر الفروع، اختيار فرع 8→1، إزالة الكل→18؛ ويعمل أيضًا في مستهلكه `/interviewers` (تعايش). 0 أخطاء. typecheck + 185 اختبار + build خضراء.
+  - [x] **`SurveysPage` (منشئ الاستبيانات) Tailwind 100%** (`vuetifyInMain`=0). نُزع VRow/VCol/VCard/
+        VAvatar/VIcon/VChip/VBtn/VTable/VProgressLinear/VTooltip/VDialog/VTabs/VWindow/VTextField/
+        VSelect/VAlert/VSwitch/VCombobox/VTextarea/VExpandTransition/VSnackbar. **بديل جديد
+        `BaseTagInput`** (إدخال وسوم حرّ: كتابة + Enter/فاصلة يضيف، رقائق قابلة للإزالة، Backspace يحذف —
+        بديل VCombobox multiple لتحرير خيارات/عناصر الأسئلة). الجدول HTML منسّق + تلميحات عبر `title`،
+        نافذة المنشئ ثلاثية الخطوات `BaseModal` (تبويبات `.seg` + `v-if` للخطوة + slot `#actions`)، أزرار
+        الأنماط العشرة `btn-tonal-brand`، رابط خارجي `<a>` منسّق. **دروس:** slot تذييل BaseModal اسمه
+        `#actions` (لا `#footer`) وعرضه `:max-width` (لا `size`)؛ BaseSnackbar `color` اسم ثيم Vuetify
+        (primary لا brand). **مُتحقَّق حيًّا:** 0 Vuetify، 8 بطاقات نماذج + جدول، فتح المنشئ (عنوان +
+        3 تبويبات + أزرار `#actions` حفظ/نشر)، **BaseTagInput كامل** (كتابة «خيار ثالث» + Enter → أُضيف
+        لخيارات السؤال). 0 أخطاء console. typecheck + **232 اختبار** + build خضراء.
   - [x] **`InterviewersMarketplacePage` (سوق المقيّمين) Tailwind 100%** (`vuetifyInMain`=0). نُزع
         VBtn/VDialog/VCard/VChip/VIcon/VRow/VCol/VAvatar/VAutocomplete/VSlider/VTextField/VSelect/
         VBtnToggle/VList/VProgressLinear/VAlert/VSnackbar. **بديل جديد `BaseMultiSelect`** (اختيار متعدّد
