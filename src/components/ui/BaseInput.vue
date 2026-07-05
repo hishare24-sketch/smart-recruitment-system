@@ -4,15 +4,22 @@ import BaseIcon from '@/components/ui/BaseIcon.vue'
 // حقل إدخال أساس يحاكي VTextField — تسمية علوية + أيقونة بادئة + خانة لاحقة (slot)
 // + رسالة خطأ. يمرّر بقية الـ attrs للـ <input> (placeholder/autocomplete…).
 defineOptions({ inheritAttrs: false })
-withDefaults(defineProps<{
-  modelValue?: string
+const props = withDefaults(defineProps<{
+  modelValue?: string | number | null
   label?: string
   type?: string
   prefixIcon?: string
   error?: string
   id?: string
-}>(), { type: 'text' })
-defineEmits<{ 'update:modelValue': [value: string] }>()
+  modelModifiers?: { number?: boolean }
+}>(), { type: 'text', modelModifiers: () => ({}) })
+const emit = defineEmits<{ 'update:modelValue': [value: string | number] }>()
+
+// يحترم v-model.number (كما VTextField) فيبثّ رقمًا عند تفعيل المُعدِّل
+function onInput(e: Event) {
+  const raw = (e.target as HTMLInputElement).value
+  emit('update:modelValue', props.modelModifiers.number ? (raw === '' ? '' : Number(raw)) : raw)
+}
 </script>
 
 <template>
@@ -26,7 +33,7 @@ defineEmits<{ 'update:modelValue': [value: string] }>()
         :value="modelValue"
         class="h-11 min-w-0 flex-1 bg-transparent text-content outline-none placeholder:text-muted"
         v-bind="$attrs"
-        @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
+        @input="onInput"
       >
       <slot name="suffix" />
     </div>

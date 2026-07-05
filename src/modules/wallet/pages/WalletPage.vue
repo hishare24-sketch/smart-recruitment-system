@@ -5,6 +5,21 @@ import EmptyState from '@/components/shared/EmptyState.vue'
 import { POINTS_PER_RIYAL, STATUS_META, TXN_META, WITHDRAW_FEE_PCT, useWalletStore } from '@/stores/WalletStore'
 import type { TxnType } from '@/stores/WalletStore'
 import { useGamificationStore } from '@/stores/GamificationStore'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseChip from '@/components/ui/BaseChip.vue'
+import BaseIcon from '@/components/ui/BaseIcon.vue'
+import BaseAvatar from '@/components/ui/BaseAvatar.vue'
+import BaseInput from '@/components/ui/BaseInput.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
+import BaseSnackbar from '@/components/ui/BaseSnackbar.vue'
+
+// رمز لون Vuetify → نغمة مكوّنات الأساس
+type BaseColor = 'brand' | 'emerald' | 'accent' | 'success' | 'info' | 'warning' | 'error' | 'neutral'
+function mapColor(c: string): BaseColor {
+  return (({ primary: 'brand', secondary: 'emerald' } as Record<string, BaseColor>)[c] ?? c) as BaseColor
+}
 
 const wallet = useWalletStore()
 const gamification = useGamificationStore()
@@ -135,277 +150,279 @@ function monthLabel(m: string) {
     />
 
     <!-- الأرصدة -->
-    <VRow class="mb-1">
-      <VCol cols="12" md="4">
-        <VCard class="pa-5 brand-gradient" theme="darkTheme">
-          <div class="text-caption text-white opacity-90 mb-1">الرصيد القابل للسحب</div>
-          <div class="text-h4 font-weight-bold text-white mb-3">{{ wallet.available.toLocaleString('ar') }} <span class="text-body-1">ر.س</span></div>
-          <div class="d-flex ga-2">
-            <VBtn color="accent" size="small" prepend-icon="mdi-plus" @click="openDeposit">شحن</VBtn>
-            <VBtn color="white" variant="outlined" size="small" prepend-icon="mdi-bank-transfer-out" :disabled="wallet.available <= 0" @click="openWithdraw">سحب</VBtn>
-          </div>
-        </VCard>
-      </VCol>
-      <VCol cols="6" md="4">
-        <VCard class="pa-5 h-100">
-          <div class="d-flex align-center ga-2 mb-1">
-            <VIcon icon="mdi-timer-sand" color="warning" size="20" />
-            <span class="text-caption text-medium-emphasis">الرصيد المعلق (قيد التسوية)</span>
-          </div>
-          <div class="text-h5 font-weight-bold">{{ wallet.pending.toLocaleString('ar') }} ر.س</div>
-          <div v-if="wallet.processingWithdrawals" class="text-caption text-medium-emphasis mt-1">
-            + سحوبات قيد المعالجة: {{ wallet.processingWithdrawals.toLocaleString('ar') }} ر.س
-          </div>
-        </VCard>
-      </VCol>
-      <VCol cols="6" md="4">
-        <VCard class="pa-5 h-100">
-          <div class="d-flex align-center ga-2 mb-1">
-            <VIcon icon="mdi-star-circle-outline" color="accent" size="20" />
-            <span class="text-caption text-medium-emphasis">النقاط المكتسبة</span>
-          </div>
-          <div class="text-h5 font-weight-bold">{{ gamification.points.toLocaleString('ar') }} نقطة</div>
-          <VBtn size="x-small" color="secondary" variant="tonal" class="mt-2" prepend-icon="mdi-swap-horizontal" :disabled="convertible < POINTS_PER_RIYAL" @click="openConvert">
-            حوّلها لرصيد ({{ POINTS_PER_RIYAL }} نقاط = 1 ر.س)
-          </VBtn>
-        </VCard>
-      </VCol>
-    </VRow>
+    <div class="mb-1 grid grid-cols-2 gap-4 md:grid-cols-3">
+      <div class="brand-gradient rounded-ui-lg col-span-2 p-5 md:col-span-1">
+        <div class="mb-1 text-xs text-white opacity-90">الرصيد القابل للسحب</div>
+        <div class="mb-3 text-3xl font-bold text-white">{{ wallet.available.toLocaleString('ar') }} <span class="text-base">ر.س</span></div>
+        <div class="flex gap-2">
+          <BaseButton variant="accent" size="sm" @click="openDeposit"><BaseIcon name="mdi-plus" :size="18" /> شحن</BaseButton>
+          <button
+            class="rounded-ui inline-flex h-8 items-center gap-1 border border-white/60 px-3 text-sm font-semibold text-white transition hover:bg-white/10 disabled:opacity-40"
+            :disabled="wallet.available <= 0"
+            @click="openWithdraw"
+          >
+            <BaseIcon name="mdi-bank-transfer-out" :size="18" /> سحب
+          </button>
+        </div>
+      </div>
+      <BaseCard class="h-full">
+        <div class="mb-1 flex items-center gap-2">
+          <BaseIcon name="mdi-timer-sand" :size="20" style="color: rgb(var(--v-theme-warning))" />
+          <span class="text-xs text-muted">الرصيد المعلق (قيد التسوية)</span>
+        </div>
+        <div class="text-2xl font-bold">{{ wallet.pending.toLocaleString('ar') }} ر.س</div>
+        <div v-if="wallet.processingWithdrawals" class="mt-1 text-xs text-muted">
+          + سحوبات قيد المعالجة: {{ wallet.processingWithdrawals.toLocaleString('ar') }} ر.س
+        </div>
+      </BaseCard>
+      <BaseCard class="h-full">
+        <div class="mb-1 flex items-center gap-2">
+          <BaseIcon name="mdi-star-circle-outline" :size="20" style="color: rgb(var(--v-theme-accent))" />
+          <span class="text-xs text-muted">النقاط المكتسبة</span>
+        </div>
+        <div class="text-2xl font-bold">{{ gamification.points.toLocaleString('ar') }} نقطة</div>
+        <BaseButton variant="tonal-emerald" size="sm" class="mt-2" :disabled="convertible < POINTS_PER_RIYAL" @click="openConvert">
+          <BaseIcon name="mdi-swap-horizontal" :size="16" /> حوّلها لرصيد ({{ POINTS_PER_RIYAL }} نقاط = 1 ر.س)
+        </BaseButton>
+      </BaseCard>
+    </div>
 
-    <VRow>
+    <div class="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-12">
       <!-- العمود الرئيسي: السجل -->
-      <VCol cols="12" lg="7">
-        <VCard class="pa-5">
-          <div class="d-flex align-center justify-space-between flex-wrap ga-2 mb-3">
-            <h3 class="text-subtitle-1 font-weight-bold">سجل العمليات ({{ filteredTxns.length }})</h3>
-            <div class="d-flex ga-2">
-              <VTextField v-model="search" placeholder="بحث..." density="compact" hide-details prepend-inner-icon="mdi-magnify" style="max-width: 170px" />
-              <VBtn variant="tonal" size="small" prepend-icon="mdi-download-outline" @click="exportCsv">CSV</VBtn>
+      <div class="lg:col-span-7">
+        <BaseCard>
+          <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h3 class="font-bold">سجل العمليات ({{ filteredTxns.length }})</h3>
+            <div class="flex gap-2">
+              <BaseInput v-model="search" prefix-icon="mdi-magnify" placeholder="بحث..." class="w-[170px]" />
+              <BaseButton variant="tonal-brand" size="sm" @click="exportCsv"><BaseIcon name="mdi-download-outline" :size="18" /> CSV</BaseButton>
             </div>
           </div>
-          <div class="d-flex flex-wrap ga-1 mb-3">
-            <VChip size="small" :color="filterType === 'all' ? 'primary' : undefined" :variant="filterType === 'all' ? 'flat' : 'outlined'" label @click="filterType = 'all'">الكل</VChip>
-            <VChip
+          <div class="mb-3 flex flex-wrap gap-1">
+            <button
+              class="rounded-ui px-2.5 py-1 text-xs font-medium transition"
+              :class="filterType === 'all' ? 'bg-brand text-on-brand' : 'border-ui text-content hover:bg-surfalt'"
+              @click="filterType = 'all'"
+            >الكل</button>
+            <button
               v-for="(meta, type) in TXN_META"
               :key="type"
-              size="small"
-              :color="filterType === type ? 'primary' : undefined"
-              :variant="filterType === type ? 'flat' : 'outlined'"
-              label
-              :prepend-icon="meta.icon"
+              class="rounded-ui inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium transition"
+              :class="filterType === type ? 'bg-brand text-on-brand' : 'border-ui text-content hover:bg-surfalt'"
               @click="filterType = type"
             >
-              {{ meta.label }}
-            </VChip>
+              <BaseIcon :name="meta.icon" :size="14" /> {{ meta.label }}
+            </button>
           </div>
 
-          <VList v-if="filteredTxns.length" lines="two" class="py-0">
-            <template v-for="(t, i) in filteredTxns" :key="t.id">
-              <VListItem class="px-1">
-                <template #prepend>
-                  <VAvatar :color="TXN_META[t.type].color" variant="tonal" size="40">
-                    <VIcon :icon="TXN_META[t.type].icon" size="20" />
-                  </VAvatar>
-                </template>
-                <VListItemTitle class="font-weight-bold text-body-2">{{ t.title }}</VListItemTitle>
-                <VListItemSubtitle class="text-caption">
+          <div v-if="filteredTxns.length">
+            <div
+              v-for="(t, i) in filteredTxns"
+              :key="t.id"
+              class="flex items-center gap-3 py-2"
+              :class="i < filteredTxns.length - 1 ? 'border-b border-ui' : ''"
+            >
+              <BaseAvatar :color="mapColor(TXN_META[t.type].color)" :size="40" tonal>
+                <BaseIcon :name="TXN_META[t.type].icon" :size="20" />
+              </BaseAvatar>
+              <div class="min-w-0 flex-1">
+                <div class="truncate text-sm font-bold">{{ t.title }}</div>
+                <div class="text-xs text-muted">
                   {{ t.at }}<template v-if="t.methodLabel"> · {{ t.methodLabel }}</template>
-                </VListItemSubtitle>
-                <template #append>
-                  <div class="text-end">
-                    <div class="font-weight-bold" :class="t.amount > 0 ? 'text-success' : 'text-error'">
-                      {{ t.amount > 0 ? '+' : '' }}{{ t.amount.toLocaleString('ar') }} ر.س
-                    </div>
-                    <VChip size="x-small" :color="STATUS_META[t.status].color" label variant="tonal">{{ STATUS_META[t.status].label }}</VChip>
-                  </div>
-                </template>
-              </VListItem>
-              <VDivider v-if="i < filteredTxns.length - 1" />
-            </template>
-          </VList>
+                </div>
+              </div>
+              <div class="text-end">
+                <div class="font-bold" :style="{ color: `rgb(var(--v-theme-${t.amount > 0 ? 'success' : 'error'}))` }">
+                  {{ t.amount > 0 ? '+' : '' }}{{ t.amount.toLocaleString('ar') }} ر.س
+                </div>
+                <BaseChip :color="mapColor(STATUS_META[t.status].color)">{{ STATUS_META[t.status].label }}</BaseChip>
+              </div>
+            </div>
+          </div>
           <EmptyState v-else icon="mdi-receipt-text-outline" title="لا عمليات مطابقة" description="جرّب تغيير الفلتر أو البحث" />
-        </VCard>
-      </VCol>
+        </BaseCard>
+      </div>
 
       <!-- العمود الجانبي: وسائل الدفع + التقارير -->
-      <VCol cols="12" lg="5">
+      <div class="lg:col-span-5">
         <!-- وسائل الدفع -->
-        <VCard class="pa-5 mb-4">
-          <div class="d-flex align-center justify-space-between mb-3">
-            <h3 class="text-subtitle-1 font-weight-bold">وسائل الدفع</h3>
-            <VBtn size="small" color="secondary" variant="tonal" prepend-icon="mdi-plus" @click="openAddMethod">إضافة</VBtn>
+        <BaseCard class="mb-4">
+          <div class="mb-3 flex items-center justify-between">
+            <h3 class="font-bold">وسائل الدفع</h3>
+            <BaseButton variant="tonal-emerald" size="sm" @click="openAddMethod"><BaseIcon name="mdi-plus" :size="18" /> إضافة</BaseButton>
           </div>
-          <div v-for="m in wallet.methods" :key="m.id" class="d-flex align-center ga-3 py-2">
-            <VAvatar :color="m.kind === 'bank' ? 'info' : 'secondary'" variant="tonal" rounded="lg" size="40">
-              <VIcon :icon="m.kind === 'bank' ? 'mdi-bank-outline' : 'mdi-credit-card-outline'" size="20" />
-            </VAvatar>
-            <div class="flex-grow-1">
-              <div class="text-body-2 font-weight-bold">
+          <div v-for="m in wallet.methods" :key="m.id" class="flex items-center gap-3 py-2">
+            <BaseAvatar :color="m.kind === 'bank' ? 'info' : 'emerald'" :size="40" tonal square>
+              <BaseIcon :name="m.kind === 'bank' ? 'mdi-bank-outline' : 'mdi-credit-card-outline'" :size="20" />
+            </BaseAvatar>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-1 text-sm font-bold">
                 {{ m.label }}
-                <VChip v-if="m.isDefault" size="x-small" color="primary" label class="ms-1">افتراضية</VChip>
+                <BaseChip v-if="m.isDefault" color="brand">افتراضية</BaseChip>
               </div>
-              <div class="text-caption text-medium-emphasis" dir="ltr">{{ m.masked }}</div>
+              <div class="text-xs text-muted" dir="ltr">{{ m.masked }}</div>
             </div>
-            <VBtn v-if="!m.isDefault" icon="mdi-star-outline" variant="text" size="x-small" @click="wallet.setDefault(m.id)" />
-            <VBtn icon="mdi-delete-outline" variant="text" size="x-small" color="error" @click="wallet.removeMethod(m.id)" />
+            <button v-if="!m.isDefault" class="icon-btn h-8 w-8" aria-label="جعلها افتراضية" @click="wallet.setDefault(m.id)">
+              <BaseIcon name="mdi-star-outline" :size="18" />
+            </button>
+            <button class="icon-btn h-8 w-8" style="color: rgb(var(--v-theme-error))" aria-label="حذف" @click="wallet.removeMethod(m.id)">
+              <BaseIcon name="mdi-delete-outline" :size="18" />
+            </button>
           </div>
-          <p v-if="!wallet.methods.length" class="text-caption text-medium-emphasis">أضف حسابًا بنكيًا أو بطاقة لتتمكن من الشحن والسحب.</p>
-        </VCard>
+          <p v-if="!wallet.methods.length" class="text-xs text-muted">أضف حسابًا بنكيًا أو بطاقة لتتمكن من الشحن والسحب.</p>
+        </BaseCard>
 
         <!-- التقارير الإحصائية -->
-        <VCard class="pa-5 mb-4">
-          <h3 class="text-subtitle-1 font-weight-bold mb-1">التدفق الشهري</h3>
-          <p class="text-caption text-medium-emphasis mb-3">الدخل مقابل المصروف · الإجمالي: <span class="text-success font-weight-bold">+{{ wallet.totalIn.toLocaleString('ar') }}</span> / <span class="text-error font-weight-bold">-{{ wallet.totalOut.toLocaleString('ar') }}</span></p>
-          <div class="d-flex align-end ga-3" style="height: 110px">
-            <div v-for="m in wallet.monthlyFlow" :key="m.month" class="flex-grow-1 d-flex align-end justify-center ga-1" style="height: 100%">
-              <VTooltip :text="`دخل ${m.inflow} ر.س`" location="top">
-                <template #activator="{ props }">
-                  <div v-bind="props" class="bar-lime rounded-t" :style="{ height: `${Math.max(6, (m.inflow / maxMonthly) * 100)}%`, width: '22px' }" />
-                </template>
-              </VTooltip>
-              <VTooltip :text="`مصروف ${m.outflow} ر.س`" location="top">
-                <template #activator="{ props }">
-                  <div v-bind="props" class="bg-error rounded-t" :style="{ height: `${Math.max(6, (m.outflow / maxMonthly) * 100)}%`, width: '22px', opacity: 0.75 }" />
-                </template>
-              </VTooltip>
+        <BaseCard class="mb-4">
+          <h3 class="mb-1 font-bold">التدفق الشهري</h3>
+          <p class="mb-3 text-xs text-muted">الدخل مقابل المصروف · الإجمالي: <span class="font-bold" style="color: rgb(var(--v-theme-success))">+{{ wallet.totalIn.toLocaleString('ar') }}</span> / <span class="font-bold" style="color: rgb(var(--v-theme-error))">-{{ wallet.totalOut.toLocaleString('ar') }}</span></p>
+          <div class="flex items-end gap-3" style="height: 110px">
+            <div v-for="m in wallet.monthlyFlow" :key="m.month" class="flex h-full flex-1 items-end justify-center gap-1">
+              <div class="bar-lime rounded-t" :title="`دخل ${m.inflow} ر.س`" :style="{ height: `${Math.max(6, (m.inflow / maxMonthly) * 100)}%`, width: '22px' }" />
+              <div class="rounded-t" :title="`مصروف ${m.outflow} ر.س`" :style="{ height: `${Math.max(6, (m.outflow / maxMonthly) * 100)}%`, width: '22px', opacity: 0.75, background: 'rgb(var(--v-theme-error))' }" />
             </div>
           </div>
-          <div class="d-flex ga-3 mt-1">
-            <div v-for="m in wallet.monthlyFlow" :key="m.month" class="flex-grow-1 text-center text-caption text-medium-emphasis">{{ monthLabel(m.month) }}</div>
+          <div class="mt-1 flex gap-3">
+            <div v-for="m in wallet.monthlyFlow" :key="m.month" class="flex-1 text-center text-xs text-muted">{{ monthLabel(m.month) }}</div>
           </div>
-        </VCard>
+        </BaseCard>
 
-        <VCard class="pa-5 mb-4">
-          <h3 class="text-subtitle-1 font-weight-bold mb-3">توزيع العمليات حسب النوع</h3>
-          <div class="d-flex align-center ga-4 flex-wrap">
+        <BaseCard class="mb-4">
+          <h3 class="mb-3 font-bold">توزيع العمليات حسب النوع</h3>
+          <div class="flex flex-wrap items-center gap-4">
             <div class="pie" :style="{ background: pieGradient }" />
-            <div class="flex-grow-1 d-flex flex-column ga-1">
-              <div v-for="(seg, i) in wallet.byType" :key="seg.type" class="d-flex align-center ga-2 text-caption">
+            <div class="flex flex-1 flex-col gap-1">
+              <div v-for="(seg, i) in wallet.byType" :key="seg.type" class="flex items-center gap-2 text-xs">
                 <span class="pie-dot" :style="{ background: PIE_COLORS[i % PIE_COLORS.length] }" />
-                <span class="flex-grow-1">{{ TXN_META[seg.type].label }}</span>
-                <span class="font-weight-bold">{{ seg.pct }}%</span>
+                <span class="flex-1">{{ TXN_META[seg.type].label }}</span>
+                <span class="font-bold">{{ seg.pct }}%</span>
               </div>
             </div>
           </div>
-        </VCard>
+        </BaseCard>
 
-        <VCard class="pa-5">
-          <h3 class="text-subtitle-1 font-weight-bold mb-3">مسار الرصيد</h3>
-          <div class="d-flex align-end ga-1" style="height: 70px">
-            <VTooltip v-for="p in wallet.balanceSeries" :key="p.at + p.balance" :text="`${p.at}: ${p.balance} ر.س`" location="top">
-              <template #activator="{ props }">
-                <div v-bind="props" class="flex-grow-1 d-flex flex-column justify-end" style="height: 100%">
-                  <div class="rounded-t balance-bar" :style="{ height: `${Math.max(4, (p.balance / maxBalance) * 100)}%` }" />
-                </div>
-              </template>
-            </VTooltip>
+        <BaseCard>
+          <h3 class="mb-3 font-bold">مسار الرصيد</h3>
+          <div class="flex items-end gap-1" style="height: 70px">
+            <div
+              v-for="p in wallet.balanceSeries"
+              :key="p.at + p.balance"
+              class="flex h-full flex-1 flex-col justify-end"
+              :title="`${p.at}: ${p.balance} ر.س`"
+            >
+              <div class="balance-bar rounded-t" :style="{ height: `${Math.max(4, (p.balance / maxBalance) * 100)}%` }" />
+            </div>
           </div>
-        </VCard>
-      </VCol>
-    </VRow>
+        </BaseCard>
+      </div>
+    </div>
 
     <!-- ===== شاشة الشحن ===== -->
-    <VDialog v-model="depositDialog" max-width="440">
-      <VCard class="pa-2">
-        <VCardTitle>شحن المحفظة</VCardTitle>
-        <VCardText>
-          <div class="d-flex ga-2 mb-3">
-            <VChip v-for="q in QUICK_AMOUNTS" :key="q" label :color="depositAmount === q ? 'primary' : undefined" :variant="depositAmount === q ? 'flat' : 'outlined'" @click="depositAmount = q">
-              {{ q }} ر.س
-            </VChip>
-          </div>
-          <VTextField v-model.number="depositAmount" type="number" min="1" label="المبلغ (ر.س)" prepend-inner-icon="mdi-cash-multiple" class="mb-3" />
-          <VSelect
-            v-model="depositMethodId"
-            :items="wallet.methods.map(m => ({ value: m.id, title: `${m.label} ${m.masked.slice(-7)}` }))"
-            label="وسيلة الدفع"
-            prepend-inner-icon="mdi-credit-card-outline"
-          />
-        </VCardText>
-        <VCardActions>
-          <VSpacer />
-          <VBtn variant="text" @click="depositDialog = false">إلغاء</VBtn>
-          <VBtn color="accent" variant="flat" :disabled="!depositAmount || depositAmount <= 0 || !depositMethodId" prepend-icon="mdi-check" @click="doDeposit">تأكيد الشحن</VBtn>
-        </VCardActions>
-      </VCard>
-    </VDialog>
+    <BaseModal v-model="depositDialog" title="شحن المحفظة" :max-width="440">
+      <div class="mb-3 flex flex-wrap gap-2">
+        <button
+          v-for="q in QUICK_AMOUNTS"
+          :key="q"
+          class="rounded-ui px-2.5 py-1 text-xs font-medium transition"
+          :class="depositAmount === q ? 'bg-brand text-on-brand' : 'border-ui text-content hover:bg-surfalt'"
+          @click="depositAmount = q"
+        >{{ q }} ر.س</button>
+      </div>
+      <BaseInput v-model.number="depositAmount" type="number" min="1" label="المبلغ (ر.س)" prefix-icon="mdi-cash-multiple" class="mb-3" />
+      <BaseSelect
+        v-model="depositMethodId"
+        :items="wallet.methods.map(m => ({ value: m.id, title: `${m.label} ${m.masked.slice(-7)}` }))"
+        placeholder="وسيلة الدفع"
+        prefix-icon="mdi-credit-card-outline"
+      />
+      <template #actions>
+        <BaseButton variant="ghost" @click="depositDialog = false">إلغاء</BaseButton>
+        <BaseButton variant="accent" :disabled="!depositAmount || Number(depositAmount) <= 0 || !depositMethodId" @click="doDeposit">
+          <BaseIcon name="mdi-check" :size="18" /> تأكيد الشحن
+        </BaseButton>
+      </template>
+    </BaseModal>
 
     <!-- ===== شاشة السحب ===== -->
-    <VDialog v-model="withdrawDialog" max-width="440">
-      <VCard class="pa-2">
-        <VCardTitle>سحب رصيد</VCardTitle>
-        <VCardText>
-          <VAlert color="secondary" variant="tonal" density="compact" class="mb-3" border="start">
-            المتاح للسحب: <b>{{ wallet.available.toLocaleString('ar') }} ر.س</b> · رسوم السحب {{ WITHDRAW_FEE_PCT }}%
-          </VAlert>
-          <VTextField v-model.number="withdrawAmount" type="number" min="1" :max="wallet.available" label="المبلغ (ر.س)" prepend-inner-icon="mdi-cash-minus" class="mb-2" />
-          <p v-if="withdrawAmount" class="text-caption text-medium-emphasis mb-2">
-            الرسوم: {{ withdrawFee }} ر.س · سيصل حسابك: <b>{{ Number(withdrawAmount) }} ر.س</b>
-          </p>
-          <VSelect
-            v-model="withdrawMethodId"
-            :items="wallet.methods.map(m => ({ value: m.id, title: `${m.label} ${m.masked.slice(-7)}` }))"
-            label="التحويل إلى"
-            prepend-inner-icon="mdi-bank-outline"
-          />
-        </VCardText>
-        <VCardActions>
-          <VSpacer />
-          <VBtn variant="text" @click="withdrawDialog = false">إلغاء</VBtn>
-          <VBtn color="primary" variant="flat" :disabled="!withdrawValid" prepend-icon="mdi-bank-transfer-out" @click="doWithdraw">تأكيد السحب</VBtn>
-        </VCardActions>
-      </VCard>
-    </VDialog>
+    <BaseModal v-model="withdrawDialog" title="سحب رصيد" :max-width="440">
+      <div
+        class="rounded-ui mb-3 border-s-4 p-3 text-sm"
+        style="border-color: rgb(var(--v-theme-secondary)); background: rgba(var(--v-theme-secondary), 0.1)"
+      >
+        المتاح للسحب: <b>{{ wallet.available.toLocaleString('ar') }} ر.س</b> · رسوم السحب {{ WITHDRAW_FEE_PCT }}%
+      </div>
+      <BaseInput v-model.number="withdrawAmount" type="number" min="1" :max="wallet.available" label="المبلغ (ر.س)" prefix-icon="mdi-cash-minus" class="mb-2" />
+      <p v-if="withdrawAmount" class="mb-2 text-xs text-muted">
+        الرسوم: {{ withdrawFee }} ر.س · سيصل حسابك: <b>{{ Number(withdrawAmount) }} ر.س</b>
+      </p>
+      <BaseSelect
+        v-model="withdrawMethodId"
+        :items="wallet.methods.map(m => ({ value: m.id, title: `${m.label} ${m.masked.slice(-7)}` }))"
+        placeholder="التحويل إلى"
+        prefix-icon="mdi-bank-outline"
+      />
+      <template #actions>
+        <BaseButton variant="ghost" @click="withdrawDialog = false">إلغاء</BaseButton>
+        <BaseButton variant="brand" :disabled="!withdrawValid" @click="doWithdraw">
+          <BaseIcon name="mdi-bank-transfer-out" :size="18" /> تأكيد السحب
+        </BaseButton>
+      </template>
+    </BaseModal>
 
     <!-- ===== تحويل النقاط ===== -->
-    <VDialog v-model="convertDialog" max-width="420">
-      <VCard class="pa-2">
-        <VCardTitle>تحويل النقاط إلى رصيد</VCardTitle>
-        <VCardText>
-          <p class="text-body-2 text-medium-emphasis mb-3">رصيدك {{ gamification.points }} نقطة — كل {{ POINTS_PER_RIYAL }} نقاط = 1 ر.س. القابل للتحويل الآن: <b>{{ convertible }}</b> نقطة.</p>
-          <VTextField v-model.number="convertPointsAmount" type="number" :min="POINTS_PER_RIYAL" :max="convertible" label="عدد النقاط" prepend-inner-icon="mdi-star-circle-outline" />
-          <VAlert v-if="convertPreview > 0" color="success" variant="tonal" density="compact" border="start">
-            ستحصل على <b>{{ convertPreview }} ر.س</b> في رصيدك القابل للسحب
-          </VAlert>
-        </VCardText>
-        <VCardActions>
-          <VSpacer />
-          <VBtn variant="text" @click="convertDialog = false">إلغاء</VBtn>
-          <VBtn color="accent" variant="flat" :disabled="!convertPointsAmount || convertPointsAmount < POINTS_PER_RIYAL || convertPointsAmount > gamification.points" prepend-icon="mdi-swap-horizontal" @click="doConvert">تحويل</VBtn>
-        </VCardActions>
-      </VCard>
-    </VDialog>
+    <BaseModal v-model="convertDialog" title="تحويل النقاط إلى رصيد" :max-width="420">
+      <p class="mb-3 text-sm text-muted">رصيدك {{ gamification.points }} نقطة — كل {{ POINTS_PER_RIYAL }} نقاط = 1 ر.س. القابل للتحويل الآن: <b>{{ convertible }}</b> نقطة.</p>
+      <BaseInput v-model.number="convertPointsAmount" type="number" :min="POINTS_PER_RIYAL" :max="convertible" label="عدد النقاط" prefix-icon="mdi-star-circle-outline" />
+      <div
+        v-if="convertPreview > 0"
+        class="rounded-ui mt-3 border-s-4 p-3 text-sm"
+        style="border-color: rgb(var(--v-theme-success)); background: rgba(var(--v-theme-success), 0.1)"
+      >
+        ستحصل على <b>{{ convertPreview }} ر.س</b> في رصيدك القابل للسحب
+      </div>
+      <template #actions>
+        <BaseButton variant="ghost" @click="convertDialog = false">إلغاء</BaseButton>
+        <BaseButton variant="accent" :disabled="!convertPointsAmount || Number(convertPointsAmount) < POINTS_PER_RIYAL || Number(convertPointsAmount) > gamification.points" @click="doConvert">
+          <BaseIcon name="mdi-swap-horizontal" :size="18" /> تحويل
+        </BaseButton>
+      </template>
+    </BaseModal>
 
     <!-- ===== إضافة وسيلة دفع ===== -->
-    <VDialog v-model="methodDialog" max-width="460">
-      <VCard class="pa-2">
-        <VCardTitle>إضافة وسيلة دفع</VCardTitle>
-        <VTabs v-model="methodTab" color="primary" density="comfortable" class="px-4">
-          <VTab value="card" prepend-icon="mdi-credit-card-outline">بطاقة</VTab>
-          <VTab value="bank" prepend-icon="mdi-bank-outline">حساب بنكي</VTab>
-        </VTabs>
-        <VCardText>
-          <VTextField v-model="newMethod.label" :label="methodTab === 'card' ? 'اسم البطاقة (مدى/فيزا...)' : 'اسم البنك'" class="mb-3" />
-          <VTextField
-            v-model="newMethod.number"
-            :label="methodTab === 'card' ? 'رقم البطاقة (16 رقمًا)' : 'رقم الآيبان IBAN'"
-            :placeholder="methodTab === 'card' ? '4111 1111 1111 1111' : 'SA0380000000608010167519'"
-            dir="ltr"
-            class="mb-3"
-          />
-          <VTextField v-model="newMethod.holder" label="اسم صاحب الحساب" />
-        </VCardText>
-        <VCardActions>
-          <VSpacer />
-          <VBtn variant="text" @click="methodDialog = false">إلغاء</VBtn>
-          <VBtn color="primary" variant="flat" :disabled="!methodValid" prepend-icon="mdi-check" @click="saveMethod">حفظ</VBtn>
-        </VCardActions>
-      </VCard>
-    </VDialog>
+    <BaseModal v-model="methodDialog" title="إضافة وسيلة دفع" :max-width="460">
+      <div class="rounded-ui mb-4 inline-flex overflow-hidden border-ui">
+        <button
+          class="flex items-center gap-1 px-4 py-2 text-sm transition"
+          :class="methodTab === 'card' ? 'bg-brand text-on-brand' : 'text-muted hover:bg-surfalt'"
+          @click="methodTab = 'card'"
+        ><BaseIcon name="mdi-credit-card-outline" :size="18" /> بطاقة</button>
+        <button
+          class="flex items-center gap-1 px-4 py-2 text-sm transition"
+          :class="methodTab === 'bank' ? 'bg-brand text-on-brand' : 'text-muted hover:bg-surfalt'"
+          @click="methodTab = 'bank'"
+        ><BaseIcon name="mdi-bank-outline" :size="18" /> حساب بنكي</button>
+      </div>
+      <div class="space-y-3">
+        <BaseInput v-model="newMethod.label" :label="methodTab === 'card' ? 'اسم البطاقة (مدى/فيزا...)' : 'اسم البنك'" />
+        <BaseInput
+          v-model="newMethod.number"
+          :label="methodTab === 'card' ? 'رقم البطاقة (16 رقمًا)' : 'رقم الآيبان IBAN'"
+          :placeholder="methodTab === 'card' ? '4111 1111 1111 1111' : 'SA0380000000608010167519'"
+          dir="ltr"
+        />
+        <BaseInput v-model="newMethod.holder" label="اسم صاحب الحساب" />
+      </div>
+      <template #actions>
+        <BaseButton variant="ghost" @click="methodDialog = false">إلغاء</BaseButton>
+        <BaseButton variant="brand" :disabled="!methodValid" @click="saveMethod">
+          <BaseIcon name="mdi-check" :size="18" /> حفظ
+        </BaseButton>
+      </template>
+    </BaseModal>
 
-    <VSnackbar :model-value="!!snackbar" color="success" location="top" timeout="3000" @update:model-value="snackbar = ''">
+    <BaseSnackbar :model-value="!!snackbar" color="success" :timeout="3000" @update:model-value="snackbar = ''">
       {{ snackbar }}
-    </VSnackbar>
+    </BaseSnackbar>
   </div>
 </template>
 
