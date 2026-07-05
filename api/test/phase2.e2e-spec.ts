@@ -229,7 +229,24 @@ describe('Phase 2 resources (e2e)', () => {
     expect(after.body.data.every((n: { read: boolean }) => n.read)).toBe(true)
   })
 
+  it('account-states: blob get (null) → put → get round-trips per store', async () => {
+    // لم تُحفظ بعد → null
+    const empty = await http.get('/api/v1/account-states/applications').set(auth()).expect(200)
+    expect(empty.body.data).toBeNull()
+
+    const blob = [{ id: 1, opportunityId: 7, status: 'submitted' }]
+    await http.put('/api/v1/account-states/applications').set(auth()).send({ data: blob }).expect(200)
+
+    const back = await http.get('/api/v1/account-states/applications').set(auth()).expect(200)
+    expect(back.body.data).toEqual(blob)
+
+    // مخزن آخر معزول
+    const other = await http.get('/api/v1/account-states/postedOpportunities').set(auth()).expect(200)
+    expect(other.body.data).toBeNull()
+  })
+
   it('guards: protected route without token → 401', async () => {
     await http.get('/api/v1/profile').expect(401)
+    await http.get('/api/v1/account-states/applications').expect(401)
   })
 })

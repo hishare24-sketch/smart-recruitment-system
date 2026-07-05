@@ -218,6 +218,11 @@ export const api = {
     conversations: () => get(API_PATHS.messaging.conversations),
     send: (id: number, text: string) => post(API_PATHS.messaging.messages(id), { text }),
   },
+  /** مستندات خاصة عامة (blob) لكل مخزن — يقابل Supabase account_states */
+  accountStates: {
+    get: <T>(store: string) => get<T>(`/v1/account-states/${store}`),
+    put: (store: string, data: unknown) => put(`/v1/account-states/${store}`, { data }),
+  },
   account: {
     wallet: () => get(API_PATHS.account.wallet),
     plan: () => get<{ tier: 'free' | 'pro' | 'elite' }>(API_PATHS.account.plan),

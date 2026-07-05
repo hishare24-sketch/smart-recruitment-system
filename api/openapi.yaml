@@ -581,6 +581,33 @@ paths:
         '200': { description: تم التبديل }
         '402': { $ref: '#/components/responses/Error' }
 
+  # ===== المستندات الخاصة العامة (blob) — تقابل Supabase account_states =====
+  /account-states/{store}:
+    get:
+      tags: [Account]
+      summary: كتلة مخزن خاص للمستخدم (null إن لم تُحفظ) — للمخازن بلا مورد مخصّص
+      parameters:
+        - { name: store, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+    put:
+      tags: [Account]
+      summary: حفظ كتلة مخزن خاص (upsert لكل مستخدم×مخزن)
+      parameters:
+        - { name: store, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data: {}
+      responses:
+        '200': { description: حُفظت }
+
   # ===== وسيط الذكاء الاصطناعي =====
   /ai/{contract}:
     post:

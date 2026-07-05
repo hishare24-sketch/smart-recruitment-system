@@ -1,8 +1,9 @@
 import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js'
 import type { Ref, WatchSource } from 'vue'
-import { ref, watch } from 'vue'
+import { nextTick, ref, watch } from 'vue'
 import { debounce, getSupabase } from '@/services/supabase'
-import { USE_REAL_API } from '@/services/api'
+import { USE_REAL_API, api } from '@/services/api'
+import { useAuthStore } from '@/stores/AuthStore'
 
 /**
  * ===== محرك المزامنة السحابية (Cloud Sync Engine) =====
@@ -206,10 +207,67 @@ function createDocSync(config: EngineConfig): { status: Ref<SyncStatus> } {
 }
 
 /**
+ * المخازن الخاصة (blob) التي تُحفظ في NestJS account-states عند تفعيل المفتاح.
+ * تتوسّع القائمة مخزنًا بمخزن؛ ما ليس فيها يبقى محليًّا (وSupabase مُعطَّل في الوضع الحقيقي).
+ * المخازن ذات المورد المخصّص (profile/wallet/…) تُوصَل عبر نداءات موردها لا هنا.
+ */
+const NEST_PRIVATE_STORES = new Set(['requests', 'postedOpportunities', 'applications'])
+
+/**
+ * محرّك مزامنة الكتلة الخاصة عبر NestJS (بديل Supabase عند USE_REAL_API):
+ * إماهة GET /account-states/:store عند الدخول + حفظ مُمهَّل PUT خلف علَم ready.
+ */
+function createNestPrivateSync(store: string, opts: CloudDocContract): { status: Ref<SyncStatus> } {
+  const status = ref<SyncStatus>('off')
+  if (!useAuthStore().isAuthUser)
+    return { status } // بلا جلسة: الحالة محلية فقط
+  let ready = false
+  let timer: ReturnType<typeof setTimeout> | null = null
+
+  async function boot() {
+    status.value = 'saving'
+    try {
+      const data = await api.accountStates.get<unknown>(store)
+      if (data != null)
+        opts.apply(data)
+      status.value = 'synced'
+    }
+    catch {
+      status.value = 'error'
+    }
+    // ننتظر تفريغ مراقبة الإماهة (ready=false) ثم نسمح بالدفع
+    await nextTick()
+    ready = true
+  }
+
+  function push() {
+    if (timer)
+      clearTimeout(timer)
+    timer = setTimeout(() => {
+      const data = JSON.parse(JSON.stringify(opts.snapshot()))
+      api.accountStates.put(store, data).then(() => { status.value = 'synced' }).catch(() => { status.value = 'error' })
+    }, opts.debounceMs ?? 1200)
+  }
+
+  watch(opts.source as WatchSource<unknown>, () => {
+    if (!ready)
+      return
+    status.value = 'saving'
+    push()
+  }, { deep: true })
+
+  boot()
+  return { status }
+}
+
+/**
  * مزامنة مستند خاص — جدول account_states بمفتاح (owner_id, store).
  * الخصوصية أولًا: بلا جلسة حقيقية لا قراءة ولا كتابة (تبقى الحالة محلية والحالة off).
+ * عند تفعيل المفتاح والمخزن مُدرَج: يُوجَّه إلى NestJS بدل Supabase.
  */
 export function syncPrivateDoc(opts: PrivateDocOptions): { status: Ref<SyncStatus> } {
+  if (USE_REAL_API && opts.client === undefined && NEST_PRIVATE_STORES.has(opts.store))
+    return createNestPrivateSync(opts.store, opts)
   return createDocSync({
     ...opts,
     table: 'account_states',

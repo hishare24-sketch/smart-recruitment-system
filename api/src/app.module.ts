@@ -11,6 +11,7 @@ import { MarketplaceModule } from './marketplace/marketplace.module'
 import { InterviewersModule } from './interviewers/interviewers.module'
 import { InterviewsModule } from './interviews/interviews.module'
 import { NotificationsModule } from './notifications/notifications.module'
+import { AccountStatesModule } from './account-states/account-states.module'
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { NotificationsModule } from './notifications/notifications.module'
     InterviewersModule,
     InterviewsModule,
     NotificationsModule,
+    AccountStatesModule,
   ],
   controllers: [HealthController],
 })
