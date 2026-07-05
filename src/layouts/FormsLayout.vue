@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
+import BaseIcon from '@/components/ui/BaseIcon.vue'
 
 const { t, locale } = useI18n()
 
@@ -9,55 +10,52 @@ function toggleLocale() {
 </script>
 
 <template>
-  <VMain>
-    <VRow no-gutters class="fill-height" style="min-height: 100vh">
-      <!-- Brand panel -->
-      <VCol cols="12" md="6" class="brand-gradient d-none d-md-flex align-center justify-center pa-12">
-        <div class="text-center text-white" style="max-width: 460px">
-          <VAvatar color="rgba(255,255,255,0.15)" size="88" rounded="xl" class="mb-6">
-            <VIcon icon="mdi-briefcase-account" size="48" color="white" />
-          </VAvatar>
-          <h1 class="text-h4 font-weight-bold mb-4">
-            {{ t('app.name') }}
-          </h1>
-          <p class="text-h6 font-weight-regular opacity-90">
-            {{ t('app.tagline') }}
-          </p>
+  <div class="flex min-h-screen">
+    <!-- Brand panel -->
+    <div class="brand-gradient hidden items-center justify-center p-12 md:flex md:w-1/2">
+      <div class="text-center text-white" style="max-width: 460px">
+        <div class="rounded-ui-lg mx-auto mb-6 flex items-center justify-center" style="width: 88px; height: 88px; background: rgba(255, 255, 255, 0.15)">
+          <BaseIcon name="mdi-briefcase-account" :size="48" class="text-white" />
+        </div>
+        <h1 class="mb-4 text-3xl font-bold">
+          {{ t('app.name') }}
+        </h1>
+        <p class="text-lg opacity-90">
+          {{ t('app.tagline') }}
+        </p>
 
-          <VDivider class="my-8 opacity-25" />
+        <div class="my-8 border-t border-white/25" />
 
-          <div class="d-flex justify-space-around text-center">
-            <div>
-              <div class="text-h5 font-weight-bold">+12K</div>
-              <div class="text-caption opacity-80">باحث</div>
-            </div>
-            <div>
-              <div class="text-h5 font-weight-bold">+3K</div>
-              <div class="text-caption opacity-80">فرصة</div>
-            </div>
-            <div>
-              <div class="text-h5 font-weight-bold">+8K</div>
-              <div class="text-caption opacity-80">توصية</div>
-            </div>
+        <div class="flex justify-around text-center">
+          <div>
+            <div class="text-2xl font-bold">+12K</div>
+            <div class="text-xs opacity-80">باحث</div>
+          </div>
+          <div>
+            <div class="text-2xl font-bold">+3K</div>
+            <div class="text-xs opacity-80">فرصة</div>
+          </div>
+          <div>
+            <div class="text-2xl font-bold">+8K</div>
+            <div class="text-xs opacity-80">توصية</div>
           </div>
         </div>
-      </VCol>
+      </div>
+    </div>
 
-      <!-- Form panel -->
-      <VCol cols="12" md="6" class="d-flex flex-column align-center justify-center pa-6 bg-background position-relative">
-        <VBtn
-          variant="text"
-          class="font-weight-bold position-absolute"
-          style="top: 16px; inset-inline-end: 16px"
-          @click="toggleLocale"
-        >
-          {{ locale === 'ar' ? 'English' : 'العربية' }}
-        </VBtn>
+    <!-- Form panel -->
+    <div class="relative flex w-full flex-col items-center justify-center bg-bg p-6 md:w-1/2">
+      <button
+        class="icon-btn absolute px-3 font-bold"
+        style="top: 16px; inset-inline-end: 16px; width: auto"
+        @click="toggleLocale"
+      >
+        {{ locale === 'ar' ? 'English' : 'العربية' }}
+      </button>
 
-        <div style="width: 100%; max-width: 420px">
-          <slot />
-        </div>
-      </VCol>
-    </VRow>
-  </VMain>
+      <div class="w-full" style="max-width: 420px">
+        <slot />
+      </div>
+    </div>
+  </div>
 </template>

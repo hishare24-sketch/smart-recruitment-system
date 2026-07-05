@@ -70,6 +70,36 @@
     background: rgba(var(--v-theme-on-surface), 0.08);
   }
 
+  /* حقل الإدخال (BaseInput) — حدّ متكيّف + حلقة تركيز + حالة خطأ */
+  .input-wrap {
+    border: 1px solid rgba(var(--v-theme-on-surface), 0.14);
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .input-wrap:focus-within {
+    border-color: rgb(var(--v-theme-primary));
+    box-shadow: 0 0 0 1px rgb(var(--v-theme-primary));
+  }
+  .input-wrap.has-error {
+    border-color: rgb(var(--v-theme-error));
+  }
+
+  /* خانة الاختيار (BaseCheckbox) */
+  .checkbox-box {
+    display: inline-flex;
+    height: 1.15rem;
+    width: 1.15rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    border: 2px solid rgba(var(--v-theme-on-surface), 0.35);
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .checkbox-box.is-checked {
+    background: rgb(var(--v-theme-primary));
+    border-color: rgb(var(--v-theme-primary));
+  }
+
   /* أزرار tonal (خلفية alpha من اللون الدلالي) — رموز Tailwind لا تدعم alpha على متغيّرات Vuetify */
   .btn-tonal-brand {
     background: rgba(var(--v-theme-primary), 0.14);

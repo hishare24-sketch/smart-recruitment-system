@@ -7,8 +7,15 @@ import BaseIcon from '@/components/ui/BaseIcon.vue'
 import BaseAvatar from '@/components/ui/BaseAvatar.vue'
 import BaseBadge from '@/components/ui/BaseBadge.vue'
 import BaseDropdown from '@/components/ui/BaseDropdown.vue'
+import { ref } from 'vue'
 import BaseProgressRing from '@/components/ui/BaseProgressRing.vue'
 import BaseProgressBar from '@/components/ui/BaseProgressBar.vue'
+import BaseInput from '@/components/ui/BaseInput.vue'
+import BaseCheckbox from '@/components/ui/BaseCheckbox.vue'
+
+const demoText = ref('')
+const demoCheck = ref(true)
+const demoMulti = ref<string[]>(['a'])
 
 // معرض مكوّنات الأساس (Tailwind) — أداة تحقّق أثناء ترحيل المرحلة 5.
 // نعرضها بجانب VBtn من Vuetify للتأكد من تطابق الثيم والتعايش.
@@ -124,6 +131,22 @@ function toggle() {
           <BaseBadge :content="3" inline color="brand">
             رسائل
           </BaseBadge>
+        </div>
+      </BaseCard>
+
+      <BaseCard>
+        <h2 class="mb-3 text-lg font-semibold">
+          حقول النماذج (BaseInput / BaseCheckbox)
+        </h2>
+        <div class="space-y-3">
+          <BaseInput v-model="demoText" label="الاسم" prefix-icon="mdi-account-outline" placeholder="اكتب اسمك" />
+          <BaseInput label="بريد بخطأ" prefix-icon="mdi-email-outline" error="البريد الإلكتروني غير صحيح" />
+          <div class="flex flex-wrap items-center gap-4">
+            <BaseCheckbox v-model="demoCheck" label="تذكّرني" />
+            <BaseCheckbox v-model="demoMulti" value="a" label="خيار أ" />
+            <BaseCheckbox v-model="demoMulti" value="b" label="خيار ب" />
+          </div>
+          <p class="text-muted text-xs">القيمة: «{{ demoText }}» · مفرد: {{ demoCheck }} · متعدّد: [{{ demoMulti.join(', ') }}]</p>
         </div>
       </BaseCard>
 

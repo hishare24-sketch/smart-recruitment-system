@@ -6,6 +6,11 @@ import type { UserRole } from '@/interfaces/Auth'
 import { useAuthStore } from '@/stores/AuthStore'
 import { useInterviewerBrandStore } from '@/stores/InterviewerBrandStore'
 import { authService } from '../services/AuthService'
+import BaseInput from '@/components/ui/BaseInput.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseCheckbox from '@/components/ui/BaseCheckbox.vue'
+import BaseChip from '@/components/ui/BaseChip.vue'
+import BaseIcon from '@/components/ui/BaseIcon.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -36,8 +41,6 @@ const passwordConfirm = ref('')
 const showPassword = ref(false)
 const isLoading = ref(false)
 const error = ref('')
-
-const required = (v: string) => !!v || 'هذا الحقل مطلوب'
 
 async function submit() {
   error.value = ''
@@ -83,120 +86,98 @@ async function submit() {
 
 <template>
   <div>
-    <h2 class="text-h4 font-weight-bold mb-1">
+    <h2 class="mb-1 text-3xl font-bold">
       {{ t('auth.register') }}
     </h2>
-    <p class="text-body-1 text-medium-emphasis mb-5">
+    <p class="mb-5 text-muted">
       {{ t('auth.registerSubtitle') }}
     </p>
 
-    <VAlert v-if="error" type="error" variant="tonal" density="compact" class="mb-4">
+    <div
+      v-if="error"
+      class="rounded-ui mb-4 border-s-4 p-3 text-sm"
+      style="border-color: rgb(var(--v-theme-error)); background: rgba(var(--v-theme-error), 0.1); color: rgb(var(--v-theme-error))"
+    >
       {{ error }}
-    </VAlert>
+    </div>
 
     <!-- Role selector -->
-    <div class="text-body-2 font-weight-bold mb-2">
+    <div class="mb-2 text-sm font-bold">
       {{ t('auth.selectRole') }}
     </div>
-    <VRow class="mb-2" dense>
-      <VCol v-for="opt in roleOptions" :key="opt.value" cols="4">
-        <VCard
-          :color="role === opt.value ? 'primary' : undefined"
-          :variant="role === opt.value ? 'flat' : 'outlined'"
-          class="text-center pa-3 cursor-pointer"
-          @click="role = opt.value"
-        >
-          <VIcon :icon="opt.icon" size="28" :color="role === opt.value ? undefined : 'primary'" />
-          <div class="text-caption mt-1">
-            {{ t(`roles.${opt.value}`) }}
-          </div>
-        </VCard>
-      </VCol>
-    </VRow>
-    <p class="text-caption text-medium-emphasis mb-3">
+    <div class="mb-2 grid grid-cols-3 gap-2">
+      <button
+        v-for="opt in roleOptions"
+        :key="opt.value"
+        type="button"
+        class="rounded-ui border p-3 text-center transition"
+        :class="role === opt.value ? 'bg-brand text-on-brand border-transparent' : 'border-ui hover:bg-surfalt'"
+        @click="role = opt.value"
+      >
+        <BaseIcon :name="opt.icon" :size="28" :style="role === opt.value ? {} : { color: 'rgb(var(--v-theme-primary))' }" />
+        <div class="mt-1 text-xs">
+          {{ t(`roles.${opt.value}`) }}
+        </div>
+      </button>
+    </div>
+    <p class="mb-3 text-xs text-muted">
       {{ t(`roleSwitcher.${role}Desc`) }}
     </p>
 
     <!-- Optional extra roles (multi-role platform) -->
     <template v-if="extraOptions.length">
-      <div class="text-body-2 font-weight-bold mb-1">
+      <div class="mb-1 text-sm font-bold">
         {{ t('roleSwitcher.extraRoles') }}
       </div>
-      <VCheckbox
+      <BaseCheckbox
         v-for="opt in extraOptions"
         :key="opt.value"
         v-model="extraRoles"
         :value="opt.value"
-        density="compact"
-        hide-details
       >
-        <template #label>
-          <span class="text-body-2">{{ t(`roles.${opt.value}`) }}</span>
-          <VChip v-if="opt.approval" size="x-small" color="warning" label class="ms-2">
-            {{ t('roleSwitcher.pending') }}
-          </VChip>
-        </template>
-      </VCheckbox>
-      <p class="text-caption text-medium-emphasis mt-1 mb-2">
+        <span class="inline-flex items-center gap-2">
+          {{ t(`roles.${opt.value}`) }}
+          <BaseChip v-if="opt.approval" color="warning">{{ t('roleSwitcher.pending') }}</BaseChip>
+        </span>
+      </BaseCheckbox>
+      <p class="mb-2 mt-1 text-xs text-muted">
         {{ t('roleSwitcher.extraRolesHint') }}
       </p>
     </template>
 
-    <VForm @submit.prevent="submit">
-      <VTextField
-        v-model="name"
-        :label="t('auth.name')"
-        prepend-inner-icon="mdi-account-outline"
-        :rules="[required]"
-        class="mb-3"
-      />
-      <VTextField
-        v-model="email"
-        :label="t('auth.email')"
-        type="email"
-        prepend-inner-icon="mdi-email-outline"
-        :rules="[required]"
-        class="mb-3"
-      />
-      <VTextField
-        v-model="phone"
-        :label="t('auth.phone')"
-        prepend-inner-icon="mdi-phone-outline"
-        class="mb-3"
-      />
-      <VTextField
+    <form class="mt-3 space-y-3" @submit.prevent="submit">
+      <BaseInput v-model="name" :label="t('auth.name')" prefix-icon="mdi-account-outline" autocomplete="name" />
+      <BaseInput v-model="email" :label="t('auth.email')" type="email" prefix-icon="mdi-email-outline" autocomplete="email" />
+      <BaseInput v-model="phone" :label="t('auth.phone')" prefix-icon="mdi-phone-outline" autocomplete="tel" />
+      <BaseInput
         v-model="password"
         :label="t('auth.password')"
         :type="showPassword ? 'text' : 'password'"
-        prepend-inner-icon="mdi-lock-outline"
-        :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
-        :rules="[required]"
-        class="mb-3"
-        @click:append-inner="showPassword = !showPassword"
-      />
-      <VTextField
+        prefix-icon="mdi-lock-outline"
+        autocomplete="new-password"
+      >
+        <template #suffix>
+          <button type="button" class="text-muted" :aria-label="showPassword ? 'إخفاء' : 'إظهار'" @click="showPassword = !showPassword">
+            <BaseIcon :name="showPassword ? 'mdi-eye-off' : 'mdi-eye'" :size="20" />
+          </button>
+        </template>
+      </BaseInput>
+      <BaseInput
         v-model="passwordConfirm"
         :label="t('auth.confirmPassword')"
         :type="showPassword ? 'text' : 'password'"
-        prepend-inner-icon="mdi-lock-check-outline"
-        :rules="[required]"
+        prefix-icon="mdi-lock-check-outline"
+        autocomplete="new-password"
       />
 
-      <VBtn
-        type="submit"
-        color="accent"
-        size="large"
-        block
-        :loading="isLoading"
-        class="mt-4"
-      >
+      <BaseButton type="submit" variant="accent" size="lg" block :loading="isLoading" class="mt-4">
         {{ t('auth.register') }}
-      </VBtn>
-    </VForm>
+      </BaseButton>
+    </form>
 
-    <div class="text-center mt-5 text-body-2">
+    <div class="mt-5 text-center text-sm">
       {{ t('auth.haveAccount') }}
-      <RouterLink :to="{ name: 'login' }" class="text-secondary font-weight-bold text-decoration-none">
+      <RouterLink :to="{ name: 'login' }" class="font-bold" style="color: rgb(var(--v-theme-secondary))">
         {{ t('auth.login') }}
       </RouterLink>
     </div>
