@@ -9,6 +9,9 @@ import { useSavedStore } from '@/stores/SavedStore'
 import TaxonomyTree from '@/components/shared/TaxonomyTree.vue'
 import { categorizeSkill } from '@/services/taxonomy'
 import { useProfileStore } from '@/stores/ProfileStore'
+import { matchScore } from '@/services/matching'
+import { opportunityMatchProfile, seekerMatchProfile } from '@/services/matchProfile'
+import type { Opportunity } from '../interfaces/Opportunity'
 import { ai } from '@/services/ai'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -30,8 +33,18 @@ function toggleChip(key: string) {
 }
 const userSkills = computed(() => profile.skills.map(s => s.name))
 
-// AI personalized top match
-const topMatch = computed(() => [...mockOpportunities].sort((a, b) => b.matchRate - a.matchRate)[0])
+// نسبة التطابق الحيّة (نفس محرّك بطاقة الفرصة) — للفرز و«الأعلى تطابقاً» بتناسق
+const seekerProfile = computed(() => seekerMatchProfile({
+  skills: userSkills.value,
+  city: profile.prefs.location,
+  opportunityType: profile.prefs.preferred_employment_types[0],
+}))
+function liveMatch(o: Opportunity): number {
+  return matchScore(seekerProfile.value, opportunityMatchProfile(o)).score
+}
+
+// AI personalized top match (بالتطابق الحيّ)
+const topMatch = computed(() => [...mockOpportunities].sort((a, b) => liveMatch(b) - liveMatch(a))[0])
 const treeSel = ref<{ category?: string, sub?: string }>({})
 const treeItems = computed(() => mockOpportunities.map(o => ({
   skills: o.skills,
@@ -78,7 +91,7 @@ const filtered = computed(() => {
 
   list = [...list].sort((a, b) => {
     if (sortBy.value === 'match')
-      return b.matchRate - a.matchRate
+      return liveMatch(b) - liveMatch(a)
     if (sortBy.value === 'newest')
       return a.postedDaysAgo - b.postedDaysAgo
     if (sortBy.value === 'oldest')
@@ -146,7 +159,7 @@ function resetFilters() {
     >
       <span class="text-sm">
         <BaseIcon name="mdi-robot-happy-outline" :size="16" /> الأكثر تطابقًا مع ملفك: «{{ topMatch.title }}» — {{ topMatch.company }} · تطابق
-        <strong>{{ topMatch.matchRate }}%</strong>
+        <strong>{{ liveMatch(topMatch) }}%</strong>
       </span>
       <BaseButton variant="emerald" size="sm" :to="{ name: 'opportunity-details', params: { id: topMatch.id } }">عرض</BaseButton>
     </div>

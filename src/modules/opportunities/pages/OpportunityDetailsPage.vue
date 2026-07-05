@@ -6,6 +6,10 @@ import { getOpportunityById, mockOpportunities } from '../services/mockOpportuni
 import { useApplicationsStore } from '@/stores/ApplicationsStore'
 import { useSavedStore } from '@/stores/SavedStore'
 import { useResumesStore } from '@/stores/ResumesStore'
+import { useProfileStore } from '@/stores/ProfileStore'
+import { matchScore } from '@/services/matching'
+import { opportunityMatchProfile, seekerMatchProfile } from '@/services/matchProfile'
+import type { Opportunity } from '../interfaces/Opportunity'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseChip from '@/components/ui/BaseChip.vue'
@@ -31,6 +35,18 @@ const similar = computed(() =>
 
 const applied = computed(() => (opportunity.value ? applicationsStore.hasApplied(opportunity.value.id) : false))
 const isSaved = computed(() => (opportunity.value ? savedStore.isSaved(opportunity.value.id) : false))
+
+// نسبة التطابق الحيّة (نفس محرّك بطاقة الفرصة)
+const profile = useProfileStore()
+const seeker = computed(() => seekerMatchProfile({
+  skills: profile.skills.map(s => s.name),
+  city: profile.prefs.location,
+  opportunityType: profile.prefs.preferred_employment_types[0],
+}))
+function liveMatch(o: Opportunity): number {
+  return matchScore(seeker.value, opportunityMatchProfile(o)).score
+}
+const matchRate = computed(() => (opportunity.value ? liveMatch(opportunity.value) : 0))
 
 const applyDialog = ref(false)
 const appliedSnackbar = ref(false)
@@ -148,7 +164,7 @@ function askAboutOpportunity() {
             >
               <div class="truncate font-bold">{{ opp.title }}</div>
               <div class="text-xs text-muted">{{ opp.company }}</div>
-              <BaseChip color="success" class="mt-2">{{ opp.matchRate }}% تطابق</BaseChip>
+              <BaseChip color="success" class="mt-2">{{ liveMatch(opp) }}% تطابق</BaseChip>
             </BaseCard>
           </div>
         </template>
@@ -158,8 +174,8 @@ function askAboutOpportunity() {
       <div>
         <BaseCard class="mb-4">
           <div class="mb-3 text-center">
-            <BaseProgressRing :value="opportunity.matchRate" :size="110" :width="10" color="success" class="mx-auto">
-              <span class="text-2xl font-bold">{{ opportunity.matchRate }}%</span>
+            <BaseProgressRing :value="matchRate" :size="110" :width="10" color="success" class="mx-auto">
+              <span class="text-2xl font-bold">{{ matchRate }}%</span>
             </BaseProgressRing>
             <div class="mt-2 text-sm text-muted">نسبة تطابقك مع الفرصة</div>
           </div>

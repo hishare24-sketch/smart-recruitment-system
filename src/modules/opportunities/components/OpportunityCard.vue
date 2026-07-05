@@ -5,6 +5,9 @@ import type { Opportunity } from '../interfaces/Opportunity'
 import { EMPLOYMENT_TYPE_LABELS, formatSalary } from '../interfaces/Opportunity'
 import { useSavedStore } from '@/stores/SavedStore'
 import { useApplicationsStore } from '@/stores/ApplicationsStore'
+import { useProfileStore } from '@/stores/ProfileStore'
+import { matchScore } from '@/services/matching'
+import { opportunityMatchProfile, seekerMatchProfile } from '@/services/matchProfile'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseChip from '@/components/ui/BaseChip.vue'
@@ -16,9 +19,20 @@ const props = defineProps<{ opportunity: Opportunity }>()
 const router = useRouter()
 const savedStore = useSavedStore()
 const applicationsStore = useApplicationsStore()
+const profile = useProfileStore()
 
 const isSaved = computed(() => savedStore.isSaved(props.opportunity.id))
 const isApplied = computed(() => applicationsStore.hasApplied(props.opportunity.id))
+
+// نسبة التطابق الحيّة — يحسبها محرّك المطابقة من ملف الباحث الحقيقي (لا رقم مبذور)
+const matchRate = computed(() => matchScore(
+  seekerMatchProfile({
+    skills: profile.skills.map(s => s.name),
+    city: profile.prefs.location,
+    opportunityType: profile.prefs.preferred_employment_types[0],
+  }),
+  opportunityMatchProfile(props.opportunity),
+).score)
 
 // لون التطابق كرمز ثيم Vuetify (success/secondary/warning)
 function matchColor(rate: number) {
@@ -82,11 +96,11 @@ function openDetails() {
     <div class="mt-1">
       <div class="mb-1 flex justify-between text-xs">
         <span class="text-muted">نسبة التطابق الذكي</span>
-        <span class="font-bold" :style="{ color: `rgb(var(--v-theme-${matchColor(opportunity.matchRate)}))` }">
-          {{ opportunity.matchRate }}%
+        <span class="font-bold" :style="{ color: `rgb(var(--v-theme-${matchColor(matchRate)}))` }">
+          {{ matchRate }}%
         </span>
       </div>
-      <BaseProgressBar :value="opportunity.matchRate" :color="matchColor(opportunity.matchRate)" :height="6" />
+      <BaseProgressBar :value="matchRate" :color="matchColor(matchRate)" :height="6" />
     </div>
 
     <div class="mt-4 flex items-center justify-between pt-2">
