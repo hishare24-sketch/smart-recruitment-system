@@ -215,6 +215,7 @@ const NEST_PRIVATE_STORES = new Set([
   'requests', 'postedOpportunities', 'applications', // السوق
   'interviews', 'interviewerWorkspace', // المقابلات وورشة المقيّم
   'surveys', 'notifications', // الاستبيانات والإشعارات
+  'wallet', 'accountPlan', // المحفظة وباقة الحساب (سِجِلّ العميل يبقى؛ الدفع الخادمي الذرّي مؤجّل لطور المدفوعات الحقيقية)
 ])
 
 /**
