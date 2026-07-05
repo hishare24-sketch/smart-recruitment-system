@@ -1,30 +1,40 @@
 <script setup lang="ts">
-defineProps<{
+import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseAvatar from '@/components/ui/BaseAvatar.vue'
+import BaseIcon from '@/components/ui/BaseIcon.vue'
+
+const props = defineProps<{
   title: string
   value: string | number
   icon: string
   color?: string
   trend?: string
 }>()
+
+// تحويل رمز لون Vuetify إلى نغمة BaseAvatar
+type AvatarColor = 'brand' | 'emerald' | 'accent' | 'success' | 'info' | 'warning' | 'error' | 'neutral'
+function avatarColor(): AvatarColor {
+  return (({ primary: 'brand', secondary: 'emerald' } as Record<string, AvatarColor>)[props.color ?? 'primary'] ?? props.color ?? 'brand') as AvatarColor
+}
 </script>
 
 <template>
-  <VCard class="pa-4" height="100%">
-    <div class="d-flex align-center ga-4">
-      <VAvatar :color="color ?? 'primary'" size="52" rounded="lg" variant="tonal">
-        <VIcon :icon="icon" size="26" />
-      </VAvatar>
+  <BaseCard class="h-full">
+    <div class="flex items-center gap-4">
+      <BaseAvatar :color="avatarColor()" :size="52" tonal square>
+        <BaseIcon :name="icon" :size="26" />
+      </BaseAvatar>
       <div>
-        <div class="text-h5 font-weight-bold">
+        <div class="text-2xl font-bold">
           {{ value }}
         </div>
-        <div class="text-body-2 text-medium-emphasis">
+        <div class="text-sm text-muted">
           {{ title }}
         </div>
       </div>
     </div>
-    <div v-if="trend" class="text-caption text-success mt-2">
-      <VIcon icon="mdi-trending-up" size="16" /> {{ trend }}
+    <div v-if="trend" class="mt-2 flex items-center gap-1 text-xs" style="color: rgb(var(--v-theme-success))">
+      <BaseIcon name="mdi-trending-up" :size="16" /> {{ trend }}
     </div>
-  </VCard>
+  </BaseCard>
 </template>

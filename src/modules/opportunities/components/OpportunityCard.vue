@@ -5,6 +5,12 @@ import type { Opportunity } from '../interfaces/Opportunity'
 import { EMPLOYMENT_TYPE_LABELS, formatSalary } from '../interfaces/Opportunity'
 import { useSavedStore } from '@/stores/SavedStore'
 import { useApplicationsStore } from '@/stores/ApplicationsStore'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseChip from '@/components/ui/BaseChip.vue'
+import BaseIcon from '@/components/ui/BaseIcon.vue'
+import BaseAvatar from '@/components/ui/BaseAvatar.vue'
+import BaseProgressBar from '@/components/ui/BaseProgressBar.vue'
 
 const props = defineProps<{ opportunity: Opportunity }>()
 const router = useRouter()
@@ -14,6 +20,7 @@ const applicationsStore = useApplicationsStore()
 const isSaved = computed(() => savedStore.isSaved(props.opportunity.id))
 const isApplied = computed(() => applicationsStore.hasApplied(props.opportunity.id))
 
+// لون التطابق كرمز ثيم Vuetify (success/secondary/warning)
 function matchColor(rate: number) {
   if (rate >= 85)
     return 'success'
@@ -28,84 +35,79 @@ function openDetails() {
 </script>
 
 <template>
-  <VCard class="pa-4 d-flex flex-column" height="100%">
-    <div class="d-flex align-start justify-space-between mb-2">
-      <div class="d-flex align-center ga-3">
-        <VAvatar color="primary" variant="tonal" rounded="lg" size="46">
-          <span class="text-h6 font-weight-bold">{{ opportunity.companyInitial }}</span>
-        </VAvatar>
+  <BaseCard class="flex h-full flex-col">
+    <div class="mb-2 flex items-start justify-between">
+      <div class="flex items-center gap-3">
+        <BaseAvatar color="brand" :size="46" tonal square>
+          <span class="text-lg font-bold">{{ opportunity.companyInitial }}</span>
+        </BaseAvatar>
         <div>
-          <div class="text-subtitle-1 font-weight-bold">
+          <div class="font-bold">
             {{ opportunity.title }}
           </div>
-          <div class="text-body-2 text-medium-emphasis">
+          <div class="text-sm text-muted">
             {{ opportunity.company }}
           </div>
         </div>
       </div>
-      <div class="d-flex align-center">
-        <VChip v-if="opportunity.isNew" color="accent" size="x-small" label class="me-1">
+      <div class="flex items-center gap-1">
+        <BaseChip v-if="opportunity.isNew" color="accent">
           جديد
-        </VChip>
-        <VBtn
-          :icon="isSaved ? 'mdi-bookmark' : 'mdi-bookmark-outline'"
-          :color="isSaved ? 'accent' : 'medium-emphasis'"
-          variant="text"
-          density="comfortable"
-          size="small"
+        </BaseChip>
+        <button
+          class="flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-surfalt"
+          :style="{ color: isSaved ? 'rgb(var(--v-theme-accent))' : 'rgba(var(--v-theme-on-surface), 0.6)' }"
+          :aria-label="isSaved ? 'إزالة الحفظ' : 'حفظ'"
           @click.stop="savedStore.toggle(opportunity.id)"
-        />
+        >
+          <BaseIcon :name="isSaved ? 'mdi-bookmark' : 'mdi-bookmark-outline'" :size="22" />
+        </button>
       </div>
     </div>
 
-    <div class="d-flex flex-wrap ga-2 my-2">
-      <VChip size="small" variant="tonal" prepend-icon="mdi-map-marker-outline">
-        {{ opportunity.city }}
-      </VChip>
-      <VChip size="small" variant="tonal" prepend-icon="mdi-briefcase-outline">
-        {{ EMPLOYMENT_TYPE_LABELS[opportunity.type] }}
-      </VChip>
+    <div class="my-2 flex flex-wrap gap-2">
+      <BaseChip color="neutral">
+        <BaseIcon name="mdi-map-marker-outline" :size="14" /> {{ opportunity.city }}
+      </BaseChip>
+      <BaseChip color="neutral">
+        <BaseIcon name="mdi-briefcase-outline" :size="14" /> {{ EMPLOYMENT_TYPE_LABELS[opportunity.type] }}
+      </BaseChip>
     </div>
 
-    <div class="text-body-2 text-medium-emphasis mb-2">
-      <VIcon icon="mdi-cash" size="16" /> {{ formatSalary(opportunity.salaryMin, opportunity.salaryMax) }}
+    <div class="mb-2 flex items-center gap-1 text-sm text-muted">
+      <BaseIcon name="mdi-cash" :size="16" /> {{ formatSalary(opportunity.salaryMin, opportunity.salaryMax) }}
     </div>
 
     <!-- Match rate -->
     <div class="mt-1">
-      <div class="d-flex justify-space-between text-caption mb-1">
-        <span class="text-medium-emphasis">نسبة التطابق الذكي</span>
-        <span class="font-weight-bold" :class="`text-${matchColor(opportunity.matchRate)}`">
+      <div class="mb-1 flex justify-between text-xs">
+        <span class="text-muted">نسبة التطابق الذكي</span>
+        <span class="font-bold" :style="{ color: `rgb(var(--v-theme-${matchColor(opportunity.matchRate)}))` }">
           {{ opportunity.matchRate }}%
         </span>
       </div>
-      <VProgressLinear
-        :model-value="opportunity.matchRate"
-        :color="matchColor(opportunity.matchRate)"
-        height="6"
-        rounded
-      />
+      <BaseProgressBar :value="opportunity.matchRate" :color="matchColor(opportunity.matchRate)" :height="6" />
     </div>
 
-    <div class="d-flex align-center justify-space-between mt-4 pt-2">
-      <span class="text-caption text-medium-emphasis">
-        <VIcon icon="mdi-account-multiple-outline" size="16" /> {{ opportunity.applicants }} متقدم
+    <div class="mt-4 flex items-center justify-between pt-2">
+      <span class="flex items-center gap-1 text-xs text-muted">
+        <BaseIcon name="mdi-account-multiple-outline" :size="16" /> {{ opportunity.applicants }} متقدم
       </span>
-      <span class="text-caption text-medium-emphasis">{{ opportunity.postedAt }}</span>
+      <span class="text-xs text-muted">{{ opportunity.postedAt }}</span>
     </div>
 
-    <VDivider class="my-3" />
+    <div class="my-3 border-t border-ui" />
 
-    <div class="d-flex ga-2 mt-auto">
-      <VBtn v-if="isApplied" color="success" variant="tonal" size="small" class="flex-grow-1" prepend-icon="mdi-check" @click="openDetails">
-        تم التقديم
-      </VBtn>
-      <VBtn v-else color="accent" size="small" class="flex-grow-1" @click="openDetails">
+    <div class="mt-auto flex gap-2">
+      <BaseButton v-if="isApplied" variant="tonal-emerald" size="sm" class="flex-1" @click="openDetails">
+        <BaseIcon name="mdi-check" :size="18" /> تم التقديم
+      </BaseButton>
+      <BaseButton v-else variant="accent" size="sm" class="flex-1" @click="openDetails">
         تقدّم الآن
-      </VBtn>
-      <VBtn variant="outlined" color="primary" size="small" @click="openDetails">
+      </BaseButton>
+      <BaseButton variant="outline" size="sm" @click="openDetails">
         التفاصيل
-      </VBtn>
+      </BaseButton>
     </div>
-  </VCard>
+  </BaseCard>
 </template>

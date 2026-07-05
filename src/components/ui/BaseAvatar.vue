@@ -4,7 +4,7 @@ import { computed } from 'vue'
 // أفاتار أساس — دائرة ملوّنة تحمل أحرفًا أو أيقونة. تحاكي VAvatar.
 // اللون دلالي مربوط بثيم Vuetify؛ النغمة tonal (خلفية شفافة + نص باللون) أو صلبة.
 const props = withDefaults(defineProps<{
-  color?: 'brand' | 'emerald' | 'accent' | 'warning' | 'neutral'
+  color?: 'brand' | 'emerald' | 'accent' | 'success' | 'info' | 'warning' | 'error' | 'neutral'
   size?: number
   tonal?: boolean
   square?: boolean
@@ -12,7 +12,8 @@ const props = withDefaults(defineProps<{
 
 const theme = computed(() => ({
   brand: 'primary', emerald: 'secondary', accent: 'accent',
-  warning: 'warning', neutral: 'on-surface',
+  success: 'success', info: 'info', warning: 'warning', error: 'error',
+  neutral: 'on-surface',
 }[props.color]))
 
 const style = computed(() => {

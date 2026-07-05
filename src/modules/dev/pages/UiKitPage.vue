@@ -7,6 +7,8 @@ import BaseIcon from '@/components/ui/BaseIcon.vue'
 import BaseAvatar from '@/components/ui/BaseAvatar.vue'
 import BaseBadge from '@/components/ui/BaseBadge.vue'
 import BaseDropdown from '@/components/ui/BaseDropdown.vue'
+import BaseProgressRing from '@/components/ui/BaseProgressRing.vue'
+import BaseProgressBar from '@/components/ui/BaseProgressBar.vue'
 
 // معرض مكوّنات الأساس (Tailwind) — أداة تحقّق أثناء ترحيل المرحلة 5.
 // نعرضها بجانب VBtn من Vuetify للتأكد من تطابق الثيم والتعايش.
@@ -122,6 +124,28 @@ function toggle() {
           <BaseBadge :content="3" inline color="brand">
             رسائل
           </BaseBadge>
+        </div>
+      </BaseCard>
+
+      <BaseCard>
+        <h2 class="mb-3 text-lg font-semibold">
+          مؤشّرات التقدّم (BaseProgressRing / BaseProgressBar)
+        </h2>
+        <div class="flex flex-wrap items-center gap-6">
+          <BaseProgressRing :value="77" color="success">
+            <span class="text-lg font-bold">77</span>
+          </BaseProgressRing>
+          <BaseProgressRing :value="45" color="warning">
+            <span class="text-lg font-bold">45</span>
+          </BaseProgressRing>
+          <BaseProgressRing :value="90" :size="60" :width="6" color="primary">
+            <span class="text-sm font-bold">90</span>
+          </BaseProgressRing>
+          <div class="flex-1 space-y-3" style="min-width: 200px">
+            <BaseProgressBar :value="94" color="success" />
+            <BaseProgressBar :value="72" color="secondary" />
+            <BaseProgressBar :value="40" color="warning" />
+          </div>
         </div>
       </BaseCard>
 
