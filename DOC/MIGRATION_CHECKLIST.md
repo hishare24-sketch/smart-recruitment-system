@@ -64,6 +64,14 @@
   - [x] **`RequestsFeedPage` (سوق الطلبات) Tailwind 100%** (`vuetifyInMain`=0). بدائيّان جديدان: `BaseDrawer` (درج جانبي Teleport من الجهة المنطقية end، إغلاق خلفية/Escape، الخلفية v-if فوري بلا Transition) و`BaseSwitch` (مفتاح تبديل، thumb عبر justify-start/end المنطقي RTL). يستهلك `TaxonomyTree` المحوّل. اقتراحات البحث الذكية لوحة CSS-animated. **مُتحقَّق حيًّا:** بحث + 5 بطاقات بحلقات تطابق + 4 رقائق ذكية + top-match؛ درج الفلترة (شجرة + 4 أنواع + مجال + منزلقان + مفتاح): المفتاح «عن بُعد» يفلتر 5→4، نوع «وظيفة» يركّب لـ0، إعادة تعيين→5، إغلاق بالخلفية والدرج ينزلق خارج الشاشة؛ اقتراحات البحث (تركيز→4 اقتراحات، نقر يطبّق). 0 أخطاء. typecheck + 185 اختبار + build خضراء.
   - [x] **`WalletPage` (المحفظة) Tailwind 100%** (`vuetifyInMain`=0) — أضخم صفحة حتى الآن (4 نوافذ + 3 رسوم + سجل + وسائل دفع). حُوّل معها المشتركان `EmptyState`. `BaseInput` وُسِّع ليحترم `v-model.number` (يقرأ `modelModifiers`) + قبول `null`. النوافذ الأربع عبر `BaseModal`، الإشعار عبر `BaseSnackbar`، تبويبا «بطاقة/بنك» segmented inline، تلميحات الرسوم عبر `title`، الرسم الدائري conic-gradient يبقى كما هو. **مُتحقَّق حيًّا:** إضافة وسيلة دفع (تبويبان + تحقّق `methodValid` + حفظ + إشعار + ظهور في القائمة)، **الشحن دورة كاملة** (مبلغ سريع 500 → اختيار وسيلة → تأكيد → الرصيد 556,185→556,685) — وزر التأكيد يُعطّل صحيحًا حين لا وسيلة، فلترة السجل (4→3→4)، `EmptyState` يظهر لنوع فارغ («سحب»). 0 أخطاء. typecheck + 185 اختبار + build خضراء.
   - [x] **`TaxonomyTree` (المكوّن المشترك)** صار Tailwind → **`OpportunitiesPage` Tailwind 100% (`vuetifyInMain`=0)**. صفوف التصنيف/الفرع أزرار بحالة نشطة، بحث بـ BaseInput، عدّادات BaseChip، ألوان التصنيفات من رموز الثيم. **مُتحقَّق حيًّا:** اختيار تصنيف 18→8، توسيع يُظهر الفروع، اختيار فرع 8→1، إزالة الكل→18؛ ويعمل أيضًا في مستهلكه `/interviewers` (تعايش). 0 أخطاء. typecheck + 185 اختبار + build خضراء.
+  - [x] **`WishesPage` (الرغبات الواردة) Tailwind 100%** (`vuetifyInMain`=0). نُزع VRow/VCol/VCard/
+        VAvatar/VChip/VBtn/VDialog/VTextField/VTextarea. يستهلك StatCard المشترك، نافذة تفاوض `BaseModal`
+        (#actions). **مُتحقَّق حيًّا:** 4 بطاقات رغبات + نافذة التفاوض (3 حقول + زرّان). 0 أخطاء console.
+  - [x] **`InterviewsPage` (المقابلات) Tailwind 100%** (`vuetifyInMain`=0). نُزع VCard/VIcon/VAlert/
+        VChip/VBtn/VList/VListItem/VAvatar/VRow/VCol/VDivider/VDialog. شريط التقويم الأسبوعي بقي بـCSS
+        scoped، قائمة القادم `RouterLink`، نافذة الإعداد `BaseModal` ببطاقات مسار/مستوى `.is-selected`.
+        **مُتحقَّق حيًّا:** شريط أسبوعي + 4 أنواع + نافذة إعداد باختيار مستوى يعمل. 0 أخطاء console.
+        **درس:** انتبه لإغلاق `computed(() => Array.from(...))` بـ`}))`.
   - [x] **`SurveysPage` (منشئ الاستبيانات) Tailwind 100%** (`vuetifyInMain`=0). نُزع VRow/VCol/VCard/
         VAvatar/VIcon/VChip/VBtn/VTable/VProgressLinear/VTooltip/VDialog/VTabs/VWindow/VTextField/
         VSelect/VAlert/VSwitch/VCombobox/VTextarea/VExpandTransition/VSnackbar. **بديل جديد
