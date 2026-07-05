@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import type { AssessmentQuestion } from '../services/mockAssessments'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseChip from '@/components/ui/BaseChip.vue'
+import BaseIcon from '@/components/ui/BaseIcon.vue'
+import BaseTextarea from '@/components/ui/BaseTextarea.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
 
 const props = defineProps<{ question: AssessmentQuestion }>()
 // answer shape varies by type: number | string | number[] | Record<number,number>
@@ -55,25 +60,22 @@ function onFile(e: Event) {
 <template>
   <div>
     <!-- MCQ / True-False -->
-    <div v-if="question.type === 'mcq' || question.type === 'truefalse'" class="d-flex flex-column ga-3">
-      <VCard
+    <div v-if="question.type === 'mcq' || question.type === 'truefalse'" class="flex flex-col gap-3">
+      <button
         v-for="(opt, i) in question.options"
         :key="i"
-        :variant="answer === i ? 'flat' : 'outlined'"
-        :color="answer === i ? 'primary' : undefined"
-        class="pa-3 cursor-pointer d-flex align-center ga-3"
+        type="button"
+        class="flex w-full items-center gap-3 rounded-ui-lg border p-3 text-start transition"
+        :class="answer === i ? 'border-transparent bg-brand text-on-brand' : 'border-ui'"
         @click="answer = i"
       >
-        <VIcon :icon="answer === i ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank'" :color="answer === i ? undefined : 'medium-emphasis'" />
+        <BaseIcon :name="answer === i ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank'" :size="22" :style="answer === i ? {} : { color: 'rgba(var(--v-theme-on-surface), 0.6)' }" />
         <span>{{ opt }}</span>
-      </VCard>
-      <VTextarea
+      </button>
+      <BaseTextarea
         v-if="question.type === 'truefalse'"
-        :model-value="typeof answer === 'object' ? '' : undefined"
         placeholder="برّر إجابتك باختصار (اختياري)"
-        rows="2"
-        auto-grow
-        variant="outlined"
+        :rows="2"
         class="mt-1"
       />
     </div>
@@ -81,65 +83,60 @@ function onFile(e: Event) {
     <!-- Open analytical / mind-map / recording / file upload / image analysis all end with a textarea -->
     <div v-else-if="['open', 'mindmap', 'recording', 'fileupload', 'imageanalysis'].includes(question.type)">
       <!-- Image analysis: mock chart -->
-      <VCard v-if="question.type === 'imageanalysis'" variant="tonal" color="info" class="pa-4 mb-3 text-center">
-        <div class="text-caption text-medium-emphasis mb-2">{{ question.imageLabel }}</div>
+      <div v-if="question.type === 'imageanalysis'" class="mb-3 rounded-ui p-4 text-center" style="background: rgba(var(--v-theme-info), 0.14)">
+        <div class="mb-2 text-xs text-muted">{{ question.imageLabel }}</div>
         <svg viewBox="0 0 300 90" width="100%" height="90">
           <polyline points="10,20 60,30 110,25 160,45 210,60 260,75" fill="none" stroke="rgb(var(--v-theme-info))" stroke-width="3" />
           <circle v-for="(p, i) in [[10,20],[60,30],[110,25],[160,45],[210,60],[260,75]]" :key="i" :cx="p[0]" :cy="p[1]" r="3" fill="rgb(var(--v-theme-info))" />
         </svg>
-      </VCard>
+      </div>
 
       <!-- File upload -->
-      <VBtn v-if="question.type === 'fileupload'" color="secondary" variant="tonal" prepend-icon="mdi-upload" class="mb-3">
-        رفع ملف للتحليل
+      <div v-if="question.type === 'fileupload'" class="relative mb-3 inline-block">
+        <BaseButton variant="tonal-emerald"><BaseIcon name="mdi-upload" :size="16" />رفع ملف للتحليل</BaseButton>
         <input type="file" class="file-overlay" @change="onFile">
-      </VBtn>
+      </div>
 
       <!-- Recording (simulated) -->
-      <VAlert v-if="question.type === 'recording'" type="info" variant="tonal" density="compact" class="mb-3 text-caption">
-        <VIcon icon="mdi-microphone-outline" size="16" /> يُحاكى التسجيل الصوتي — دوّن ما ستقوله في المربّع.
-      </VAlert>
+      <div v-if="question.type === 'recording'" class="mb-3 flex items-center gap-1 rounded-ui p-2 text-xs text-content" style="background: rgba(var(--v-theme-info), 0.14)">
+        <BaseIcon name="mdi-microphone-outline" :size="16" :style="{ color: 'rgb(var(--v-theme-info))' }" /> يُحاكى التسجيل الصوتي — دوّن ما ستقوله في المربّع.
+      </div>
 
-      <VTextarea
+      <BaseTextarea
         v-model="answer"
         :placeholder="question.placeholder ?? 'اكتب إجابتك...'"
-        rows="5"
-        auto-grow
-        variant="outlined"
+        :rows="5"
       />
-      <div v-if="question.type === 'mindmap'" class="text-caption text-medium-emphasis mt-1">
-        <VIcon icon="mdi-sitemap-outline" size="14" /> اكتب كل عقدة في سطر لتشكيل خريطتك الذهنية.
+      <div v-if="question.type === 'mindmap'" class="mt-1 flex items-center gap-1 text-xs text-muted">
+        <BaseIcon name="mdi-sitemap-outline" :size="14" /> اكتب كل عقدة في سطر لتشكيل خريطتك الذهنية.
       </div>
     </div>
 
     <!-- Sequencing / Rank -->
-    <div v-else-if="question.type === 'sequencing' || question.type === 'rank'" class="d-flex flex-column ga-2">
-      <VCard
+    <div v-else-if="question.type === 'sequencing' || question.type === 'rank'" class="flex flex-col gap-2">
+      <div
         v-for="(itemIndex, pos) in (answer as number[]) ?? []"
         :key="itemIndex"
-        variant="outlined"
-        class="pa-2 d-flex align-center ga-2"
+        class="flex items-center gap-2 rounded-ui-lg border border-ui p-2"
       >
-        <VChip size="small" :color="question.type === 'rank' ? 'accent' : 'primary'" label>{{ pos + 1 }}</VChip>
-        <span class="flex-grow-1">{{ question.items?.[itemIndex] }}</span>
-        <VBtn icon="mdi-chevron-up" variant="text" size="x-small" :disabled="pos === 0" @click="moveUp(pos)" />
-        <VBtn icon="mdi-chevron-down" variant="text" size="x-small" :disabled="pos === ((answer as number[])?.length ?? 0) - 1" @click="moveDown(pos)" />
-      </VCard>
+        <BaseChip :color="question.type === 'rank' ? 'accent' : 'brand'">{{ pos + 1 }}</BaseChip>
+        <span class="flex-1">{{ question.items?.[itemIndex] }}</span>
+        <button class="icon-btn h-8 w-8 disabled:opacity-40" :disabled="pos === 0" aria-label="لأعلى" @click="moveUp(pos)"><BaseIcon name="mdi-chevron-up" :size="18" /></button>
+        <button class="icon-btn h-8 w-8 disabled:opacity-40" :disabled="pos === ((answer as number[])?.length ?? 0) - 1" aria-label="لأسفل" @click="moveDown(pos)"><BaseIcon name="mdi-chevron-down" :size="18" /></button>
+      </div>
     </div>
 
     <!-- Matching -->
-    <div v-else-if="question.type === 'matching'" class="d-flex flex-column ga-2">
-      <div v-for="(pair, i) in question.pairs" :key="i" class="d-flex align-center ga-3">
-        <VChip color="primary" variant="tonal" label class="flex-grow-0" style="min-width: 110px; justify-content: center">{{ pair.left }}</VChip>
-        <VIcon icon="mdi-arrow-left-thin" color="medium-emphasis" />
-        <VSelect
-          :model-value="(answer as Record<number, number>)?.[i]"
+    <div v-else-if="question.type === 'matching'" class="flex flex-col gap-2">
+      <div v-for="(pair, i) in question.pairs" :key="i" class="flex items-center gap-3">
+        <span class="inline-flex min-w-[110px] justify-center rounded-full px-2.5 py-1 text-xs font-medium" style="background: rgba(var(--v-theme-primary), 0.14); color: rgb(var(--v-theme-primary))">{{ pair.left }}</span>
+        <BaseIcon name="mdi-arrow-left-thin" :size="20" :style="{ color: 'rgba(var(--v-theme-on-surface), 0.6)' }" />
+        <BaseSelect
+          :model-value="(answer as Record<number, number>)?.[i] ?? null"
           :items="rightOptions"
           placeholder="اختر المطابق"
-          density="compact"
-          hide-details
-          class="flex-grow-1"
-          @update:model-value="setMatch(i, $event)"
+          class="flex-1"
+          @update:model-value="v => v != null && setMatch(i, v)"
         />
       </div>
     </div>
