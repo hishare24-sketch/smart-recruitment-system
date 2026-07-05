@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useGamificationStore } from '@/stores/GamificationStore'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseChip from '@/components/ui/BaseChip.vue'
+import BaseIcon from '@/components/ui/BaseIcon.vue'
+import BaseProgressBar from '@/components/ui/BaseProgressBar.vue'
 
 withDefaults(defineProps<{ showLink?: boolean }>(), { showLink: true })
 
@@ -10,85 +14,87 @@ const lockedBadges = computed(() => g.badges.filter(b => !b.earned))
 </script>
 
 <template>
-  <VCard class="pa-4">
-    <div class="d-flex align-center ga-2 mb-3">
-      <VIcon icon="mdi-trophy-outline" color="warning" />
-      <h3 class="text-subtitle-1 font-weight-bold">إنجازاتي</h3>
-      <VSpacer />
-      <VChip size="small" label :style="{ backgroundColor: g.tier.color, color: '#fff' }">
-        <VIcon icon="mdi-shield-star-outline" size="14" start /> {{ g.tier.name }}
-      </VChip>
+  <BaseCard>
+    <div class="mb-3 flex items-center gap-2">
+      <BaseIcon name="mdi-trophy-outline" :size="22" style="color: rgb(var(--v-theme-warning))" />
+      <h3 class="font-bold">إنجازاتي</h3>
+      <div class="flex-1" />
+      <span
+        class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium text-white"
+        :style="{ backgroundColor: g.tier.color }"
+      >
+        <BaseIcon name="mdi-shield-star-outline" :size="14" /> {{ g.tier.name }}
+      </span>
     </div>
 
     <!-- Points + tier progress -->
-    <div class="d-flex align-center ga-4 mb-3">
-      <div class="text-center flex-shrink-0">
-        <div class="text-h4 font-weight-bold text-warning lh-1">{{ g.points }}</div>
-        <div class="text-caption text-medium-emphasis">نقطة</div>
-      </div>
-      <div class="flex-grow-1">
-        <div class="d-flex justify-space-between text-caption mb-1">
-          <span class="text-medium-emphasis">التقدّم للمستوى التالي</span>
-          <span v-if="g.nextTier" class="font-weight-bold">{{ g.pointsToNext }} نقطة لـ{{ g.nextTier.name }}</span>
-          <span v-else class="font-weight-bold text-success">أعلى مستوى!</span>
+    <div class="mb-3 flex items-center gap-4">
+      <div class="shrink-0 text-center">
+        <div class="text-4xl font-bold leading-none" style="color: rgb(var(--v-theme-warning))">
+          {{ g.points }}
         </div>
-        <VProgressLinear :model-value="g.tierProgress" color="warning" height="8" rounded />
+        <div class="text-xs text-muted">نقطة</div>
       </div>
-      <div class="text-center flex-shrink-0">
-        <div class="d-flex align-center ga-1">
-          <VIcon icon="mdi-fire" color="error" />
-          <span class="text-h6 font-weight-bold">{{ g.streak.count }}</span>
+      <div class="flex-1">
+        <div class="mb-1 flex justify-between text-xs">
+          <span class="text-muted">التقدّم للمستوى التالي</span>
+          <span v-if="g.nextTier" class="font-bold">{{ g.pointsToNext }} نقطة لـ{{ g.nextTier.name }}</span>
+          <span v-else class="font-bold" style="color: rgb(var(--v-theme-success))">أعلى مستوى!</span>
         </div>
-        <div class="text-caption text-medium-emphasis">يوم متتابع</div>
+        <BaseProgressBar :value="g.tierProgress" color="warning" :height="8" />
+      </div>
+      <div class="shrink-0 text-center">
+        <div class="flex items-center gap-1">
+          <BaseIcon name="mdi-fire" :size="22" style="color: rgb(var(--v-theme-error))" />
+          <span class="text-lg font-bold">{{ g.streak.count }}</span>
+        </div>
+        <div class="text-xs text-muted">يوم متتابع</div>
       </div>
     </div>
 
-    <VDivider class="mb-3" />
+    <div class="mb-3 border-t border-ui" />
 
     <!-- Active challenges -->
-    <div class="d-flex align-center justify-space-between mb-2">
-      <span class="text-caption font-weight-bold"><VIcon icon="mdi-target" size="14" /> تحديات نشطة</span>
-      <span class="text-caption text-medium-emphasis">{{ g.earnedCount }}/{{ g.badges.length }} شارة</span>
+    <div class="mb-2 flex items-center justify-between">
+      <span class="flex items-center gap-1 text-xs font-bold"><BaseIcon name="mdi-target" :size="14" /> تحديات نشطة</span>
+      <span class="text-xs text-muted">{{ g.earnedCount }}/{{ g.badges.length }} شارة</span>
     </div>
     <div v-for="c in g.activeChallenges" :key="c.id" class="mb-2">
-      <div class="d-flex justify-space-between text-caption mb-1">
+      <div class="mb-1 flex justify-between text-xs">
         <span>{{ c.title }}</span>
-        <span class="font-weight-bold">{{ c.progress }}/{{ c.target }} · +{{ c.reward }}</span>
+        <span class="font-bold">{{ c.progress }}/{{ c.target }} · +{{ c.reward }}</span>
       </div>
-      <VProgressLinear :model-value="(c.progress / c.target) * 100" color="accent" height="6" rounded />
+      <BaseProgressBar :value="(c.progress / c.target) * 100" color="accent" :height="6" />
     </div>
-    <div v-if="!g.activeChallenges.length" class="text-caption text-medium-emphasis text-center py-2">
-      <VIcon icon="mdi-check-decagram" color="success" size="16" /> أنجزت كل التحديات الحالية!
+    <div v-if="!g.activeChallenges.length" class="py-2 text-center text-xs text-muted">
+      <BaseIcon name="mdi-check-decagram" :size="16" style="color: rgb(var(--v-theme-success))" /> أنجزت كل التحديات الحالية!
     </div>
 
-    <VDivider class="my-3" />
+    <div class="my-3 border-t border-ui" />
 
     <!-- Badges -->
-    <div class="text-caption font-weight-bold mb-2"><VIcon icon="mdi-medal-outline" size="14" /> الشارات</div>
-    <div class="d-flex flex-wrap ga-2">
-      <VTooltip v-for="b in earnedBadges" :key="b.id" :text="b.desc" location="top">
-        <template #activator="{ props }">
-          <VChip v-bind="props" size="small" color="warning" variant="tonal" :prepend-icon="b.icon" label>{{ b.name }}</VChip>
-        </template>
-      </VTooltip>
-      <VTooltip v-for="b in lockedBadges" :key="b.id" :text="`مقفلة: ${b.desc}`" location="top">
-        <template #activator="{ props }">
-          <VChip v-bind="props" size="small" variant="outlined" :prepend-icon="b.icon" label class="badge-locked">{{ b.name }}</VChip>
-        </template>
-      </VTooltip>
+    <div class="mb-2 flex items-center gap-1 text-xs font-bold"><BaseIcon name="mdi-medal-outline" :size="14" /> الشارات</div>
+    <div class="flex flex-wrap gap-2">
+      <BaseChip v-for="b in earnedBadges" :key="b.id" color="warning" :title="b.desc">
+        <BaseIcon :name="b.icon" :size="14" /> {{ b.name }}
+      </BaseChip>
+      <span
+        v-for="b in lockedBadges"
+        :key="b.id"
+        class="inline-flex items-center gap-1 rounded-full border-ui px-2.5 py-1 text-xs font-medium opacity-45"
+        :title="`مقفلة: ${b.desc}`"
+      >
+        <BaseIcon :name="b.icon" :size="14" /> {{ b.name }}
+      </span>
     </div>
 
-    <VBtn v-if="showLink" variant="text" color="warning" size="small" class="mt-2 px-0" append-icon="mdi-arrow-left" :to="{ name: 'achievements' }">
-      الإنجازات ولوحة الصدارة
-    </VBtn>
-  </VCard>
+    <RouterLink
+      v-if="showLink"
+      :to="{ name: 'achievements' }"
+      class="mt-3 inline-flex items-center gap-1 text-sm font-semibold"
+      style="color: rgb(var(--v-theme-warning))"
+    >
+      الإنجازات ولوحة الصدارة <BaseIcon name="mdi-arrow-left" :size="16" />
+    </RouterLink>
+  </BaseCard>
 </template>
-
-<style scoped>
-.lh-1 {
-  line-height: 1.1;
-}
-.badge-locked {
-  opacity: 0.45;
-}
-</style>
