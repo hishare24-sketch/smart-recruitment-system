@@ -381,11 +381,16 @@ export function isGenericLabel(label: string): boolean {
 // ————————————————————————————————————————————————————————————————
 // مساعدات الوصول والبحث
 // ————————————————————————————————————————————————————————————————
-/** قطاع عبر كوده (S01) أو slugه (technology) */
+/** قطاع عبر كوده (S01) أو slugه (technology) أو مُعرّف قديم (management→administration) */
 export function getSector(codeOrId: string | undefined): Sector | undefined {
   if (!codeOrId)
     return undefined
-  return SECTORS.find(s => s.code === codeOrId || s.id === codeOrId)
+  const direct = SECTORS.find(s => s.code === codeOrId || s.id === codeOrId)
+  if (direct)
+    return direct
+  // مرونة تجاه المعرّفات القديمة (taxonomy.ts) كي تبقى البيانات المخزّنة مربوطة
+  const migrated = LEGACY_SECTOR_MAP[codeOrId]
+  return migrated ? SECTORS.find(s => s.code === migrated) : undefined
 }
 
 /** كل التخصّصات الفرعية مسطّحة مع كود قطاعها الأب */

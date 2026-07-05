@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { TAXONOMY } from './taxonomy'
 import {
   ALL_SECTOR_SKILLS,
   ALL_SUBS,
@@ -17,6 +16,20 @@ import {
   sectorsByPriority,
   topSectors,
 } from './sectors'
+
+// لقطة ثابتة لمهارات التصنيف القديم (taxonomy.ts الأصلي، 8 قطاعات) — حارس ترحيل
+// مستقلّ عن الـshim الحالي كي يبقى ذا معنى.
+const LEGACY_IDS = ['technology', 'management', 'design', 'engineering', 'health', 'legal', 'education', 'logistics']
+const LEGACY_SKILLS = [
+  'PHP', 'Python', 'JavaScript', 'TypeScript', 'React', 'Vue.js', 'Node.js', 'AWS', 'SQL', 'Laravel', 'Flutter', 'Docker', 'Kubernetes',
+  'PMP', 'Agile', 'التسويق الرقمي', 'تحليل البيانات', 'إدارة المشاريع', 'التفاوض', 'القيادة',
+  'Figma', 'Adobe Suite', 'Sketch', 'UI/UX', 'كتابة المحتوى', 'التصوير الفوتوغرافي', 'المونتاج',
+  'AutoCAD', 'Revit', 'SolidWorks', 'MATLAB', 'ANSYS', 'Civil 3D',
+  'التمريض السريري', 'التحاليل الطبية', 'الأبحاث السريرية', 'التغذية العلاجية',
+  'العقود التجارية', 'القضايا التجارية', 'التحكيم الدولي', 'الملكية الفكرية',
+  'تصميم مناهج', 'تدريب قيادي', 'التعليم الإلكتروني', 'تدريب المدربين',
+  'إدارة المخزون', 'التخطيط اللوجستي', 'تحسين سلاسل التوريد',
+]
 
 describe('sectors — structure', () => {
   it('has 21 sectors with unique codes S01..S21 and unique slugs', () => {
@@ -58,9 +71,11 @@ describe('sectors — structure', () => {
 })
 
 describe('sectors — lookup & skills', () => {
-  it('resolves a sector by code and by slug', () => {
+  it('resolves a sector by code, slug, and legacy id', () => {
     expect(getSector('S01')?.id).toBe('technology')
     expect(getSector('technology')?.code).toBe('S01')
+    // مرونة تجاه المعرّف القديم management (لم يعد قطاعًا مستقلًّا) → administration
+    expect(getSector('management')?.id).toBe('administration')
     expect(getSector('nope')).toBeUndefined()
     expect(getSector(undefined)).toBeUndefined()
   })
@@ -75,8 +90,7 @@ describe('sectors — lookup & skills', () => {
   })
 
   it('preserves EVERY legacy taxonomy skill (no skill lost in the merge)', () => {
-    const legacy = [...new Set(TAXONOMY.flatMap(c => c.skills))]
-    for (const skill of legacy)
+    for (const skill of LEGACY_SKILLS)
       expect(sectorForSkill(skill), `skill "${skill}" must classify`).toBeDefined()
   })
 
@@ -89,9 +103,8 @@ describe('sectors — lookup & skills', () => {
 
 describe('sectors — legacy migration', () => {
   it('maps all 8 legacy category ids to valid new sector codes', () => {
-    const legacyIds = TAXONOMY.map(c => c.id)
-    expect(Object.keys(LEGACY_SECTOR_MAP).sort()).toEqual(legacyIds.sort())
-    for (const id of legacyIds) {
+    expect(Object.keys(LEGACY_SECTOR_MAP).sort()).toEqual([...LEGACY_IDS].sort())
+    for (const id of LEGACY_IDS) {
       const code = migrateSector(id)
       expect(code, `legacy "${id}" must migrate`).toBeDefined()
       expect(getSector(code!), `migrated code for "${id}" must exist`).toBeDefined()
