@@ -6,11 +6,26 @@ import { ai } from '@/services/ai'
 import type { SearchScope } from '@/services/ai/types'
 import EmptyState from '@/components/shared/EmptyState.vue'
 import { useSearchPrefsStore } from '@/stores/SearchPrefsStore'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseChip from '@/components/ui/BaseChip.vue'
+import BaseIcon from '@/components/ui/BaseIcon.vue'
+import BaseAvatar from '@/components/ui/BaseAvatar.vue'
 
 const route = useRoute()
 const router = useRouter()
 const { search } = useGlobalSearch()
 const prefs = useSearchPrefsStore()
+
+type BaseColor = 'brand' | 'emerald' | 'accent' | 'success' | 'info' | 'warning' | 'error' | 'neutral'
+function mapColor(c?: string): BaseColor {
+  return (({ primary: 'brand', secondary: 'emerald', 'medium-emphasis': 'neutral', 'surface-variant': 'neutral', grey: 'neutral', orange: 'warning', amber: 'warning' } as Record<string, BaseColor>)[c ?? ''] ?? c ?? 'brand') as BaseColor
+}
+function toggleStyle(active: boolean, color = 'primary') {
+  if (active)
+    return { background: `rgb(var(--v-theme-${color}))`, color: `rgb(var(--v-theme-on-${color}))`, borderColor: 'transparent' }
+  return { background: 'transparent', color: 'rgba(var(--v-theme-on-surface), 0.75)', borderColor: 'rgba(var(--v-theme-on-surface), 0.2)' }
+}
 
 const query = ref((route.query.q as string) ?? '')
 const activeScope = ref<SearchScope>((route.query.scope as SearchScope) || 'all')
@@ -71,92 +86,94 @@ function searchAlt(alt: string) {
 
 <template>
   <div>
-    <div class="d-flex align-center justify-space-between flex-wrap ga-2 mb-1">
-      <h1 class="text-h5 font-weight-bold">نتائج البحث</h1>
-      <VBtn
+    <div class="mb-1 flex flex-wrap items-center justify-between gap-2">
+      <h1 class="text-xl font-bold text-content">نتائج البحث</h1>
+      <BaseButton
         v-if="query"
-        :color="savedNow ? 'accent' : undefined"
-        :variant="savedNow ? 'tonal' : 'outlined'"
-        size="small"
-        :prepend-icon="savedNow ? 'mdi-bookmark' : 'mdi-bookmark-outline'"
+        size="sm"
+        :variant="savedNow ? 'tonal-accent' : 'outline'"
         @click="toggleSave"
       >
-        {{ savedNow ? 'محفوظ' : 'حفظ البحث' }}
-      </VBtn>
+        <BaseIcon :name="savedNow ? 'mdi-bookmark' : 'mdi-bookmark-outline'" :size="16" />{{ savedNow ? 'محفوظ' : 'حفظ البحث' }}
+      </BaseButton>
     </div>
-    <p v-if="query" class="text-body-2 text-medium-emphasis mb-3">
+    <p v-if="query" class="mb-3 text-sm text-muted">
       عن «{{ query }}» — {{ totalCount }} نتيجة
     </p>
 
     <!-- Saved searches (quick re-run) -->
-    <div v-if="prefs.saved.length" class="d-flex align-center flex-wrap ga-1 mb-3">
-      <span class="text-caption text-medium-emphasis"><VIcon icon="mdi-bookmark-multiple-outline" size="14" /> محفوظة:</span>
-      <VChip
+    <div v-if="prefs.saved.length" class="mb-3 flex flex-wrap items-center gap-1">
+      <span class="flex items-center gap-1 text-xs text-muted"><BaseIcon name="mdi-bookmark-multiple-outline" :size="14" /> محفوظة:</span>
+      <span
         v-for="s in prefs.saved"
         :key="s.id"
-        size="small"
-        variant="outlined"
-        closable
-        @click="runSaved(s)"
-        @click:close="prefs.removeSaved(s.id)"
+        class="inline-flex items-center gap-1 rounded-full border border-ui px-2.5 py-1 text-sm font-medium text-content"
       >
-        {{ s.q }}
-      </VChip>
+        <button type="button" @click="runSaved(s)">{{ s.q }}</button>
+        <button type="button" class="leading-none" aria-label="حذف" @click="prefs.removeSaved(s.id)"><BaseIcon name="mdi-close" :size="13" /></button>
+      </span>
     </div>
 
     <!-- AI intent + alternatives -->
-    <VAlert v-if="query" color="secondary" variant="tonal" density="comfortable" class="mb-4" border="start">
-      <template #prepend><VIcon icon="mdi-robot-happy-outline" /></template>
-      <div class="d-flex align-center justify-space-between flex-wrap ga-2">
-        <span class="text-body-2">{{ intent.note }}</span>
-        <div v-if="alternatives.length" class="d-flex align-center ga-1 flex-wrap">
-          <span class="text-caption text-medium-emphasis">هل تقصد:</span>
-          <VChip v-for="alt in alternatives" :key="alt" size="small" color="secondary" @click="searchAlt(alt)">{{ alt }}</VChip>
-        </div>
+    <div v-if="query" class="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-ui border-s-4 p-3" style="background: rgba(var(--v-theme-secondary), 0.12); border-color: rgb(var(--v-theme-secondary))">
+      <span class="flex items-center gap-2 text-sm text-content">
+        <BaseIcon name="mdi-robot-happy-outline" :size="20" :style="{ color: 'rgb(var(--v-theme-secondary))' }" />{{ intent.note }}
+      </span>
+      <div v-if="alternatives.length" class="flex flex-wrap items-center gap-1">
+        <span class="text-xs text-muted">هل تقصد:</span>
+        <button v-for="alt in alternatives" :key="alt" type="button" class="btn-tonal-emerald rounded-full px-2.5 py-1 text-sm font-medium" @click="searchAlt(alt)">{{ alt }}</button>
       </div>
-    </VAlert>
+    </div>
 
     <!-- Scope tabs with counts -->
-    <VChipGroup v-model="activeScope" mandatory class="mb-3">
-      <VChip v-for="t in scopeTabs" :key="t.key" :value="t.key" filter :prepend-icon="t.icon">
-        {{ t.label }} <VChip size="x-small" class="ms-1" label>{{ t.count }}</VChip>
-      </VChip>
-    </VChipGroup>
+    <div class="mb-3 flex flex-wrap gap-2">
+      <button
+        v-for="t in scopeTabs"
+        :key="t.key"
+        type="button"
+        class="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-sm font-medium transition"
+        :style="toggleStyle(activeScope === t.key)"
+        @click="activeScope = t.key"
+      >
+        <BaseIcon :name="t.icon" :size="14" />{{ t.label }}
+        <span class="rounded-full px-1.5 text-xs" :style="activeScope === t.key ? { background: 'rgba(255,255,255,0.25)' } : { background: 'rgba(var(--v-theme-on-surface), 0.1)' }">{{ t.count }}</span>
+      </button>
+    </div>
 
     <!-- Results by category -->
     <template v-if="totalCount">
       <div v-for="cat in shownCategories" :key="cat.key" class="mb-5">
-        <div class="d-flex align-center ga-2 mb-2">
-          <VIcon :icon="cat.icon" color="medium-emphasis" />
-          <h3 class="text-subtitle-1 font-weight-bold">{{ cat.label }}</h3>
-          <VChip size="x-small" label>{{ cat.items.length }}</VChip>
+        <div class="mb-2 flex items-center gap-2">
+          <BaseIcon :name="cat.icon" :size="22" :style="{ color: 'rgba(var(--v-theme-on-surface), 0.6)' }" />
+          <h3 class="text-base font-bold text-content">{{ cat.label }}</h3>
+          <BaseChip color="neutral">{{ cat.items.length }}</BaseChip>
         </div>
-        <VCard>
-          <VList lines="two" class="py-0">
-            <template v-for="(item, i) in cat.items" :key="item.id">
-              <VListItem :class="item.route ? 'cursor-pointer' : ''" @click="openItem(item.route)">
-                <template #prepend>
-                  <VAvatar :color="item.color" variant="tonal" rounded="lg"><VIcon :icon="item.icon" /></VAvatar>
-                </template>
-                <VListItemTitle class="font-weight-bold">{{ item.title }}</VListItemTitle>
-                <VListItemSubtitle>{{ item.subtitle }}</VListItemSubtitle>
-                <template v-if="item.route" #append>
-                  <VIcon icon="mdi-arrow-left" color="medium-emphasis" />
-                </template>
-              </VListItem>
-              <VDivider v-if="i < cat.items.length - 1" />
-            </template>
-          </VList>
-        </VCard>
+        <BaseCard :padded="false" class="overflow-hidden">
+          <button
+            v-for="(item, i) in cat.items"
+            :key="item.id"
+            type="button"
+            class="flex w-full items-center gap-3 p-3 text-start transition"
+            :class="[{ 'border-t border-ui': i > 0 }, item.route ? 'hover:bg-surfalt' : 'cursor-default']"
+            @click="openItem(item.route)"
+          >
+            <BaseAvatar :color="mapColor(item.color)" tonal square><BaseIcon :name="item.icon" :size="20" /></BaseAvatar>
+            <div class="min-w-0 flex-1">
+              <div class="font-bold text-content">{{ item.title }}</div>
+              <div class="truncate text-xs text-muted">{{ item.subtitle }}</div>
+            </div>
+            <BaseIcon v-if="item.route" name="mdi-arrow-left" :size="20" :style="{ color: 'rgba(var(--v-theme-on-surface), 0.5)' }" />
+          </button>
+        </BaseCard>
       </div>
     </template>
 
-    <VCard v-else>
+    <BaseCard v-else :padded="false">
       <EmptyState
         icon="mdi-magnify-close"
         title="لا نتائج"
         :description="query ? `لم نجد نتائج عن «${query}». جرّب كلمات أخرى.` : 'اكتب في شريط البحث بالأعلى للبدء.'"
       />
-    </VCard>
+    </BaseCard>
   </div>
 </template>
