@@ -48,9 +48,9 @@
 - [x] **أُزيل Supabase نهائيًّا:** نُزع فرع Supabase من `AuthService` (صار NestJS + محاكاة فقط)، وأُفرِغ محرّك Supabase من `cloudSync.ts` (بقي توجيه NestJS + fallback محلي off)، و`syncPublicProfileDoc` صار محايدًا (الصفحة العامة عبر موردها). حُذفت `src/services/supabase.ts` + `supabase.test.ts` + مجلّد `supabase/` (6 ترحيلات + schema) + `scripts/db-migrate.mjs`؛ ونُزعت حزمة `@supabase/supabase-js` + سكربت `db:migrate` + متغيّرات Supabase من `.env.development` و`deploy.yml`. أُعيدت كتابة `cloudSync.test.ts` لسلوك NestJS. **الأثر:** حجم الحزمة الرئيسية انخفض ~657KB→477KB. **تحقّق حيّ:** التطبيق يُقلع نظيفًا (21 مخزنًا، الجلسة محفوظة)، بلا أخطاء console. typecheck + **185 اختبار** + build خضراء.
 - [x] تحقّق حيّ: رسالة لحظية بين مستخدمين ✓ (المرحلة 4a)
 
-## ⬜ المرحلة 5 — الواجهة: Vuetify → Tailwind
-- [ ] إعداد Tailwind + رموز التصميم من الثيم الحالي
-- [ ] مكوّنات أساس (Button/Card/Dialog/Input/Chip…)
+## 🟡 المرحلة 5 — الواجهة: Vuetify → Tailwind — جارية
+- [x] **إعداد Tailwind (v3) بالتعايش مع Vuetify:** `postcss.config.js` + `tailwind.config.js` (**preflight مُطفأ** كي لا يُصفّر تنسيقات Vuetify) + `src/styles/tailwind.css` (مستورد قبل main.scss). **رموز التصميم مجسورة بمتغيّرات ثيم Vuetify** `--v-theme-*` (brand/accent/emerald/bg/surface/content/…) فتتزامن الألوان تلقائيًا مع تبديل الوضع؛ + `rounded-ui`/`rounded-ui-lg` من متغيّرات radius؛ + مساعدات alpha (`.border-ui`/`.text-muted`) لأن رموز Tailwind لا تدعم alpha على متغيّرات Vuetify المفصولة بفواصل.
+- [x] **مكوّنات أساس أولى** (`src/components/ui/`): `BaseButton` (5 أنماط×3 أحجام + loading/disabled) · `BaseCard` · `BaseChip` (نغمات دلالية). معرض `/ui-kit` للتحقّق. **مُتحقَّق حيًّا:** BaseButton brand = `rgb(163,230,53)` مطابق تمامًا لـ `--v-theme-primary`، radius 12px، الرقائق تُصيّر؛ **وVuetify سليم تمامًا** (زر الدخول #BEF264، الحقول radius 12px، العناوين 700) — أي التعايش بلا كسر. بلا أخطاء console. (بقية الأساس Dialog/Input… في دفعة لاحقة.)
 - [ ] القشرة والتخطيط (Layout/Sidebar/Topbar)
 - [ ] الصفحات صفحةً بصفحة ثم نزع حزمة Vuetify
 - [ ] تحقّق حيّ بعد كل مجموعة (لقطات + تباين)

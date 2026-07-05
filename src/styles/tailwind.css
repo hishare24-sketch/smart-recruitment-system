@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* مساعدات مربوطة بثيم Vuetify تحتاج شفافية (صيغة alpha لا تعمل عبر رموز Tailwind
+   لأن متغيّرات Vuetify مفصولة بفواصل) — نعرّفها هنا لتُستهلك في مكوّنات الأساس. */
+@layer components {
+  .border-ui {
+    border: 1px solid rgba(var(--v-theme-on-surface), 0.14);
+  }
+  .text-muted {
+    color: rgba(var(--v-theme-on-surface), 0.7);
+  }
+  .ring-brand-focus {
+    outline: none;
+  }
+  .ring-brand-focus:focus-visible {
+    box-shadow: 0 0 0 2px rgb(var(--v-theme-surface)), 0 0 0 4px rgba(var(--v-theme-primary), 0.6);
+  }
+}

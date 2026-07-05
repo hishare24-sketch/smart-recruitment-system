@@ -1,6 +1,13 @@
 import type { RouteRecordRaw } from 'vue-router'
 
 export const routes: RouteRecordRaw[] = [
+  // ===== أداة تطوير: معرض مكوّنات Tailwind (المرحلة 5) =====
+  {
+    path: '/ui-kit',
+    name: 'ui-kit',
+    component: () => import('@/modules/dev/pages/UiKitPage.vue'),
+    meta: { layout: 'blank', public: true },
+  },
   // ===== Public / Auth =====
   {
     path: '/login',
