@@ -13,6 +13,13 @@ import { useSurveysStore } from '@/stores/SurveysStore'
 import { useTrustStore } from '@/stores/TrustStore'
 import { useUnifiedHubStore } from '@/stores/UnifiedHubStore'
 import { useWalletStore } from '@/stores/WalletStore'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseChip from '@/components/ui/BaseChip.vue'
+import BaseIcon from '@/components/ui/BaseIcon.vue'
+import BaseAvatar from '@/components/ui/BaseAvatar.vue'
+import BaseInput from '@/components/ui/BaseInput.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
 
 // ===== التحليلات الموحّدة — كل مؤشراتك عبر الأدوار في جدول واحد قابل للفلترة والفرز =====
 const { t } = useI18n()
@@ -103,11 +110,32 @@ const allRows = computed<MetricRow[]>(() => {
   return rows
 })
 
+type BaseColor = 'brand' | 'emerald' | 'accent' | 'success' | 'info' | 'warning' | 'error' | 'neutral'
+function mapColor(c?: string): BaseColor {
+  return (({ primary: 'brand', secondary: 'emerald', 'medium-emphasis': 'neutral', 'surface-variant': 'neutral', grey: 'neutral', orange: 'warning', amber: 'warning' } as Record<string, BaseColor>)[c ?? ''] ?? c ?? 'brand') as BaseColor
+}
+function toggleStyle(active: boolean, color = 'primary') {
+  if (active)
+    return { background: `rgb(var(--v-theme-${color}))`, color: `rgb(var(--v-theme-on-${color}))`, borderColor: 'transparent' }
+  return { background: 'transparent', color: 'rgba(var(--v-theme-on-surface), 0.75)', borderColor: 'rgba(var(--v-theme-on-surface), 0.2)' }
+}
+
 // —— الفلترة والفرز ——
 const roleFilter = ref<(UserRole | 'all')[]>([])
 const domainFilter = ref<Domain[]>([])
 const sortBy = ref<'value-desc' | 'value-asc' | 'domain'>('value-desc')
 const query = ref('')
+const SORT_ITEMS = [
+  { value: 'value-desc' as const, title: 'القيمة: من الأعلى' },
+  { value: 'value-asc' as const, title: 'القيمة: من الأدنى' },
+  { value: 'domain' as const, title: 'حسب المجال' },
+]
+function toggleDomain(d: Domain) {
+  domainFilter.value = domainFilter.value.includes(d) ? domainFilter.value.filter(x => x !== d) : [...domainFilter.value, d]
+}
+function toggleRole(r: UserRole | 'all') {
+  roleFilter.value = roleFilter.value.includes(r) ? roleFilter.value.filter(x => x !== r) : [...roleFilter.value, r]
+}
 
 const roleOptions = computed(() => {
   const owned = [...new Set(allRows.value.map(r => r.role))]
@@ -145,71 +173,67 @@ const domainSummary = computed(() =>
       icon="mdi-chart-multiple"
     >
       <template #actions>
-        <VBtn v-if="auth.ownsRole('interviewer')" variant="text" size="small" color="primary" prepend-icon="mdi-chart-box-outline" :to="{ name: 'interviewer-analytics' }">تحليلات المقيّم التفصيلية</VBtn>
-        <VBtn v-if="auth.ownsRole('company')" variant="text" size="small" color="primary" prepend-icon="mdi-chart-box-outline" :to="{ name: 'analytics' }">تحليلات الشركة التفصيلية</VBtn>
+        <BaseButton v-if="auth.ownsRole('interviewer')" variant="ghost" size="sm" :to="{ name: 'interviewer-analytics' }"><BaseIcon name="mdi-chart-box-outline" :size="16" />تحليلات المقيّم التفصيلية</BaseButton>
+        <BaseButton v-if="auth.ownsRole('company')" variant="ghost" size="sm" :to="{ name: 'analytics' }"><BaseIcon name="mdi-chart-box-outline" :size="16" />تحليلات الشركة التفصيلية</BaseButton>
       </template>
     </PageHeader>
 
     <!-- فلاتر المجالات -->
-    <div class="d-flex flex-wrap ga-2 mb-4">
-      <VChip
+    <div class="mb-4 flex flex-wrap gap-2">
+      <button
         v-for="d in domainSummary"
         :key="d.domain"
-        :color="domainFilter.includes(d.domain) ? d.color : undefined"
-        :variant="domainFilter.includes(d.domain) ? 'flat' : 'outlined'"
-        label
-        :prepend-icon="d.icon"
-        @click="domainFilter = domainFilter.includes(d.domain) ? domainFilter.filter(x => x !== d.domain) : [...domainFilter, d.domain]"
+        type="button"
+        class="inline-flex items-center gap-1 rounded-ui border px-2.5 py-1 text-sm font-medium transition"
+        :style="toggleStyle(domainFilter.includes(d.domain), d.color)"
+        @click="toggleDomain(d.domain)"
       >
-        {{ d.domain }} ({{ d.count }})
-      </VChip>
+        <BaseIcon :name="d.icon" :size="14" />{{ d.domain }} ({{ d.count }})
+      </button>
     </div>
 
     <!-- شريط التحكم -->
-    <VRow dense class="mb-3">
-      <VCol cols="12" sm="4">
-        <VTextField v-model="query" placeholder="بحث في المؤشرات..." prepend-inner-icon="mdi-magnify" density="compact" hide-details clearable />
-      </VCol>
-      <VCol cols="12" sm="5">
-        <VSelect v-model="roleFilter" :items="roleOptions" label="الأدوار" multiple chips closable-chips clearable density="compact" hide-details />
-      </VCol>
-      <VCol cols="12" sm="3">
-        <VSelect
-          v-model="sortBy"
-          :items="[
-            { value: 'value-desc', title: 'القيمة: من الأعلى' },
-            { value: 'value-asc', title: 'القيمة: من الأدنى' },
-            { value: 'domain', title: 'حسب المجال' },
-          ]"
-          label="فرز"
-          density="compact"
-          hide-details
-        />
-      </VCol>
-    </VRow>
+    <div class="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-12">
+      <BaseInput v-model="query" placeholder="بحث في المؤشرات..." prefix-icon="mdi-magnify" class="sm:col-span-4" />
+      <div class="sm:col-span-5">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-xs font-medium text-muted">الأدوار:</span>
+          <button
+            v-for="o in roleOptions"
+            :key="String(o.value)"
+            type="button"
+            class="rounded-full border px-2.5 py-1 text-xs font-medium transition"
+            :style="toggleStyle(roleFilter.includes(o.value))"
+            @click="toggleRole(o.value)"
+          >{{ o.title }}</button>
+        </div>
+      </div>
+      <div class="sm:col-span-3">
+        <label class="mb-1 block text-xs font-medium text-muted">فرز</label>
+        <BaseSelect :model-value="sortBy" :items="SORT_ITEMS" @update:model-value="v => v && (sortBy = v)" />
+      </div>
+    </div>
 
     <!-- شبكة المؤشرات -->
-    <VRow>
-      <VCol v-for="r in visibleRows" :key="`${r.role}-${r.label}`" cols="12" sm="6" lg="4">
-        <VCard class="pa-4 d-flex align-center ga-3">
-          <VAvatar :color="r.color" variant="tonal" rounded="lg" size="44">
-            <VIcon :icon="r.icon" size="22" />
-          </VAvatar>
-          <div class="flex-grow-1">
-            <div class="text-h6 font-weight-bold">{{ r.value }}<span v-if="r.unit" class="text-body-2 text-medium-emphasis"> {{ r.unit }}</span></div>
-            <div class="text-caption text-medium-emphasis">{{ r.label }}</div>
-          </div>
-          <div class="d-flex flex-column ga-1 align-end">
-            <VChip size="x-small" variant="tonal" :color="DOMAIN_META[r.domain].color" label>{{ r.domain }}</VChip>
-            <VChip size="x-small" variant="outlined" label>{{ r.role === 'all' ? 'الحساب' : t(`roles.${r.role}`) }}</VChip>
-          </div>
-        </VCard>
-      </VCol>
-    </VRow>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <BaseCard v-for="r in visibleRows" :key="`${r.role}-${r.label}`" class="flex items-center gap-3">
+        <BaseAvatar :color="mapColor(r.color)" tonal square :size="44">
+          <BaseIcon :name="r.icon" :size="22" />
+        </BaseAvatar>
+        <div class="min-w-0 flex-1">
+          <div class="text-lg font-bold text-content">{{ r.value }}<span v-if="r.unit" class="text-sm text-muted"> {{ r.unit }}</span></div>
+          <div class="truncate text-xs text-muted">{{ r.label }}</div>
+        </div>
+        <div class="flex flex-col items-end gap-1">
+          <BaseChip :color="mapColor(DOMAIN_META[r.domain].color)">{{ r.domain }}</BaseChip>
+          <span class="rounded-full border border-ui px-2 py-0.5 text-[10px] text-muted">{{ r.role === 'all' ? 'الحساب' : t(`roles.${r.role}`) }}</span>
+        </div>
+      </BaseCard>
+    </div>
 
-    <VCard v-if="!visibleRows.length" class="pa-10 text-center">
-      <VIcon icon="mdi-chart-line-variant" size="48" color="medium-emphasis" />
-      <p class="text-body-2 text-medium-emphasis mt-2 mb-0">لا مؤشرات مطابقة — وسّع الفلاتر.</p>
-    </VCard>
+    <BaseCard v-if="!visibleRows.length" class="py-10 text-center">
+      <BaseIcon name="mdi-chart-line-variant" :size="48" :style="{ color: 'rgba(var(--v-theme-on-surface), 0.5)' }" />
+      <p class="mb-0 mt-2 text-sm text-muted">لا مؤشرات مطابقة — وسّع الفلاتر.</p>
+    </BaseCard>
   </div>
 </template>
