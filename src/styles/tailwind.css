@@ -17,4 +17,65 @@
   .ring-brand-focus:focus-visible {
     box-shadow: 0 0 0 2px rgb(var(--v-theme-surface)), 0 0 0 4px rgba(var(--v-theme-primary), 0.6);
   }
+
+  /* ——— قشرة التنقّل (Sidebar/Topbar) — خلفيات alpha مربوطة بالثيم ——— */
+  .nav-link {
+    @apply flex items-center gap-3 rounded-ui px-3 py-2 text-sm font-medium transition;
+    color: rgb(var(--v-theme-on-surface));
+  }
+  .nav-link:hover {
+    background: rgba(var(--v-theme-primary), 0.08);
+  }
+  .nav-link.router-link-exact-active {
+    background: rgba(var(--v-theme-primary), 0.16);
+    color: rgb(var(--v-theme-primary));
+    font-weight: 700;
+  }
+
+  .nav-tile {
+    @apply flex flex-col items-center justify-center gap-1 rounded-ui px-1 py-3 text-center transition;
+    background: rgba(var(--v-theme-primary), 0.1);
+    color: rgb(var(--v-theme-primary));
+    min-height: 68px;
+  }
+  .nav-tile:hover {
+    background: rgba(var(--v-theme-primary), 0.18);
+  }
+
+  .nav-tab {
+    @apply flex flex-1 items-center justify-center gap-1 rounded-ui px-2 py-2 text-sm font-medium transition;
+    color: rgba(var(--v-theme-on-surface), 0.7);
+  }
+  .nav-tab.is-active {
+    background: rgba(var(--v-theme-primary), 0.14);
+    color: rgb(var(--v-theme-primary));
+    font-weight: 700;
+  }
+
+  .menu-row {
+    @apply flex w-full items-center gap-3 px-4 py-2.5 text-start text-sm transition;
+    color: rgb(var(--v-theme-on-surface));
+  }
+  .menu-row:hover {
+    background: rgba(var(--v-theme-on-surface), 0.06);
+  }
+  .menu-row.router-link-exact-active {
+    background: rgba(var(--v-theme-primary), 0.12);
+  }
+
+  .icon-btn {
+    @apply inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-content transition;
+  }
+  .icon-btn:hover {
+    background: rgba(var(--v-theme-on-surface), 0.08);
+  }
+
+  /* دخول لطيف للوحة المنسدلة عبر CSS فقط (لا Transition من Vue كي يبقى الإزالة فوريًّا) */
+  .dd-panel {
+    animation: dd-in 0.15s ease-out;
+  }
+  @keyframes dd-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: none; }
+  }
 }

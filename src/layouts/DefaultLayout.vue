@@ -13,6 +13,11 @@ import RewardFeedback from '@/components/shared/RewardFeedback.vue'
 import RoleSwitcher from '@/components/shared/RoleSwitcher.vue'
 import ThemeCustomizer from '@/components/shared/ThemeCustomizer.vue'
 import WhatsNewDialog from '@/components/shared/WhatsNewDialog.vue'
+import BaseIcon from '@/components/ui/BaseIcon.vue'
+import BaseAvatar from '@/components/ui/BaseAvatar.vue'
+import BaseBadge from '@/components/ui/BaseBadge.vue'
+import BaseChip from '@/components/ui/BaseChip.vue'
+import BaseDropdown from '@/components/ui/BaseDropdown.vue'
 import { useThemeStore } from '@/stores/ThemeStore'
 import { usePeerRequestsStore } from '@/stores/PeerRequestsStore'
 import { useWalletStore } from '@/stores/WalletStore'
@@ -56,6 +61,9 @@ function navBadge(to: string): number {
 // On desktop the drawer is permanent (open by default); on mobile it starts closed
 const drawer = ref(!mobile.value)
 const rail = ref(false)
+
+// عرض القائمة الجانبية بالبكسل (مطوي rail على سطح المكتب فقط)
+const sidebarW = computed(() => (rail.value && !mobile.value ? 76 : 270))
 
 // Menu button: on mobile toggle the overlay drawer; on desktop toggle rail (collapse)
 function onMenuClick() {
@@ -112,8 +120,8 @@ const roleLabel = computed(() => (authStore.role ? t(`roles.${authStore.role}`) 
 
 const themeStore = useThemeStore()
 const isDark = computed(() => themeStore.isDark)
-// المختلط: القوائم داكنة والمحتوى فاتح
-const chromeTheme = computed(() => (themeStore.isMixed ? 'darkTheme' : undefined))
+// المختلط: القوائم داكنة والمحتوى فاتح — نلفّ القشرة بثيم داكن فتقرأ رموز Tailwind متغيّراته
+const chromeThemeName = computed(() => (themeStore.isMixed ? 'darkTheme' : themeStore.activeThemeName))
 
 function toggleTheme() {
   themeStore.toggleDark()
@@ -127,6 +135,11 @@ function logout() {
   authService.logout() // ينهي جلسة Supabase أيضًا إن كانت مفعّلة
   authStore.clearAuthUser()
   router.push({ name: 'login' })
+}
+
+function closeDrawerOnMobile() {
+  if (mobile.value)
+    drawer.value = false
 }
 
 const initials = computed(() => {
@@ -147,371 +160,418 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
 </script>
 
 <template>
-  <VNavigationDrawer
-    v-model="drawer"
-    :rail="rail && !mobile"
-    :temporary="mobile"
-    :permanent="!mobile"
-    :location="locale === 'ar' ? 'right' : 'left'"
-    width="270"
-    color="surface"
-    border
-    :theme="chromeTheme"
-  >
-    <!-- Brand -->
-    <div class="d-flex align-center pa-4 ga-3">
-      <VAvatar color="primary" size="40" rounded="lg">
-        <VIcon icon="mdi-briefcase-account" color="on-primary" />
-      </VAvatar>
-      <div v-if="!rail" class="text-truncate">
-        <div class="text-subtitle-1 font-weight-bold">
+  <!-- ============ القشرة (قائمة جانبية + شريط علوي + تنقّل سفلي) تحت ثيم القشرة ============
+       نلفّها بفئة ثيم Vuetify العامة (.v-theme--*) فتُضبط متغيّرات --v-theme-* لهذا الفرع؛
+       في الوضع المختلط = darkTheme (قوائم داكنة) بينما المحتوى يتبع الثيم العام. -->
+  <div :class="`v-theme--${chromeThemeName}`">
+    <!-- خلفية معتمة للموبايل خلف القائمة المنسدلة -->
+    <Transition
+      enter-active-class="transition-opacity duration-200"
+      enter-from-class="opacity-0"
+      leave-active-class="transition-opacity duration-200"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="mobile && drawer"
+        class="fixed inset-0 z-30 bg-black/50"
+        @click="drawer = false"
+      />
+    </Transition>
+
+    <!-- ======== القائمة الجانبية ======== -->
+    <aside
+      class="fixed inset-y-0 start-0 z-40 flex flex-col border-ui bg-surface text-content transition-[width,transform] duration-200"
+      :class="[
+        mobile ? 'shadow-2xl' : '',
+        mobile && !drawer ? 'rtl:translate-x-full ltr:-translate-x-full' : 'translate-x-0',
+      ]"
+      :style="{ width: `${sidebarW}px` }"
+    >
+      <!-- الهوية -->
+      <div class="flex items-center gap-3 p-4">
+        <BaseAvatar color="brand" :size="40" square>
+          <BaseIcon name="mdi-briefcase-account" :size="22" />
+        </BaseAvatar>
+        <div v-if="!rail || mobile" class="truncate text-base font-bold">
           {{ t('app.name') }}
         </div>
       </div>
-    </div>
+      <div class="border-t border-ui" />
 
-    <VDivider />
-
-    <!-- نافذتا القائمة: تبويب «المنصة» (السوق) وتبويب «حسابي» (إدارتي + عملي) -->
-    <VTabs v-if="!rail" v-model="activeNav" grow density="compact" color="primary" class="px-2 pt-1">
-      <VTab value="platform" size="small">
-        <VIcon icon="mdi-storefront-outline" size="18" class="me-1" />{{ t('nav.sectionPlatform') }}
-        <VBadge v-if="platformTabBadge" color="error" :content="platformTabBadge" inline class="ms-1" />
-      </VTab>
-      <VTab value="account" size="small">
-        <VIcon icon="mdi-account-circle-outline" size="18" class="me-1" />{{ t('nav.sectionAccount') }}
-        <VBadge v-if="accountTabBadge" color="error" :content="accountTabBadge" inline class="ms-1" />
-      </VTab>
-    </VTabs>
-    <!-- وضع rail المصغّر: التبويبان أيقونتان متراكبتان -->
-    <div v-else class="d-flex flex-column align-center ga-1 pt-2">
-      <VBtn :variant="activeNav === 'platform' ? 'tonal' : 'text'" color="primary" icon="mdi-storefront-outline" size="small" @click="activeNav = 'platform'" />
-      <VBtn :variant="activeNav === 'account' ? 'tonal' : 'text'" color="primary" icon="mdi-account-circle-outline" size="small" @click="activeNav = 'account'" />
-      <VDivider class="my-1 w-100" />
-    </div>
-
-    <!-- تبديل طريقة العرض (موبايل): قائمة تفصيلية أو شبكة سريعة -->
-    <div v-if="mobile" class="d-flex justify-end px-3 pt-2">
-      <VBtnToggle v-model="navView" mandatory density="compact" variant="outlined" color="primary">
-        <VBtn value="list" size="x-small" icon="mdi-format-list-bulleted" />
-        <VBtn value="grid" size="x-small" icon="mdi-view-grid-outline" />
-      </VBtnToggle>
-    </div>
-
-    <VList nav density="comfortable" class="px-2 mt-1">
-      <!-- ===== نافذة المنصة: السوق الصافي ===== -->
-      <template v-if="activeNav === 'platform'">
-        <VRow v-if="gridMode && !rail" dense class="px-1 mb-2">
-          <VCol v-for="item in platformItems" :key="`gp-${item.title}-${item.to}`" cols="4">
-            <VCard variant="tonal" color="primary" class="pa-2 text-center nav-grid-tile" :to="{ name: item.to }" @click="drawer = false">
-              <VBadge :model-value="navBadge(item.to) > 0" color="error" dot>
-                <VIcon :icon="item.icon" size="22" />
-              </VBadge>
-              <div class="text-caption mt-1 nav-grid-label">{{ t(`nav.${item.title}`) }}</div>
-            </VCard>
-          </VCol>
-        </VRow>
-        <template v-else>
-          <VListItem
-            v-for="item in platformItems"
-            :key="`p-${item.title}-${item.to}`"
-            :prepend-icon="item.icon"
-            :title="t(`nav.${item.title}`)"
-            :to="{ name: item.to }"
-            rounded="lg"
-            color="primary"
-            class="mb-1 nav-item"
-            @click="mobile && (drawer = false)"
-          >
-            <template v-if="!rail && navBadge(item.to)" #append>
-              <VChip size="x-small" color="error" label>{{ navBadge(item.to) }}</VChip>
-            </template>
-          </VListItem>
-        </template>
-      </template>
-
-      <!-- ===== نافذة حسابي: إدارتي ثم مساحة دوري ===== -->
-      <template v-else>
-        <VRow v-if="gridMode && !rail" dense class="px-1 mb-2">
-          <VCol v-for="item in accountItems" :key="`ga-${item.title}-${item.to}`" cols="4">
-            <VCard variant="tonal" color="primary" class="pa-2 text-center nav-grid-tile" :to="{ name: item.to }" @click="drawer = false">
-              <VBadge :model-value="navBadge(item.to) > 0" color="error" dot>
-                <VIcon :icon="item.icon" size="22" />
-              </VBadge>
-              <div class="text-caption mt-1 nav-grid-label">{{ t(`nav.${item.title}`) }}</div>
-            </VCard>
-          </VCol>
-        </VRow>
-        <template v-else>
-          <VListItem
-            v-for="item in accountItems"
-            :key="`a-${item.title}-${item.to}`"
-            :prepend-icon="item.icon"
-            :title="t(`nav.${item.title}`)"
-            :to="{ name: item.to }"
-            rounded="lg"
-            color="primary"
-            class="mb-1 nav-item"
-            @click="mobile && (drawer = false)"
-          >
-            <template v-if="!rail && navBadge(item.to)" #append>
-              <VChip size="x-small" color="error" label>{{ navBadge(item.to) }}</VChip>
-            </template>
-          </VListItem>
-        </template>
-
-        <!-- مساحة الدور: ترويسة قابلة للطي تحمل مبدّل الأدوار -->
-        <VListItem
-          v-if="!rail && roleItems.length"
-          class="nav-section-header mb-1 mt-2"
-          density="compact"
-          @click="toggleSection('role')"
-        >
-          <template #prepend>
-            <VIcon icon="mdi-account-convert-outline" size="16" color="medium-emphasis" class="me-1" />
-          </template>
-          <VListItemTitle class="text-caption font-weight-bold text-medium-emphasis">
-            {{ t('nav.sectionRole', { role: roleLabel }) }}
-          </VListItemTitle>
-          <template #append>
-            <VBtn
-              icon="mdi-swap-horizontal"
-              size="x-small"
-              variant="text"
-              color="primary"
-              @click.stop="roleControlOpen = !roleControlOpen; collapsedSections.role && toggleSection('role')"
-            />
-            <VIcon :icon="collapsedSections.role ? 'mdi-chevron-down' : 'mdi-chevron-up'" size="16" color="medium-emphasis" />
-          </template>
-        </VListItem>
-        <VDivider v-if="rail" class="my-2" />
-
-        <div v-if="!collapsedSections.role || rail">
-          <VExpandTransition>
-            <div v-if="roleControlOpen && !rail" class="role-switcher-inline mb-2">
-              <RoleSwitcher />
-            </div>
-          </VExpandTransition>
-
-          <VRow v-if="gridMode && !rail" dense class="px-1 mb-2">
-            <VCol v-for="item in roleItems" :key="`gr-${item.title}-${item.to}`" cols="4">
-              <VCard variant="tonal" color="secondary" class="pa-2 text-center nav-grid-tile" :to="{ name: item.to }" @click="drawer = false">
-                <VIcon :icon="item.icon" size="22" />
-                <div class="text-caption mt-1 nav-grid-label">{{ t(`nav.${item.title}`) }}</div>
-              </VCard>
-            </VCol>
-          </VRow>
-          <template v-else>
-            <VListItem
-              v-for="item in roleItems"
-              :key="`r-${item.title}-${item.to}`"
-              :prepend-icon="item.icon"
-              :title="t(`nav.${item.title}`)"
-              :to="{ name: item.to }"
-              rounded="lg"
-              color="primary"
-              class="mb-1 nav-item"
-              @click="mobile && (drawer = false)"
-            >
-              <template v-if="!rail && navBadge(item.to)" #append>
-                <VChip size="x-small" color="error" label>{{ navBadge(item.to) }}</VChip>
-              </template>
-            </VListItem>
-          </template>
-        </div>
-      </template>
-    </VList>
-  </VNavigationDrawer>
-
-  <VAppBar flat border color="surface" height="68" :theme="chromeTheme">
-    <VBtn icon variant="text" @click="onMenuClick">
-      <VIcon icon="mdi-menu" />
-    </VBtn>
-
-    <VTooltip :text="t('common.back')" location="bottom">
-      <template #activator="{ props }">
-        <VBtn v-show="canGoBack" v-bind="props" icon variant="text" @click="goBack">
-          <VIcon :icon="backIcon" />
-        </VBtn>
-      </template>
-    </VTooltip>
-
-    <GlobalSearchBar class="mx-2 d-none d-sm-flex" />
-
-    <VSpacer />
-
-    <!-- Locale toggle -->
-    <VBtn variant="text" class="font-weight-bold" @click="toggleLocale">
-      {{ locale === 'ar' ? 'EN' : 'ع' }}
-    </VBtn>
-
-    <!-- Theme toggle -->
-    <VBtn icon variant="text" @click="toggleTheme">
-      <VIcon :icon="isDark ? 'mdi-weather-sunny' : 'mdi-weather-night'" />
-    </VBtn>
-
-    <!-- Theme customizer (5 presets × 3 modes + custom colors) -->
-    <VMenu :close-on-content-click="false" location="bottom end">
-      <template #activator="{ props }">
-        <VBtn v-bind="props" icon variant="text">
-          <VIcon icon="mdi-palette-outline" />
-        </VBtn>
-      </template>
-      <ThemeCustomizer />
-    </VMenu>
-
-    <!-- Messages -->
-    <VBtn icon variant="text" :to="{ name: 'messages' }">
-      <VBadge :model-value="messagesStore.totalUnread > 0" :content="messagesStore.totalUnread" color="accent">
-        <VIcon icon="mdi-message-outline" />
-      </VBadge>
-    </VBtn>
-
-    <!-- Notifications -->
-    <VBtn icon variant="text" :to="{ name: 'notifications' }">
-      <VBadge :model-value="notificationsStore.unreadCount > 0" :content="notificationsStore.unreadCount" color="error">
-        <VIcon icon="mdi-bell-outline" />
-      </VBadge>
-    </VBtn>
-
-    <!-- User menu = مبدّل الحسابات: شخصي + مفوَّضة (الأدوار تُدار من القائمة الجانبية) -->
-    <VMenu eager>
-      <template #activator="{ props }">
-        <VBtn v-bind="props" variant="text" class="px-2 ms-2">
-          <VBadge :model-value="delegation.isDelegating" color="warning" dot location="bottom start">
-            <VAvatar :color="delegation.isDelegating ? 'warning' : 'secondary'" size="36">
-              <span class="font-weight-bold">{{ initials }}</span>
-            </VAvatar>
-          </VBadge>
-          <div class="d-none d-sm-block text-start mx-2">
-            <div class="text-body-2 font-weight-bold">
-              {{ user?.name }}
-            </div>
-            <div class="text-caption text-medium-emphasis">
-              {{ delegation.isDelegating ? t('accounts.delegated') : roleLabel }}
-            </div>
-          </div>
-        </VBtn>
-      </template>
-      <VList density="compact" min-width="260">
-        <VListSubheader>{{ t('accounts.myAccounts') }}</VListSubheader>
-
-        <!-- الحساب الشخصي -->
-        <VListItem
-          :active="!delegation.isDelegating"
-          color="primary"
-          density="compact"
-          @click="delegation.isDelegating && exitDelegation()"
-        >
-          <template #prepend>
-            <VAvatar color="secondary" size="30" class="me-2">
-              <span class="text-caption font-weight-bold">{{ (delegation.originalUser?.name ?? user?.name ?? '؟').trim().charAt(0) }}</span>
-            </VAvatar>
-          </template>
-          <VListItemTitle class="text-body-2">{{ delegation.originalUser?.name ?? user?.name }}</VListItemTitle>
-          <VListItemSubtitle class="text-caption">{{ t('accounts.personal') }}</VListItemSubtitle>
-          <template #append>
-            <VChip v-if="!delegation.isDelegating" size="x-small" color="primary" label>{{ t('roleSwitcher.active') }}</VChip>
-          </template>
-        </VListItem>
-
-        <!-- الحسابات المفوَّضة -->
-        <VListItem
-          v-for="acc in delegation.accounts"
-          :key="acc.id"
-          :active="delegation.activeId === acc.id"
-          color="warning"
-          density="compact"
-          :disabled="delegation.isDelegating && delegation.activeId !== acc.id"
-          @click="delegation.activeId !== acc.id && enterAccount(acc.id)"
-        >
-          <template #prepend>
-            <VAvatar color="warning" variant="tonal" size="30" class="me-2">
-              <span class="text-caption font-weight-bold">{{ acc.initial }}</span>
-            </VAvatar>
-          </template>
-          <VListItemTitle class="text-body-2">{{ acc.name }}</VListItemTitle>
-          <VListItemSubtitle class="text-caption">{{ acc.note }}</VListItemSubtitle>
-          <template #append>
-            <VChip v-if="delegation.activeId === acc.id" size="x-small" color="warning" label>{{ t('accounts.managing') }}</VChip>
-          </template>
-        </VListItem>
-
-        <VListItem
-          v-if="delegation.isDelegating"
-          prepend-icon="mdi-account-arrow-right-outline"
-          :title="t('accounts.exit')"
-          base-color="warning"
-          density="compact"
-          @click="exitDelegation"
-        />
-
-        <VDivider />
-        <VListItem :title="t('nav.wallet')" prepend-icon="mdi-wallet-outline" :to="{ name: 'wallet' }">
-          <template #append>
-            <VChip size="x-small" color="primary" variant="tonal" label>{{ walletStore.available.toLocaleString('ar') }} ر.س</VChip>
-          </template>
-        </VListItem>
-        <VListItem :title="t('common.profile')" prepend-icon="mdi-account-outline" :to="{ name: 'profile' }" />
-        <VListItem :title="t('common.settings')" prepend-icon="mdi-cog-outline" :to="{ name: 'settings' }" />
-        <VDivider />
-        <VListItem :title="t('common.logout')" prepend-icon="mdi-logout" base-color="error" @click="logout" />
-      </VList>
-    </VMenu>
-  </VAppBar>
-
-  <VMain class="bg-background">
-    <!-- شريط سياق التفويض — لا يمكن إغفاله أثناء إدارة حساب آخر -->
-    <VAlert
-      v-if="delegation.isDelegating && delegation.activeAccount"
-      color="warning"
-      variant="tonal"
-      density="compact"
-      border="start"
-      icon="mdi-account-switch-outline"
-      class="ma-3 mb-0"
-    >
-      <div class="d-flex align-center flex-wrap ga-2">
-        <span class="text-body-2">
-          {{ t('accounts.banner', { name: delegation.activeAccount.name }) }}
-          <span class="text-caption text-medium-emphasis">({{ delegation.activeAccount.note }})</span>
-        </span>
-        <VSpacer />
-        <VBtn size="small" color="warning" variant="flat" prepend-icon="mdi-account-arrow-right-outline" @click="exitDelegation">
-          {{ t('accounts.exit') }}
-        </VBtn>
+      <!-- تبويبا القائمة: المنصة / حسابي -->
+      <div v-if="!rail || mobile" class="flex gap-1 px-2 pt-2">
+        <button class="nav-tab" :class="{ 'is-active': activeNav === 'platform' }" @click="activeNav = 'platform'">
+          <BaseIcon name="mdi-storefront-outline" :size="18" />
+          <span>{{ t('nav.sectionPlatform') }}</span>
+          <BaseBadge v-if="platformTabBadge" :content="platformTabBadge" inline color="error" />
+        </button>
+        <button class="nav-tab" :class="{ 'is-active': activeNav === 'account' }" @click="activeNav = 'account'">
+          <BaseIcon name="mdi-account-circle-outline" :size="18" />
+          <span>{{ t('nav.sectionAccount') }}</span>
+          <BaseBadge v-if="accountTabBadge" :content="accountTabBadge" inline color="error" />
+        </button>
       </div>
-    </VAlert>
-    <VContainer fluid class="pa-4 pa-md-6">
-      <slot />
-    </VContainer>
-  </VMain>
+      <!-- وضع rail: التبويبان أيقونتان -->
+      <div v-else class="flex flex-col items-center gap-1 pt-2">
+        <button class="icon-btn" :class="{ 'is-active': activeNav === 'platform' }" @click="activeNav = 'platform'">
+          <BaseIcon name="mdi-storefront-outline" :size="22" />
+        </button>
+        <button class="icon-btn" :class="{ 'is-active': activeNav === 'account' }" @click="activeNav = 'account'">
+          <BaseIcon name="mdi-account-circle-outline" :size="22" />
+        </button>
+        <div class="my-1 w-full border-t border-ui" />
+      </div>
 
-  <!-- تنقّل سفلي للموبايل: المنصة أولًا — النافذة قبل المرآة -->
-  <VBottomNavigation v-if="mobile" grow color="primary" :theme="chromeTheme" density="comfortable">
-    <VBtn :to="{ name: 'opportunities' }" size="small">
-      <VIcon icon="mdi-briefcase-search-outline" />
-      <span class="text-caption">الفرص</span>
-    </VBtn>
-    <VBtn :to="{ name: 'people-explorer' }" size="small">
-      <VIcon icon="mdi-account-group-outline" />
-      <span class="text-caption">الناس</span>
-    </VBtn>
-    <VBtn :to="{ name: 'unified-hub' }" size="small">
-      <VIcon icon="mdi-view-dashboard-variant-outline" />
-      <span class="text-caption">مركزك</span>
-    </VBtn>
-    <VBtn :to="{ name: 'wallet' }" size="small">
-      <VIcon icon="mdi-wallet-outline" />
-      <span class="text-caption">محفظتي</span>
-    </VBtn>
-    <VBtn size="small" @click="drawer = !drawer">
-      <VBadge :model-value="peerRequests.pendingIncoming > 0" color="error" dot>
-        <VIcon icon="mdi-menu" />
-      </VBadge>
-      <span class="text-caption">القائمة</span>
-    </VBtn>
-  </VBottomNavigation>
+      <!-- تبديل طريقة العرض (موبايل) -->
+      <div v-if="mobile" class="flex justify-end px-3 pt-2">
+        <div class="inline-flex overflow-hidden rounded-ui border-ui">
+          <button
+            class="px-2 py-1 text-xs transition"
+            :class="navView === 'list' ? 'bg-brand text-on-brand' : 'text-muted'"
+            @click="navView = 'list'"
+          >
+            <BaseIcon name="mdi-format-list-bulleted" :size="16" />
+          </button>
+          <button
+            class="px-2 py-1 text-xs transition"
+            :class="navView === 'grid' ? 'bg-brand text-on-brand' : 'text-muted'"
+            @click="navView = 'grid'"
+          >
+            <BaseIcon name="mdi-view-grid-outline" :size="16" />
+          </button>
+        </div>
+      </div>
+
+      <!-- قائمة التنقّل (قابلة للتمرير) -->
+      <nav class="flex-1 overflow-y-auto p-2">
+        <!-- ===== نافذة المنصة ===== -->
+        <template v-if="activeNav === 'platform'">
+          <div v-if="gridMode" class="grid grid-cols-3 gap-2">
+            <RouterLink
+              v-for="item in platformItems"
+              :key="`gp-${item.title}-${item.to}`"
+              :to="{ name: item.to }"
+              class="nav-tile"
+              @click="drawer = false"
+            >
+              <BaseBadge :show="navBadge(item.to) > 0" dot color="error">
+                <BaseIcon :name="item.icon" :size="22" />
+              </BaseBadge>
+              <span class="truncate text-xs">{{ t(`nav.${item.title}`) }}</span>
+            </RouterLink>
+          </div>
+          <template v-else>
+            <RouterLink
+              v-for="item in platformItems"
+              :key="`p-${item.title}-${item.to}`"
+              :to="{ name: item.to }"
+              class="nav-link mb-1"
+              :title="t(`nav.${item.title}`)"
+              @click="closeDrawerOnMobile"
+            >
+              <BaseIcon :name="item.icon" :size="22" />
+              <span v-if="!rail || mobile" class="flex-1 truncate">{{ t(`nav.${item.title}`) }}</span>
+              <BaseChip v-if="(!rail || mobile) && navBadge(item.to)" color="error">{{ navBadge(item.to) }}</BaseChip>
+            </RouterLink>
+          </template>
+        </template>
+
+        <!-- ===== نافذة حسابي ===== -->
+        <template v-else>
+          <div v-if="gridMode" class="grid grid-cols-3 gap-2">
+            <RouterLink
+              v-for="item in accountItems"
+              :key="`ga-${item.title}-${item.to}`"
+              :to="{ name: item.to }"
+              class="nav-tile"
+              @click="drawer = false"
+            >
+              <BaseBadge :show="navBadge(item.to) > 0" dot color="error">
+                <BaseIcon :name="item.icon" :size="22" />
+              </BaseBadge>
+              <span class="truncate text-xs">{{ t(`nav.${item.title}`) }}</span>
+            </RouterLink>
+          </div>
+          <template v-else>
+            <RouterLink
+              v-for="item in accountItems"
+              :key="`a-${item.title}-${item.to}`"
+              :to="{ name: item.to }"
+              class="nav-link mb-1"
+              :title="t(`nav.${item.title}`)"
+              @click="closeDrawerOnMobile"
+            >
+              <BaseIcon :name="item.icon" :size="22" />
+              <span v-if="!rail || mobile" class="flex-1 truncate">{{ t(`nav.${item.title}`) }}</span>
+              <BaseChip v-if="(!rail || mobile) && navBadge(item.to)" color="error">{{ navBadge(item.to) }}</BaseChip>
+            </RouterLink>
+          </template>
+
+          <!-- مساحة الدور: ترويسة قابلة للطي تحمل مبدّل الأدوار -->
+          <button
+            v-if="(!rail || mobile) && roleItems.length"
+            class="mb-1 mt-3 flex w-full items-center gap-1 rounded-ui px-2 py-1.5 text-start transition hover:bg-surfalt"
+            @click="toggleSection('role')"
+          >
+            <BaseIcon name="mdi-account-convert-outline" :size="16" class="text-muted" />
+            <span class="flex-1 text-xs font-bold text-muted">{{ t('nav.sectionRole', { role: roleLabel }) }}</span>
+            <span
+              class="icon-btn h-7 w-7 text-brand"
+              @click.stop="roleControlOpen = !roleControlOpen; collapsedSections.role && toggleSection('role')"
+            >
+              <BaseIcon name="mdi-swap-horizontal" :size="16" />
+            </span>
+            <BaseIcon :name="collapsedSections.role ? 'mdi-chevron-down' : 'mdi-chevron-up'" :size="16" class="text-muted" />
+          </button>
+
+          <div v-if="(!collapsedSections.role || rail) && roleItems.length">
+            <Transition
+              enter-active-class="transition-all duration-200"
+              enter-from-class="opacity-0 -translate-y-1"
+              leave-active-class="transition-all duration-150"
+              leave-to-class="opacity-0 -translate-y-1"
+            >
+              <div v-if="roleControlOpen && (!rail || mobile)" class="mb-2 rounded-ui border border-dashed p-1" style="border-color: rgba(var(--v-theme-primary), 0.3)">
+                <RoleSwitcher />
+              </div>
+            </Transition>
+
+            <div v-if="gridMode" class="grid grid-cols-3 gap-2">
+              <RouterLink
+                v-for="item in roleItems"
+                :key="`gr-${item.title}-${item.to}`"
+                :to="{ name: item.to }"
+                class="nav-tile"
+                @click="drawer = false"
+              >
+                <BaseIcon :name="item.icon" :size="22" />
+                <span class="truncate text-xs">{{ t(`nav.${item.title}`) }}</span>
+              </RouterLink>
+            </div>
+            <template v-else>
+              <RouterLink
+                v-for="item in roleItems"
+                :key="`r-${item.title}-${item.to}`"
+                :to="{ name: item.to }"
+                class="nav-link mb-1"
+                :title="t(`nav.${item.title}`)"
+                @click="closeDrawerOnMobile"
+              >
+                <BaseIcon :name="item.icon" :size="22" />
+                <span v-if="!rail || mobile" class="flex-1 truncate">{{ t(`nav.${item.title}`) }}</span>
+                <BaseChip v-if="(!rail || mobile) && navBadge(item.to)" color="error">{{ navBadge(item.to) }}</BaseChip>
+              </RouterLink>
+            </template>
+          </div>
+        </template>
+      </nav>
+    </aside>
+
+    <!-- ======== الشريط العلوي ======== -->
+    <header
+      class="fixed end-0 top-0 z-30 flex h-[68px] items-center gap-1 border-b border-ui bg-surface px-2 text-content"
+      :style="{ insetInlineStart: mobile ? '0' : `${sidebarW}px` }"
+    >
+      <button class="icon-btn" :title="t('common.menu')" @click="onMenuClick">
+        <BaseIcon name="mdi-menu" :size="24" />
+      </button>
+
+      <button v-show="canGoBack" class="icon-btn" :title="t('common.back')" @click="goBack">
+        <BaseIcon :name="backIcon" :size="24" />
+      </button>
+
+      <GlobalSearchBar class="mx-2 hidden sm:flex" />
+
+      <div class="flex-1" />
+
+      <!-- تبديل اللغة -->
+      <button class="icon-btn font-bold" @click="toggleLocale">
+        {{ locale === 'ar' ? 'EN' : 'ع' }}
+      </button>
+
+      <!-- تبديل الوضع -->
+      <button class="icon-btn" @click="toggleTheme">
+        <BaseIcon :name="isDark ? 'mdi-weather-sunny' : 'mdi-weather-night'" :size="24" />
+      </button>
+
+      <!-- مخصّص الثيم -->
+      <BaseDropdown :close-on-content="false" align="end">
+        <template #trigger="{ toggle }">
+          <button class="icon-btn" @click="toggle">
+            <BaseIcon name="mdi-palette-outline" :size="24" />
+          </button>
+        </template>
+        <ThemeCustomizer />
+      </BaseDropdown>
+
+      <!-- الرسائل -->
+      <RouterLink class="icon-btn" :to="{ name: 'messages' }">
+        <BaseBadge :show="messagesStore.totalUnread > 0" :content="messagesStore.totalUnread" color="accent">
+          <BaseIcon name="mdi-message-outline" :size="24" />
+        </BaseBadge>
+      </RouterLink>
+
+      <!-- الإشعارات -->
+      <RouterLink class="icon-btn" :to="{ name: 'notifications' }">
+        <BaseBadge :show="notificationsStore.unreadCount > 0" :content="notificationsStore.unreadCount" color="error">
+          <BaseIcon name="mdi-bell-outline" :size="24" />
+        </BaseBadge>
+      </RouterLink>
+
+      <!-- قائمة المستخدم = مبدّل الحسابات -->
+      <BaseDropdown align="end" panel-class="min-w-[260px]">
+        <template #trigger="{ toggle }">
+          <button class="ms-1 flex items-center gap-2 rounded-full px-2 py-1 transition hover:bg-surfalt" @click="toggle">
+            <BaseBadge :show="delegation.isDelegating" dot color="warning" location="bottom-start">
+              <BaseAvatar :color="delegation.isDelegating ? 'warning' : 'emerald'" :size="36">
+                {{ initials }}
+              </BaseAvatar>
+            </BaseBadge>
+            <div class="hidden text-start sm:block">
+              <div class="text-sm font-bold">
+                {{ user?.name }}
+              </div>
+              <div class="text-xs text-muted">
+                {{ delegation.isDelegating ? t('accounts.delegated') : roleLabel }}
+              </div>
+            </div>
+          </button>
+        </template>
+
+        <template #default="{ close }">
+          <div class="py-1">
+            <div class="px-4 py-1.5 text-xs font-bold text-muted">
+              {{ t('accounts.myAccounts') }}
+            </div>
+
+            <!-- الحساب الشخصي -->
+            <button class="menu-row" @click="delegation.isDelegating && exitDelegation(); close()">
+              <BaseAvatar color="emerald" :size="30">
+                {{ (delegation.originalUser?.name ?? user?.name ?? '؟').trim().charAt(0) }}
+              </BaseAvatar>
+              <div class="flex-1">
+                <div class="text-sm">{{ delegation.originalUser?.name ?? user?.name }}</div>
+                <div class="text-xs text-muted">{{ t('accounts.personal') }}</div>
+              </div>
+              <BaseChip v-if="!delegation.isDelegating" color="brand">{{ t('roleSwitcher.active') }}</BaseChip>
+            </button>
+
+            <!-- الحسابات المفوَّضة -->
+            <button
+              v-for="acc in delegation.accounts"
+              :key="acc.id"
+              class="menu-row"
+              :disabled="delegation.isDelegating && delegation.activeId !== acc.id"
+              :class="{ 'opacity-40': delegation.isDelegating && delegation.activeId !== acc.id }"
+              @click="delegation.activeId !== acc.id && enterAccount(acc.id); close()"
+            >
+              <BaseAvatar color="warning" tonal :size="30">
+                {{ acc.initial }}
+              </BaseAvatar>
+              <div class="flex-1">
+                <div class="text-sm">{{ acc.name }}</div>
+                <div class="text-xs text-muted">{{ acc.note }}</div>
+              </div>
+              <BaseChip v-if="delegation.activeId === acc.id" color="warning">{{ t('accounts.managing') }}</BaseChip>
+            </button>
+
+            <button v-if="delegation.isDelegating" class="menu-row" style="color: rgb(var(--v-theme-warning))" @click="exitDelegation(); close()">
+              <BaseIcon name="mdi-account-arrow-right-outline" :size="20" />
+              <span>{{ t('accounts.exit') }}</span>
+            </button>
+
+            <div class="my-1 border-t border-ui" />
+
+            <RouterLink class="menu-row" :to="{ name: 'wallet' }">
+              <BaseIcon name="mdi-wallet-outline" :size="20" />
+              <span class="flex-1">{{ t('nav.wallet') }}</span>
+              <BaseChip color="brand">{{ walletStore.available.toLocaleString('ar') }} ر.س</BaseChip>
+            </RouterLink>
+            <RouterLink class="menu-row" :to="{ name: 'profile' }">
+              <BaseIcon name="mdi-account-outline" :size="20" />
+              <span>{{ t('common.profile') }}</span>
+            </RouterLink>
+            <RouterLink class="menu-row" :to="{ name: 'settings' }">
+              <BaseIcon name="mdi-cog-outline" :size="20" />
+              <span>{{ t('common.settings') }}</span>
+            </RouterLink>
+
+            <div class="my-1 border-t border-ui" />
+
+            <button class="menu-row" style="color: rgb(var(--v-theme-error))" @click="logout(); close()">
+              <BaseIcon name="mdi-logout" :size="20" />
+              <span>{{ t('common.logout') }}</span>
+            </button>
+          </div>
+        </template>
+      </BaseDropdown>
+    </header>
+
+    <!-- ======== تنقّل سفلي للموبايل ======== -->
+    <nav
+      v-if="mobile"
+      class="fixed inset-x-0 bottom-0 z-30 flex h-16 items-stretch border-t border-ui bg-surface text-content"
+    >
+      <RouterLink class="flex flex-1 flex-col items-center justify-center gap-0.5 text-xs" :to="{ name: 'opportunities' }">
+        <BaseIcon name="mdi-briefcase-search-outline" :size="22" />
+        <span>الفرص</span>
+      </RouterLink>
+      <RouterLink class="flex flex-1 flex-col items-center justify-center gap-0.5 text-xs" :to="{ name: 'people-explorer' }">
+        <BaseIcon name="mdi-account-group-outline" :size="22" />
+        <span>الناس</span>
+      </RouterLink>
+      <RouterLink class="flex flex-1 flex-col items-center justify-center gap-0.5 text-xs" :to="{ name: 'unified-hub' }">
+        <BaseIcon name="mdi-view-dashboard-variant-outline" :size="22" />
+        <span>مركزك</span>
+      </RouterLink>
+      <RouterLink class="flex flex-1 flex-col items-center justify-center gap-0.5 text-xs" :to="{ name: 'wallet' }">
+        <BaseIcon name="mdi-wallet-outline" :size="22" />
+        <span>محفظتي</span>
+      </RouterLink>
+      <button class="flex flex-1 flex-col items-center justify-center gap-0.5 text-xs" @click="drawer = !drawer">
+        <BaseBadge :show="peerRequests.pendingIncoming > 0" dot color="error">
+          <BaseIcon name="mdi-menu" :size="22" />
+        </BaseBadge>
+        <span>القائمة</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- ============ المحتوى (ثيم المحتوى العام) ============ -->
+  <main
+    class="min-h-screen bg-bg text-content"
+    :style="{
+      paddingTop: '68px',
+      paddingInlineStart: mobile ? '0' : `${sidebarW}px`,
+      paddingBottom: mobile ? '64px' : '0',
+    }"
+  >
+    <!-- شريط سياق التفويض -->
+    <div
+      v-if="delegation.isDelegating && delegation.activeAccount"
+      class="m-3 mb-0 flex flex-wrap items-center gap-2 rounded-ui border-s-4 p-3 text-sm"
+      style="border-color: rgb(var(--v-theme-warning)); background: rgba(var(--v-theme-warning), 0.12); color: rgb(var(--v-theme-warning))"
+    >
+      <BaseIcon name="mdi-account-switch-outline" :size="20" />
+      <span>
+        {{ t('accounts.banner', { name: delegation.activeAccount.name }) }}
+        <span class="text-muted">({{ delegation.activeAccount.note }})</span>
+      </span>
+      <div class="flex-1" />
+      <button
+        class="inline-flex items-center gap-1 rounded-ui px-3 py-1.5 text-sm font-semibold text-on-brand"
+        style="background: rgb(var(--v-theme-warning))"
+        @click="exitDelegation"
+      >
+        <BaseIcon name="mdi-account-arrow-right-outline" :size="18" />
+        {{ t('accounts.exit') }}
+      </button>
+    </div>
+
+    <div class="p-4 md:p-6">
+      <slot />
+    </div>
+  </main>
 
   <!-- Global reward toasts + badge-unlock celebrations -->
   <RewardFeedback />
@@ -520,44 +580,19 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
   <WhatsNewDialog />
 
   <!-- Scroll to top -->
-  <VScaleTransition>
-    <VBtn
+  <Transition
+    enter-active-class="transition duration-200"
+    enter-from-class="opacity-0 scale-75"
+    leave-active-class="transition duration-150"
+    leave-to-class="opacity-0 scale-75"
+  >
+    <button
       v-show="showTop"
-      icon="mdi-chevron-up"
-      color="primary"
-      size="small"
-      elevation="6"
-      class="scroll-top-fab"
+      class="fixed bottom-6 start-6 z-[45] flex h-11 w-11 items-center justify-center rounded-full bg-brand text-on-brand shadow-lg shadow-black/30"
       aria-label="العودة للأعلى"
       @click="scrollTop"
-    />
-  </VScaleTransition>
+    >
+      <BaseIcon name="mdi-chevron-up" :size="24" />
+    </button>
+  </Transition>
 </template>
-
-<style scoped>
-.nav-section-header {
-  border-radius: 8px;
-  background: rgba(var(--v-theme-primary), 0.04);
-  min-height: 32px;
-}
-.nav-grid-tile {
-  min-height: 68px;
-}
-.nav-grid-label {
-  line-height: 1.2;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.role-switcher-inline {
-  border: 1px dashed rgba(var(--v-theme-primary), 0.25);
-  border-radius: 8px;
-  margin-inline: 4px;
-}
-.scroll-top-fab {
-  position: fixed;
-  bottom: 24px;
-  left: 24px;
-  z-index: 1000;
-}
-</style>

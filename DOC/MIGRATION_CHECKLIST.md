@@ -3,7 +3,7 @@
 > تتبّع تقدّم التحويل مرحلةً بمرحلة. الخطة الكاملة والقرارات في [`ARCHITECTURE.md`](./ARCHITECTURE.md).
 > الهدف: **Vue SPA + NestJS + JWT (`api/`) + Docker/Nginx/staging + Tailwind**، عقد `api/openapi.yaml` مصدر الحقيقة، Supabase محوّل يُنزع.
 
-**📍 الموضع الحالي:** انتهت المراحل 1–4 (كلها مُتحقَّقة حيًّا) — NestJS هو الباك-إند الوحيد (مصادقة + كل المخازن + بثّ لحظي WebSocket)، Supabase مُزال بالكامل. **التالي المرحلة 5** (Vuetify → Tailwind).
+**📍 الموضع الحالي:** انتهت المراحل 1–4 (كلها مُتحقَّقة حيًّا) — NestJS هو الباك-إند الوحيد (مصادقة + كل المخازن + بثّ لحظي WebSocket)، Supabase مُزال بالكامل. **المرحلة 5 جارية:** أساس Tailwind + بدائيات القشرة + **`DefaultLayout` كامل بـ Tailwind (مُتحقَّق حيًّا في الأوضاع الثلاثة + موبايل/سطح مكتب)**. **التالي:** الصفحات صفحةً بصفحة ثم نزع حزمة Vuetify.
 
 ---
 
@@ -50,8 +50,10 @@
 
 ## 🟡 المرحلة 5 — الواجهة: Vuetify → Tailwind — جارية
 - [x] **إعداد Tailwind (v3) بالتعايش مع Vuetify:** `postcss.config.js` + `tailwind.config.js` (**preflight مُطفأ** كي لا يُصفّر تنسيقات Vuetify) + `src/styles/tailwind.css` (مستورد قبل main.scss). **رموز التصميم مجسورة بمتغيّرات ثيم Vuetify** `--v-theme-*` (brand/accent/emerald/bg/surface/content/…) فتتزامن الألوان تلقائيًا مع تبديل الوضع؛ + `rounded-ui`/`rounded-ui-lg` من متغيّرات radius؛ + مساعدات alpha (`.border-ui`/`.text-muted`) لأن رموز Tailwind لا تدعم alpha على متغيّرات Vuetify المفصولة بفواصل.
-- [x] **مكوّنات أساس أولى** (`src/components/ui/`): `BaseButton` (5 أنماط×3 أحجام + loading/disabled) · `BaseCard` · `BaseChip` (نغمات دلالية). معرض `/ui-kit` للتحقّق. **مُتحقَّق حيًّا:** BaseButton brand = `rgb(163,230,53)` مطابق تمامًا لـ `--v-theme-primary`، radius 12px، الرقائق تُصيّر؛ **وVuetify سليم تمامًا** (زر الدخول #BEF264، الحقول radius 12px، العناوين 700) — أي التعايش بلا كسر. بلا أخطاء console. (بقية الأساس Dialog/Input… في دفعة لاحقة.)
-- [ ] القشرة والتخطيط (Layout/Sidebar/Topbar)
+- [x] **مكوّنات أساس أولى** (`src/components/ui/`): `BaseButton` (5 أنماط×3 أحجام + loading/disabled) · `BaseCard` · `BaseChip` (نغمات دلالية). معرض `/ui-kit` للتحقّق. **مُتحقَّق حيًّا:** BaseButton brand = `rgb(163,230,53)` مطابق تمامًا لـ `--v-theme-primary`، radius 12px، الرقائق تُصيّر؛ **وVuetify سليم تمامًا** (زر الدخول #BEF264، الحقول radius 12px، العناوين 700) — أي التعايش بلا كسر. بلا أخطاء console.
+- [x] **بدائيات القشرة** (`src/components/ui/`): `BaseIcon` (خطّ @mdi/font مباشرةً بلا VIcon) · `BaseAvatar` (دلالي/tonal/square) · `BaseBadge` (نقطة/عدّاد overlay بمواضع منطقية RTL + inline) · `BaseDropdown` (مُشغّل + لوحة، **إغلاق عبر طبقة backdrop كاملة الشاشة** لا مُصغي مستندي — بعد أن ثبت أن سباق pointerdown/الـTransition هشّ؛ + Escape + محاذاة RTL + closeOnContent). أُضيفت كلها لمعرض `/ui-kit`.
+- [x] **القشرة والتخطيط — `DefaultLayout.vue` أُعيد كتابته بالكامل Tailwind** (نُزع VNavigationDrawer/VAppBar/VMain/VBottomNavigation/VList/VMenu/VTabs). قائمة جانبية `fixed` (270px، مطوية rail 76px على سطح المكتب، overlay + backdrop على الموبايل عبر `rtl:/ltr:translate-x-full`)، شريط علوي `fixed` مُزاح بعرض القائمة، تنقّل سفلي للموبايل، محتوى `<main>` بحشوات منطقية. **الوضع المختلط:** القشرة ملفوفة بـ `<div class="v-theme--{chromeThemeName}">` فتُضبط متغيّرات `--v-theme-*` الداكنة لفرعها (بديل موثوق لـ VThemeProvider الذي لم يُصيّر عنصرًا). فئات حالة alpha (`.nav-link`/`.nav-tab`/`.menu-row`/`.icon-btn`/`.nav-tile`/`.dd-panel`) في `tailwind.css`. + مفتاح i18n `common.menu`. **مُتحقَّق حيًّا:** القائمة/الشريط يُصيّران، التبويبان (منصة/حسابي) يبدّلان ويلوّنان (نشط=brand 163,230,53 + خلفية 0.14 + 700)، تمييز الرابط النشط (`router-link-exact-active`=brand)، القائمتان المنسدلتان (الثيم + المستخدم) تفتحان وتُغلقان بالنقر خارجهما وEscape، الموبايل يُخفي القائمة خارج الشاشة + تنقّل سفلي 5 عناصر، سطح المكتب permanent + إزاحة 270px. **الأوضاع الثلاثة:** داكن (قشرة+محتوى داكن) · فاتح (كلاهما فاتح) · **مختلط (قشرة داكنة 22,34,27 + محتوى فاتح 255,255,255 ✓)**. typecheck + 185 اختبار + build خضراء، بلا أخطاء console.
+- [ ] بقية الأساس التفاعلي (Input/Dialog/…) عند الحاجة أثناء ترحيل الصفحات
 - [ ] الصفحات صفحةً بصفحة ثم نزع حزمة Vuetify
 - [ ] تحقّق حيّ بعد كل مجموعة (لقطات + تباين)
 
