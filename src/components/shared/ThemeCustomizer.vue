@@ -4,6 +4,11 @@ import { THEME_PRESETS } from '@/services/themePresets'
 import { isValidHex } from '@/services/themePresets'
 import { useThemeStore } from '@/stores/ThemeStore'
 import type { ThemeMode } from '@/stores/ThemeStore'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseChip from '@/components/ui/BaseChip.vue'
+import BaseIcon from '@/components/ui/BaseIcon.vue'
+import BaseInput from '@/components/ui/BaseInput.vue'
 
 const themeStore = useThemeStore()
 
@@ -39,101 +44,99 @@ function swatchStyle(presetId: string) {
 </script>
 
 <template>
-  <VCard class="pa-5" min-width="340" max-width="420">
-    <div class="d-flex align-center ga-2 mb-4">
-      <VIcon icon="mdi-palette-outline" color="primary" />
-      <h3 class="text-subtitle-1 font-weight-bold">تخصيص المظهر</h3>
+  <BaseCard class="min-w-[340px] max-w-[420px]">
+    <div class="mb-4 flex items-center gap-2">
+      <BaseIcon name="mdi-palette-outline" :size="22" :style="{ color: 'rgb(var(--v-theme-primary))' }" />
+      <h3 class="text-base font-bold text-content">تخصيص المظهر</h3>
     </div>
 
     <!-- الوضع -->
-    <div class="text-body-2 font-weight-bold mb-2">وضع العرض</div>
-    <VBtnToggle
-      :model-value="themeStore.mode"
-      mandatory
-      density="comfortable"
-      color="primary"
-      variant="outlined"
-      divided
-      class="mb-4 w-100"
-      @update:model-value="m => themeStore.setMode(m as ThemeMode)"
-    >
-      <VBtn v-for="m in MODES" :key="m.value" :value="m.value" class="flex-grow-1" :prepend-icon="m.icon" size="small">
+    <div class="mb-2 text-sm font-bold text-content">وضع العرض</div>
+    <div class="seg mb-4 w-full">
+      <button
+        v-for="m in MODES"
+        :key="m.value"
+        type="button"
+        class="seg-btn flex flex-1 items-center justify-center gap-1"
+        :class="{ 'is-active': themeStore.mode === m.value }"
+        @click="themeStore.setMode(m.value)"
+      >
+        <BaseIcon :name="m.icon" :size="16" />
         {{ m.label }}
-      </VBtn>
-    </VBtnToggle>
-    <p v-if="themeStore.isMixed" class="text-caption text-medium-emphasis mt-n2 mb-3">
+      </button>
+    </div>
+    <p v-if="themeStore.isMixed" class="-mt-2 mb-3 text-xs text-muted">
       المختلط: محتوى فاتح مع قوائم وشريط علوي داكنين.
     </p>
 
     <!-- الهويات الخمس -->
-    <div class="text-body-2 font-weight-bold mb-2">الهوية اللونية</div>
-    <div class="d-flex flex-column ga-1 mb-4">
-      <div
+    <div class="mb-2 text-sm font-bold text-content">الهوية اللونية</div>
+    <div class="mb-4 flex flex-col gap-1">
+      <button
         v-for="p in THEME_PRESETS"
         :key="p.id"
-        class="preset-row d-flex align-center ga-3 pa-2 rounded-lg cursor-pointer"
+        type="button"
+        class="preset-row flex cursor-pointer items-center gap-3 rounded-ui p-2 text-start"
         :class="{ 'preset-active': themeStore.presetId === p.id }"
         @click="themeStore.setPreset(p.id)"
       >
         <span class="preset-swatch" :style="swatchStyle(p.id)" />
-        <span class="text-body-2 flex-grow-1">{{ p.name }}</span>
-        <VIcon v-if="themeStore.presetId === p.id" icon="mdi-check-circle" color="primary" size="20" />
-      </div>
+        <span class="flex-1 text-sm text-content">{{ p.name }}</span>
+        <BaseIcon v-if="themeStore.presetId === p.id" name="mdi-check-circle" :size="20" :style="{ color: 'rgb(var(--v-theme-primary))' }" />
+      </button>
     </div>
 
     <!-- الألوان المخصصة -->
-    <div class="d-flex align-center ga-2 mb-2">
-      <span class="text-body-2 font-weight-bold">ألوان مخصصة</span>
-      <VChip size="x-small" variant="tonal" color="secondary" label>تتجاوز الهوية المختارة</VChip>
+    <div class="mb-2 flex items-center gap-2">
+      <span class="text-sm font-bold text-content">ألوان مخصصة</span>
+      <BaseChip color="emerald">تتجاوز الهوية المختارة</BaseChip>
     </div>
-    <div class="d-flex ga-2 mb-1">
-      <VTextField
+    <div class="mb-1 flex gap-2">
+      <BaseInput
         v-model="primaryHex"
         label="الأساسي"
         placeholder="#A3E635"
-        density="compact"
-        hide-details
         dir="ltr"
+        class="flex-1"
         @change="applyHex('primary', primaryHex)"
       >
-        <template #prepend-inner>
+        <template #suffix>
           <label class="color-well" :style="{ background: themeStore.customPrimary ?? 'transparent' }">
             <input type="color" :value="themeStore.customPrimary ?? '#A3E635'" @input="e => applyHex('primary', (e.target as HTMLInputElement).value)">
           </label>
         </template>
-      </VTextField>
-      <VTextField
+      </BaseInput>
+      <BaseInput
         v-model="secondaryHex"
         label="الثانوي"
         placeholder="#34D399"
-        density="compact"
-        hide-details
         dir="ltr"
+        class="flex-1"
         @change="applyHex('secondary', secondaryHex)"
       >
-        <template #prepend-inner>
+        <template #suffix>
           <label class="color-well" :style="{ background: themeStore.customSecondary ?? 'transparent' }">
             <input type="color" :value="themeStore.customSecondary ?? '#34D399'" @input="e => applyHex('secondary', (e.target as HTMLInputElement).value)">
           </label>
         </template>
-      </VTextField>
+      </BaseInput>
     </div>
-    <p class="text-caption text-medium-emphasis mb-2">لون النص المقابل يُحسب تلقائيًا لضمان التباين.</p>
-    <VBtn
+    <p class="mb-2 text-xs text-muted">لون النص المقابل يُحسب تلقائيًا لضمان التباين.</p>
+    <BaseButton
       v-if="themeStore.customPrimary || themeStore.customSecondary"
-      size="small"
-      variant="tonal"
-      prepend-icon="mdi-restore"
+      size="sm"
+      variant="tonal-brand"
       @click="themeStore.resetCustom()"
     >
+      <BaseIcon name="mdi-restore" :size="16" />
       العودة لألوان الهوية
-    </VBtn>
-  </VCard>
+    </BaseButton>
+  </BaseCard>
 </template>
 
 <style scoped>
 .preset-row {
-  border: 1px solid rgba(var(--v-border-color), 0.12);
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
   transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 .preset-row:hover {
@@ -148,13 +151,13 @@ function swatchStyle(presetId: string) {
   height: 28px;
   border-radius: 50%;
   flex-shrink: 0;
-  border: 2px solid rgba(var(--v-border-color), 0.2);
+  border: 2px solid rgba(var(--v-theme-on-surface), 0.2);
 }
 .color-well {
   width: 22px;
   height: 22px;
   border-radius: 6px;
-  border: 1px solid rgba(var(--v-border-color), 0.3);
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.3);
   overflow: hidden;
   cursor: pointer;
   display: inline-block;

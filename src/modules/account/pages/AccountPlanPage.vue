@@ -2,11 +2,17 @@
 import { computed } from 'vue'
 import PageHeader from '@/components/shared/PageHeader.vue'
 import type { AccountTier } from '@/stores/AccountPlanStore'
-import { ACCOUNT_TIER_META, SURVEY_LIMITS, TIER_FEATURES, TIER_RANK, useAccountPlanStore } from '@/stores/AccountPlanStore'
+import { ACCOUNT_TIER_META, TIER_FEATURES, TIER_RANK, useAccountPlanStore } from '@/stores/AccountPlanStore'
 import { useNotificationsStore } from '@/stores/NotificationsStore'
 import { usePublicProfileStore } from '@/stores/PublicProfileStore'
 import { useSurveysStore } from '@/stores/SurveysStore'
 import { useWalletStore } from '@/stores/WalletStore'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseChip from '@/components/ui/BaseChip.vue'
+import BaseIcon from '@/components/ui/BaseIcon.vue'
+import BaseAvatar from '@/components/ui/BaseAvatar.vue'
+import BaseProgressBar from '@/components/ui/BaseProgressBar.vue'
 
 // ===== باقة الحساب الموحّدة — كل التمكين من مكان واحد =====
 // embedded: تُعرض داخل مركز الإعدادات بلا ترويسة مكررة
@@ -19,6 +25,11 @@ const pub = usePublicProfileStore()
 const notifications = useNotificationsStore()
 
 const TIERS: AccountTier[] = ['free', 'pro', 'elite']
+
+type BaseColor = 'brand' | 'emerald' | 'accent' | 'success' | 'info' | 'warning' | 'error' | 'neutral'
+function mapColor(c: string): BaseColor {
+  return (({ primary: 'brand', secondary: 'emerald', 'medium-emphasis': 'neutral', 'surface-variant': 'neutral', grey: 'neutral', amber: 'warning' } as Record<string, BaseColor>)[c] ?? c) as BaseColor
+}
 
 function change(tier: AccountTier) {
   const ok = plan.setTier(tier)
@@ -60,106 +71,104 @@ const usage = computed(() => [
       icon="mdi-crown-outline"
     >
       <template #actions>
-        <VChip color="primary" variant="tonal" label prepend-icon="mdi-wallet-outline">
+        <BaseChip color="brand">
+          <BaseIcon name="mdi-wallet-outline" :size="14" />
           رصيدك: {{ wallet.available }} ر.س
-        </VChip>
+        </BaseChip>
       </template>
     </PageHeader>
-    <VAlert v-if="embedded" color="secondary" variant="tonal" density="compact" border="start" class="mb-4">
-      <div class="d-flex align-center ga-2 flex-wrap">
-        <span class="text-body-2">حساب واحد بكل الأدوار — والباقة وحدها تحدد التمكين عبر كل المنصة.</span>
-        <VSpacer />
-        <VChip size="small" color="primary" variant="tonal" label prepend-icon="mdi-wallet-outline">رصيدك: {{ wallet.available }} ر.س</VChip>
-      </div>
-    </VAlert>
+    <div
+      v-if="embedded"
+      class="mb-4 flex flex-wrap items-center gap-2 rounded-ui border-s-4 bg-surfalt px-4 py-3"
+      :style="{ borderColor: 'rgb(var(--v-theme-secondary))' }"
+    >
+      <span class="text-sm text-content">حساب واحد بكل الأدوار — والباقة وحدها تحدد التمكين عبر كل المنصة.</span>
+      <span class="flex-1" />
+      <BaseChip color="brand">
+        <BaseIcon name="mdi-wallet-outline" :size="14" />
+        رصيدك: {{ wallet.available }} ر.س
+      </BaseChip>
+    </div>
 
     <!-- بطاقات الباقات -->
-    <VRow class="mb-2">
-      <VCol v-for="t in TIERS" :key="t" cols="12" md="4">
-        <VCard
-          class="pa-5 h-100 d-flex flex-column tier-card"
-          :class="{ 'tier-current': plan.tier === t }"
-          :variant="plan.tier === t ? 'elevated' : 'outlined'"
-        >
-          <div class="d-flex align-center ga-2 mb-1">
-            <VAvatar :color="ACCOUNT_TIER_META[t].color" variant="tonal" size="40">
-              <VIcon :icon="ACCOUNT_TIER_META[t].icon" size="20" />
-            </VAvatar>
-            <div class="flex-grow-1">
-              <div class="text-subtitle-1 font-weight-bold">{{ ACCOUNT_TIER_META[t].label }}</div>
-              <div class="text-caption text-medium-emphasis">
-                {{ ACCOUNT_TIER_META[t].price ? `${ACCOUNT_TIER_META[t].price} ر.س / شهريًا` : 'مجانية للأبد' }}
-              </div>
-            </div>
-            <VChip v-if="plan.tier === t" size="small" color="success" label>باقتك</VChip>
-          </div>
-          <p class="text-body-2 text-medium-emphasis mb-3">{{ ACCOUNT_TIER_META[t].pitch }}</p>
-
-          <div class="flex-grow-1 mb-3">
-            <div
-              v-for="f in TIER_FEATURES"
-              :key="f.label"
-              class="d-flex align-start ga-2 py-1"
-              :class="{ 'feature-off': TIER_RANK[f.tier] > TIER_RANK[t] }"
-            >
-              <VIcon
-                :icon="TIER_RANK[f.tier] <= TIER_RANK[t] ? 'mdi-check-circle' : 'mdi-lock-outline'"
-                :color="TIER_RANK[f.tier] <= TIER_RANK[t] ? 'success' : 'medium-emphasis'"
-                size="16"
-                class="mt-1"
-              />
-              <span class="text-caption">{{ f.label }}</span>
+    <div class="mb-2 grid grid-cols-1 gap-4 md:grid-cols-3">
+      <BaseCard
+        v-for="t in TIERS"
+        :key="t"
+        class="flex h-full flex-col"
+        :class="plan.tier === t ? 'ring-2' : ''"
+        :style="plan.tier === t ? { '--tw-ring-color': 'rgb(var(--v-theme-success))' } : {}"
+      >
+        <div class="mb-1 flex items-center gap-2">
+          <BaseAvatar :color="mapColor(ACCOUNT_TIER_META[t].color)" tonal :size="40">
+            <BaseIcon :name="ACCOUNT_TIER_META[t].icon" :size="20" />
+          </BaseAvatar>
+          <div class="flex-1">
+            <div class="text-base font-bold text-content">{{ ACCOUNT_TIER_META[t].label }}</div>
+            <div class="text-xs text-muted">
+              {{ ACCOUNT_TIER_META[t].price ? `${ACCOUNT_TIER_META[t].price} ر.س / شهريًا` : 'مجانية للأبد' }}
             </div>
           </div>
+          <BaseChip v-if="plan.tier === t" color="success">باقتك</BaseChip>
+        </div>
+        <p class="mb-3 text-sm text-muted">{{ ACCOUNT_TIER_META[t].pitch }}</p>
 
-          <VBtn
-            v-if="plan.tier !== t"
-            :color="ACCOUNT_TIER_META[t].color"
-            :variant="TIER_RANK[t] > TIER_RANK[plan.tier] ? 'flat' : 'tonal'"
-            block
-            :prepend-icon="TIER_RANK[t] > TIER_RANK[plan.tier] ? 'mdi-arrow-up-bold-circle-outline' : 'mdi-arrow-down-bold-circle-outline'"
-            @click="change(t)"
+        <div class="mb-3 flex-1">
+          <div
+            v-for="f in TIER_FEATURES"
+            :key="f.label"
+            class="flex items-start gap-2 py-1"
+            :class="{ 'opacity-45': TIER_RANK[f.tier] > TIER_RANK[t] }"
           >
-            {{ TIER_RANK[t] > TIER_RANK[plan.tier] ? `ترقية (${ACCOUNT_TIER_META[t].price} ر.س)` : 'انتقال' }}
-          </VBtn>
-          <VBtn v-else variant="tonal" color="success" block disabled prepend-icon="mdi-check">مفعّلة</VBtn>
-        </VCard>
-      </VCol>
-    </VRow>
+            <BaseIcon
+              :name="TIER_RANK[f.tier] <= TIER_RANK[t] ? 'mdi-check-circle' : 'mdi-lock-outline'"
+              :size="16"
+              class="mt-0.5"
+              :style="{ color: TIER_RANK[f.tier] <= TIER_RANK[t] ? 'rgb(var(--v-theme-success))' : 'rgba(var(--v-theme-on-surface), 0.5)' }"
+            />
+            <span class="text-xs text-content">{{ f.label }}</span>
+          </div>
+        </div>
+
+        <BaseButton
+          v-if="plan.tier !== t"
+          block
+          :variant="TIER_RANK[t] > TIER_RANK[plan.tier] ? 'brand' : 'tonal-brand'"
+          @click="change(t)"
+        >
+          <BaseIcon :name="TIER_RANK[t] > TIER_RANK[plan.tier] ? 'mdi-arrow-up-bold-circle-outline' : 'mdi-arrow-down-bold-circle-outline'" :size="18" />
+          {{ TIER_RANK[t] > TIER_RANK[plan.tier] ? `ترقية (${ACCOUNT_TIER_META[t].price} ر.س)` : 'انتقال' }}
+        </BaseButton>
+        <BaseButton v-else block variant="tonal-emerald" disabled>
+          <BaseIcon name="mdi-check" :size="18" />
+          مفعّلة
+        </BaseButton>
+      </BaseCard>
+    </div>
 
     <!-- استهلاكك الحالي -->
-    <VCard class="pa-5">
-      <h2 class="text-subtitle-1 font-weight-bold mb-3"><VIcon icon="mdi-gauge" size="20" color="primary" class="me-1" />استهلاكك على باقتك الحالية</h2>
-      <VRow>
-        <VCol v-for="u in usage" :key="u.label" cols="12" sm="6">
-          <div class="d-flex align-center ga-2 mb-1">
-            <VIcon :icon="u.icon" size="18" color="secondary" />
-            <span class="text-body-2 flex-grow-1">{{ u.label }}</span>
-            <span class="text-caption font-weight-bold">{{ u.used }}<template v-if="u.limit != null"> / {{ u.limit }}</template><template v-else> / ∞</template></span>
+    <BaseCard>
+      <h2 class="mb-3 flex items-center gap-1 text-base font-bold text-content">
+        <BaseIcon name="mdi-gauge" :size="20" :style="{ color: 'rgb(var(--v-theme-primary))' }" />
+        استهلاكك على باقتك الحالية
+      </h2>
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div v-for="u in usage" :key="u.label">
+          <div class="mb-1 flex items-center gap-2">
+            <BaseIcon :name="u.icon" :size="18" :style="{ color: 'rgb(var(--v-theme-secondary))' }" />
+            <span class="flex-1 text-sm text-content">{{ u.label }}</span>
+            <span class="text-xs font-bold text-content">{{ u.used }}<template v-if="u.limit != null"> / {{ u.limit }}</template><template v-else> / ∞</template></span>
           </div>
-          <VProgressLinear
-            :model-value="u.limit != null ? Math.min(100, (u.used / u.limit) * 100) : 12"
+          <BaseProgressBar
+            :value="u.limit != null ? Math.min(100, (u.used / u.limit) * 100) : 12"
+            :height="8"
             :color="u.limit != null && u.used / u.limit > 0.85 ? 'warning' : 'primary'"
-            height="8"
-            rounded
           />
-        </VCol>
-      </VRow>
-      <p class="text-caption text-medium-emphasis mt-3 mb-0">
+        </div>
+      </div>
+      <p class="mb-0 mt-3 text-xs text-muted">
         كل الأدوار متاحة فورًا مهما كانت باقتك — الباقة تحدد سعة الأدوات ومزايا الظهور فقط.
       </p>
-    </VCard>
+    </BaseCard>
   </div>
 </template>
-
-<style scoped>
-.tier-card {
-  border: 1px solid rgba(140, 163, 150, 0.25);
-}
-.tier-current {
-  border: 2px solid rgb(var(--v-theme-success));
-}
-.feature-off {
-  opacity: 0.45;
-}
-</style>
