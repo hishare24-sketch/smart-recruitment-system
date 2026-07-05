@@ -1,14 +1,23 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import PageHeader from '@/components/shared/PageHeader.vue'
 import type { SurveyStatus } from '@/stores/SurveysStore'
 import { GENDER_META, STATUS_TRANSITIONS, SURVEY_REGIONS, SURVEY_STATUS_META, useSurveysStore } from '@/stores/SurveysStore'
 import { useNotificationsStore } from '@/stores/NotificationsStore'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseChip from '@/components/ui/BaseChip.vue'
+import BaseIcon from '@/components/ui/BaseIcon.vue'
+import BaseInput from '@/components/ui/BaseInput.vue'
+import BaseTextarea from '@/components/ui/BaseTextarea.vue'
+import BaseMultiSelect from '@/components/ui/BaseMultiSelect.vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
+import BaseSnackbar from '@/components/ui/BaseSnackbar.vue'
+import BaseProgressBar from '@/components/ui/BaseProgressBar.vue'
 
 // ===== مركز إدارة الاستبيان — الدورة الإدارية الكاملة =====
 const route = useRoute()
-const router = useRouter()
 const store = useSurveysStore()
 const notifications = useNotificationsStore()
 
@@ -17,6 +26,24 @@ const admin = computed(() => store.adminFor(Number(route.params.id)))
 const stats = computed(() => store.statsFor(Number(route.params.id)))
 
 const snackbar = ref('')
+
+type BaseColor = 'brand' | 'emerald' | 'accent' | 'success' | 'info' | 'warning' | 'error' | 'neutral'
+function mapColor(c?: string): BaseColor {
+  return (({ primary: 'brand', secondary: 'emerald', 'medium-emphasis': 'neutral', 'surface-variant': 'neutral', grey: 'neutral', orange: 'warning', amber: 'warning' } as Record<string, BaseColor>)[c ?? ''] ?? c ?? 'brand') as BaseColor
+}
+// اسم رمز ثيم صالح (تطبيع orange/surface-variant/grey)
+function normVar(c: string) {
+  return ({ orange: 'warning', 'surface-variant': 'on-surface', grey: 'on-surface', 'medium-emphasis': 'on-surface' } as Record<string, string>)[c] ?? c
+}
+function tonalStyle(c: string) {
+  const n = normVar(c)
+  return { background: `rgba(var(--v-theme-${n}), 0.16)`, color: `rgb(var(--v-theme-${n}))` }
+}
+function solidStyle(c: string) {
+  const n = normVar(c)
+  return { background: `rgb(var(--v-theme-${n}))`, color: n === 'on-surface' ? 'rgb(var(--v-theme-surface))' : `rgb(var(--v-theme-on-${n}))`, borderColor: 'transparent' }
+}
+const outlineStyle = { background: 'transparent', color: 'rgba(var(--v-theme-on-surface), 0.7)', borderColor: 'rgba(var(--v-theme-on-surface), 0.2)' }
 
 // —— دورة الحالة ——
 const LIFECYCLE: SurveyStatus[] = ['draft', 'scheduled', 'active', 'paused', 'closed', 'archived']
@@ -110,219 +137,199 @@ function saved() {
       icon="mdi-cog-transfer-outline"
     >
       <template #actions>
-        <VBtn variant="text" color="primary" prepend-icon="mdi-chart-box-outline" :to="{ name: 'survey-analysis', params: { id: survey.id } }">التحليل</VBtn>
-        <VBtn variant="tonal" color="secondary" prepend-icon="mdi-arrow-right" :to="{ name: 'surveys' }">استبياناتي</VBtn>
+        <BaseButton variant="ghost" size="sm" :to="{ name: 'survey-analysis', params: { id: survey.id } }"><BaseIcon name="mdi-chart-box-outline" :size="16" />التحليل</BaseButton>
+        <BaseButton variant="tonal-emerald" size="sm" :to="{ name: 'surveys' }"><BaseIcon name="mdi-arrow-right" :size="16" />استبياناتي</BaseButton>
       </template>
     </PageHeader>
 
     <!-- دورة الحالة -->
-    <VCard class="pa-5 mb-4">
-      <div class="d-flex align-center ga-2 mb-3 flex-wrap">
-        <VIcon icon="mdi-sync-circle" color="primary" />
-        <h2 class="text-subtitle-1 font-weight-bold">دورة الحياة</h2>
-        <VChip :color="SURVEY_STATUS_META[survey.status].color" label :prepend-icon="SURVEY_STATUS_META[survey.status].icon">
-          {{ SURVEY_STATUS_META[survey.status].label }}
-        </VChip>
+    <BaseCard class="mb-4">
+      <div class="mb-3 flex flex-wrap items-center gap-2">
+        <BaseIcon name="mdi-sync-circle" :size="22" :style="{ color: 'rgb(var(--v-theme-primary))' }" />
+        <h2 class="text-base font-bold text-content">دورة الحياة</h2>
+        <BaseChip :color="mapColor(SURVEY_STATUS_META[survey.status].color)"><BaseIcon :name="SURVEY_STATUS_META[survey.status].icon" :size="13" />{{ SURVEY_STATUS_META[survey.status].label }}</BaseChip>
       </div>
-      <div class="d-flex align-center flex-wrap ga-1 mb-3">
+      <div class="mb-3 flex flex-wrap items-center gap-1">
         <template v-for="(st, i) in LIFECYCLE" :key="st">
-          <VChip
-            size="small"
-            :color="survey.status === st ? SURVEY_STATUS_META[st].color : undefined"
-            :variant="survey.status === st ? 'flat' : 'outlined'"
-            label
-            :prepend-icon="SURVEY_STATUS_META[st].icon"
+          <span
+            class="inline-flex items-center gap-1 rounded-ui border px-2.5 py-1 text-sm font-medium"
+            :style="survey.status === st ? solidStyle(SURVEY_STATUS_META[st].color) : outlineStyle"
           >
-            {{ SURVEY_STATUS_META[st].label }}
-          </VChip>
-          <VIcon v-if="i < LIFECYCLE.length - 1" icon="mdi-chevron-left" size="16" color="medium-emphasis" />
+            <BaseIcon :name="SURVEY_STATUS_META[st].icon" :size="13" />{{ SURVEY_STATUS_META[st].label }}
+          </span>
+          <BaseIcon v-if="i < LIFECYCLE.length - 1" name="mdi-chevron-left" :size="16" :style="{ color: 'rgba(var(--v-theme-on-surface), 0.5)' }" />
         </template>
       </div>
-      <div class="d-flex ga-2 flex-wrap">
-        <VBtn
+      <div class="flex flex-wrap gap-2">
+        <button
           v-for="to in allowedNext"
           :key="to"
-          size="small"
-          :color="SURVEY_STATUS_META[to].color"
-          variant="tonal"
-          :prepend-icon="SURVEY_STATUS_META[to].icon"
+          type="button"
+          class="inline-flex items-center gap-1 rounded-ui px-3 py-1.5 text-sm font-medium transition"
+          :style="tonalStyle(SURVEY_STATUS_META[to].color)"
           @click="transition(to)"
         >
-          {{ to === 'active' && survey.status === 'closed' ? 'إعادة فتح' : SURVEY_STATUS_META[to].label }}
-        </VBtn>
-        <span v-if="!allowedNext.length" class="text-caption text-medium-emphasis">الأرشيف نهاية الدورة — انسخ الاستبيان لبدء دورة جديدة.</span>
+          <BaseIcon :name="SURVEY_STATUS_META[to].icon" :size="16" />{{ to === 'active' && survey.status === 'closed' ? 'إعادة فتح' : SURVEY_STATUS_META[to].label }}
+        </button>
+        <span v-if="!allowedNext.length" class="text-xs text-muted">الأرشيف نهاية الدورة — انسخ الاستبيان لبدء دورة جديدة.</span>
       </div>
-      <VAlert v-if="survey.status === 'scheduled'" color="info" variant="tonal" density="compact" border="start" class="mt-3 text-caption">
+      <div v-if="survey.status === 'scheduled'" class="mt-3 flex items-start gap-2 rounded-ui border-s-4 p-2 text-xs text-content" style="background: rgba(var(--v-theme-info), 0.14); border-color: rgb(var(--v-theme-info))">
         سيُفعَّل تلقائيًا في {{ survey.settings.startsAt ?? 'موعد البداية' }} — ويُغلق تلقائيًا عند انتهاء الموعد أو اكتمال الحصة أو استنفاد المجمع.
-      </VAlert>
-    </VCard>
+      </div>
+    </BaseCard>
 
     <!-- مؤشرات الإدارة -->
-    <VRow class="mb-1">
-      <VCol cols="6" md="3">
-        <VCard class="pa-4">
-          <div class="text-caption text-medium-emphasis mb-1">حصة المستبينين</div>
-          <div class="text-h6 font-weight-bold">{{ admin.quota.used }}<span v-if="admin.quota.limit" class="text-body-2 text-medium-emphasis"> / {{ admin.quota.limit }}</span></div>
-          <VProgressLinear v-if="admin.quota.pct !== null" :model-value="admin.quota.pct" color="primary" height="6" rounded class="mt-1" />
-          <div v-else class="text-caption text-medium-emphasis">بلا حد</div>
-        </VCard>
-      </VCol>
-      <VCol cols="6" md="3">
-        <VCard class="pa-4">
-          <div class="text-caption text-medium-emphasis mb-1">مجمع النقاط</div>
-          <div class="text-h6 font-weight-bold">{{ admin.budget.spent }}<span v-if="admin.budget.total" class="text-body-2 text-medium-emphasis"> / {{ admin.budget.total }}</span></div>
-          <VProgressLinear v-if="admin.budget.pct !== null" :model-value="admin.budget.pct" :color="admin.budget.pct > 85 ? 'error' : 'warning'" height="6" rounded class="mt-1" />
-          <div v-else class="text-caption text-medium-emphasis">بلا سقف</div>
-        </VCard>
-      </VCol>
-      <VCol cols="6" md="3">
-        <VCard class="pa-4">
-          <div class="text-caption text-medium-emphasis mb-1">نسبة الإكمال</div>
-          <div class="text-h6 font-weight-bold">{{ stats.completion }}%</div>
-          <div class="text-caption text-medium-emphasis">{{ stats.internal }} داخلي · {{ stats.external }} خارجي</div>
-        </VCard>
-      </VCol>
-      <VCol cols="6" md="3">
-        <VCard class="pa-4">
-          <div class="text-caption text-medium-emphasis mb-1">المهلة</div>
-          <div class="text-h6 font-weight-bold">{{ admin.daysLeft !== null ? `${admin.daysLeft} يومًا` : 'مفتوحة' }}</div>
-          <div class="text-caption text-medium-emphasis">{{ survey.settings.closesAt ? `تُغلق ${survey.settings.closesAt}` : 'بلا موعد إغلاق' }}</div>
-        </VCard>
-      </VCol>
-    </VRow>
+    <div class="mb-1 grid grid-cols-2 gap-4 md:grid-cols-4">
+      <BaseCard>
+        <div class="mb-1 text-xs text-muted">حصة المستبينين</div>
+        <div class="text-lg font-bold text-content">{{ admin.quota.used }}<span v-if="admin.quota.limit" class="text-sm text-muted"> / {{ admin.quota.limit }}</span></div>
+        <BaseProgressBar v-if="admin.quota.pct !== null" :value="admin.quota.pct" color="primary" :height="6" class="mt-1" />
+        <div v-else class="text-xs text-muted">بلا حد</div>
+      </BaseCard>
+      <BaseCard>
+        <div class="mb-1 text-xs text-muted">مجمع النقاط</div>
+        <div class="text-lg font-bold text-content">{{ admin.budget.spent }}<span v-if="admin.budget.total" class="text-sm text-muted"> / {{ admin.budget.total }}</span></div>
+        <BaseProgressBar v-if="admin.budget.pct !== null" :value="admin.budget.pct" :color="admin.budget.pct > 85 ? 'error' : 'warning'" :height="6" class="mt-1" />
+        <div v-else class="text-xs text-muted">بلا سقف</div>
+      </BaseCard>
+      <BaseCard>
+        <div class="mb-1 text-xs text-muted">نسبة الإكمال</div>
+        <div class="text-lg font-bold text-content">{{ stats.completion }}%</div>
+        <div class="text-xs text-muted">{{ stats.internal }} داخلي · {{ stats.external }} خارجي</div>
+      </BaseCard>
+      <BaseCard>
+        <div class="mb-1 text-xs text-muted">المهلة</div>
+        <div class="text-lg font-bold text-content">{{ admin.daysLeft !== null ? `${admin.daysLeft} يومًا` : 'مفتوحة' }}</div>
+        <div class="text-xs text-muted">{{ survey.settings.closesAt ? `تُغلق ${survey.settings.closesAt}` : 'بلا موعد إغلاق' }}</div>
+      </BaseCard>
+    </div>
 
-    <VRow>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-12">
       <!-- الجدولة والحدود والحوافز -->
-      <VCol cols="12" md="5">
-        <VCard class="pa-5 mb-4">
-          <h2 class="text-subtitle-1 font-weight-bold mb-3"><VIcon icon="mdi-calendar-range-outline" size="20" color="info" class="me-1" />الجدولة والحدود</h2>
-          <VRow dense>
-            <VCol cols="6"><VTextField v-model="survey.settings.startsAt" type="date" label="بداية المشاركة" density="compact" clearable @change="saved" /></VCol>
-            <VCol cols="6"><VTextField v-model="survey.settings.closesAt" type="date" label="نهاية المشاركة" density="compact" clearable @change="saved" /></VCol>
-            <VCol cols="12">
-              <VTextField v-model.number="survey.settings.responseLimit" type="number" label="حد عدد المستبينين" placeholder="بلا حد" density="compact" clearable @change="saved" />
-            </VCol>
-          </VRow>
-          <VAlert color="secondary" variant="tonal" density="compact" border="start" class="text-caption">
+      <div class="md:col-span-5">
+        <BaseCard class="mb-4">
+          <h2 class="mb-3 flex items-center gap-1 text-base font-bold text-content"><BaseIcon name="mdi-calendar-range-outline" :size="20" :style="{ color: 'rgb(var(--v-theme-info))' }" />الجدولة والحدود</h2>
+          <div class="grid grid-cols-2 gap-3">
+            <BaseInput v-model="survey.settings.startsAt" type="date" label="بداية المشاركة" @change="saved" />
+            <BaseInput v-model="survey.settings.closesAt" type="date" label="نهاية المشاركة" @change="saved" />
+            <BaseInput v-model.number="survey.settings.responseLimit" type="number" label="حد عدد المستبينين" placeholder="بلا حد" class="col-span-2" @change="saved" />
+          </div>
+          <div class="mt-3 rounded-ui border-s-4 p-2 text-xs text-content" style="background: rgba(var(--v-theme-secondary), 0.12); border-color: rgb(var(--v-theme-secondary))">
             عند بلوغ الحد أو انتهاء الموعد يُغلق الاستبيان تلقائيًا ويصلك إشعار.
-          </VAlert>
-        </VCard>
+          </div>
+        </BaseCard>
 
-        <VCard class="pa-5 mb-4">
-          <h2 class="text-subtitle-1 font-weight-bold mb-3"><VIcon icon="mdi-gift-outline" size="20" color="warning" class="me-1" />الحوافز</h2>
-          <VRow dense>
-            <VCol cols="6"><VTextField v-model.number="survey.settings.rewardPoints" type="number" label="نقاط لكل مشارك" density="compact" @change="saved" /></VCol>
-            <VCol cols="6"><VTextField v-model.number="survey.settings.rewardBudget" type="number" label="مجمع النقاط (حد القيمة)" placeholder="بلا سقف" density="compact" clearable @change="saved" /></VCol>
-          </VRow>
-          <p class="text-caption text-medium-emphasis mb-0">
+        <BaseCard class="mb-4">
+          <h2 class="mb-3 flex items-center gap-1 text-base font-bold text-content"><BaseIcon name="mdi-gift-outline" :size="20" :style="{ color: 'rgb(var(--v-theme-warning))' }" />الحوافز</h2>
+          <div class="grid grid-cols-2 gap-3">
+            <BaseInput v-model.number="survey.settings.rewardPoints" type="number" label="نقاط لكل مشارك" @change="saved" />
+            <BaseInput v-model.number="survey.settings.rewardBudget" type="number" label="مجمع النقاط (حد القيمة)" placeholder="بلا سقف" @change="saved" />
+          </div>
+          <p class="mb-0 mt-3 text-xs text-muted">
             المصروف حتى الآن: <b>{{ survey.rewardsSpent }}</b> نقطة
             <template v-if="survey.settings.rewardBudget"> — المتبقي {{ Math.max(0, survey.settings.rewardBudget - survey.rewardsSpent) }} تكفي
               {{ survey.settings.rewardPoints ? Math.floor(Math.max(0, survey.settings.rewardBudget - survey.rewardsSpent) / survey.settings.rewardPoints) : '∞' }} مشاركًا.</template>
           </p>
-        </VCard>
+        </BaseCard>
 
-        <VCard class="pa-5">
-          <h2 class="text-subtitle-1 font-weight-bold mb-3"><VIcon icon="mdi-target-account" size="20" color="accent" class="me-1" />الاستهداف</h2>
-          <VSelect
-            v-model="survey.targeting.regions"
-            :items="SURVEY_REGIONS"
-            label="النطاق الجغرافي"
-            multiple chips closable-chips clearable
-            placeholder="كل المناطق"
-            density="compact"
-            class="mb-2"
-            @update:model-value="saved"
-          />
-          <VBtnToggle v-model="survey.targeting.gender" mandatory color="accent" variant="outlined" density="compact" class="mb-3 w-100" @update:model-value="saved">
-            <VBtn v-for="(label, g) in GENDER_META" :key="g" :value="g" size="small" class="flex-grow-1">{{ label }}</VBtn>
-          </VBtnToggle>
-          <VRow dense>
-            <VCol cols="6"><VTextField v-model.number="survey.targeting.ageMin" type="number" label="العمر من" placeholder="بلا حد" density="compact" clearable @change="saved" /></VCol>
-            <VCol cols="6"><VTextField v-model.number="survey.targeting.ageMax" type="number" label="العمر إلى" placeholder="بلا حد" density="compact" clearable @change="saved" /></VCol>
-          </VRow>
-          <p class="text-caption text-medium-emphasis mb-0">يظهر الاستبيان في «استبيانات للمشاركة» للجمهور المطابق، ويُعرض الاستهداف في صفحة الإجابة.</p>
-        </VCard>
-      </VCol>
+        <BaseCard>
+          <h2 class="mb-3 flex items-center gap-1 text-base font-bold text-content"><BaseIcon name="mdi-target-account" :size="20" :style="{ color: 'rgb(var(--v-theme-accent))' }" />الاستهداف</h2>
+          <label class="mb-1 block text-sm font-medium text-muted">النطاق الجغرافي</label>
+          <BaseMultiSelect v-model="survey.targeting.regions" :options="SURVEY_REGIONS" placeholder="كل المناطق" class="mb-2" @update:model-value="saved" />
+          <div class="seg mb-3 w-full">
+            <button
+              v-for="(label, g) in GENDER_META"
+              :key="g"
+              type="button"
+              class="seg-btn flex-1"
+              :class="{ 'is-active': survey.targeting.gender === g }"
+              @click="survey.targeting.gender = (g as typeof survey.targeting.gender); saved()"
+            >{{ label }}</button>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <BaseInput v-model.number="survey.targeting.ageMin" type="number" label="العمر من" placeholder="بلا حد" @change="saved" />
+            <BaseInput v-model.number="survey.targeting.ageMax" type="number" label="العمر إلى" placeholder="بلا حد" @change="saved" />
+          </div>
+          <p class="mb-0 mt-3 text-xs text-muted">يظهر الاستبيان في «استبيانات للمشاركة» للجمهور المطابق، ويُعرض الاستهداف في صفحة الإجابة.</p>
+        </BaseCard>
+      </div>
 
       <!-- المستبينون -->
-      <VCol cols="12" md="7">
-        <VCard class="pa-5">
-          <div class="d-flex align-center justify-space-between flex-wrap ga-2 mb-1">
-            <h2 class="text-subtitle-1 font-weight-bold"><VIcon icon="mdi-account-multiple-check-outline" size="20" color="primary" class="me-1" />المستبينون ({{ admin.invitees.total }})</h2>
-            <div class="d-flex ga-2">
-              <VBtn size="small" variant="tonal" color="secondary" prepend-icon="mdi-file-delimited-outline" @click="importDialog = true">استيراد شيت</VBtn>
-              <VBtn size="small" color="primary" variant="flat" prepend-icon="mdi-email-fast-outline" :disabled="!admin.invitees.pending || survey.status !== 'active'" @click="sendInvites">
-                دعوة المعلّقين ({{ admin.invitees.pending }})
-              </VBtn>
+      <div class="md:col-span-7">
+        <BaseCard>
+          <div class="mb-1 flex flex-wrap items-center justify-between gap-2">
+            <h2 class="flex items-center gap-1 text-base font-bold text-content"><BaseIcon name="mdi-account-multiple-check-outline" :size="20" :style="{ color: 'rgb(var(--v-theme-primary))' }" />المستبينون ({{ admin.invitees.total }})</h2>
+            <div class="flex gap-2">
+              <BaseButton size="sm" variant="tonal-emerald" @click="importDialog = true"><BaseIcon name="mdi-file-delimited-outline" :size="16" />استيراد شيت</BaseButton>
+              <BaseButton size="sm" variant="brand" :disabled="!admin.invitees.pending || survey.status !== 'active'" @click="sendInvites">
+                <BaseIcon name="mdi-email-fast-outline" :size="16" />دعوة المعلّقين ({{ admin.invitees.pending }})
+              </BaseButton>
             </div>
           </div>
 
           <!-- قُمع الدعوات -->
-          <div class="d-flex ga-2 mb-3 flex-wrap">
-            <VChip size="small" color="warning" variant="tonal" label>معلّق: {{ admin.invitees.pending }}</VChip>
-            <VChip size="small" color="info" variant="tonal" label>دُعي: {{ admin.invitees.invited }}</VChip>
-            <VChip size="small" color="success" variant="tonal" label>استجاب: {{ admin.invitees.responded }}</VChip>
+          <div class="mb-3 flex flex-wrap gap-2">
+            <BaseChip color="warning">معلّق: {{ admin.invitees.pending }}</BaseChip>
+            <BaseChip color="info">دُعي: {{ admin.invitees.invited }}</BaseChip>
+            <BaseChip color="success">استجاب: {{ admin.invitees.responded }}</BaseChip>
           </div>
 
-          <VTable v-if="survey.invitees.length" density="compact">
-            <thead>
-              <tr>
-                <th class="text-start">الاسم</th>
-                <th class="text-start">جهة الاتصال</th>
-                <th class="text-start">المصدر</th>
-                <th class="text-start">الحالة</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="i in survey.invitees" :key="i.id">
-                <td class="font-weight-bold">{{ i.name }}</td>
-                <td dir="ltr" class="text-start">{{ i.contact }}</td>
-                <td><VChip size="x-small" :color="i.source === 'internal' ? 'primary' : 'secondary'" variant="tonal" label>{{ i.source === 'internal' ? 'داخل المنصة' : 'خارجها' }}</VChip></td>
-                <td><VChip size="x-small" :color="INVITEE_STATUS_META[i.status].color" label>{{ INVITEE_STATUS_META[i.status].label }}</VChip></td>
-                <td><VBtn icon="mdi-delete-outline" size="x-small" variant="text" color="error" @click="store.removeInvitee(survey.id, i.id)" /></td>
-              </tr>
-            </tbody>
-          </VTable>
-          <div v-else class="pa-6 text-center text-medium-emphasis">
-            <VIcon icon="mdi-account-multiple-plus-outline" size="40" />
-            <p class="text-body-2 mt-1 mb-0">استورد قائمة مستبينين من شيت CSV/Excel — من داخل المنصة أو خارجها.</p>
+          <div v-if="survey.invitees.length" class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-ui text-start text-xs text-muted">
+                  <th class="p-2 text-start font-medium">الاسم</th>
+                  <th class="p-2 text-start font-medium">جهة الاتصال</th>
+                  <th class="p-2 text-start font-medium">المصدر</th>
+                  <th class="p-2 text-start font-medium">الحالة</th>
+                  <th class="p-2" />
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="i in survey.invitees" :key="i.id" class="border-b border-ui">
+                  <td class="p-2 font-bold text-content">{{ i.name }}</td>
+                  <td class="p-2 text-start text-content" dir="ltr">{{ i.contact }}</td>
+                  <td class="p-2"><BaseChip :color="i.source === 'internal' ? 'brand' : 'emerald'">{{ i.source === 'internal' ? 'داخل المنصة' : 'خارجها' }}</BaseChip></td>
+                  <td class="p-2"><BaseChip :color="mapColor(INVITEE_STATUS_META[i.status].color)">{{ INVITEE_STATUS_META[i.status].label }}</BaseChip></td>
+                  <td class="p-2"><button class="icon-btn h-8 w-8" style="color: rgb(var(--v-theme-error))" aria-label="حذف" @click="store.removeInvitee(survey.id, i.id)"><BaseIcon name="mdi-delete-outline" :size="16" /></button></td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-        </VCard>
-      </VCol>
-    </VRow>
+          <div v-else class="py-6 text-center text-muted">
+            <BaseIcon name="mdi-account-multiple-plus-outline" :size="40" />
+            <p class="mb-0 mt-1 text-sm">استورد قائمة مستبينين من شيت CSV/Excel — من داخل المنصة أو خارجها.</p>
+          </div>
+        </BaseCard>
+      </div>
+    </div>
 
     <!-- استيراد شيت -->
-    <VDialog v-model="importDialog" max-width="560">
-      <VCard class="pa-2">
-        <VCardTitle>استيراد المستبينين من شيت</VCardTitle>
-        <VCardText>
-          <VBtnToggle v-model="importSource" mandatory color="primary" variant="outlined" divided class="mb-3 w-100">
-            <VBtn value="internal" class="flex-grow-1" prepend-icon="mdi-account-check-outline">من داخل المنصة</VBtn>
-            <VBtn value="external" class="flex-grow-1" prepend-icon="mdi-account-arrow-left-outline">من خارج المنصة</VBtn>
-          </VBtnToggle>
-          <VFileInput label="ملف CSV (من Excel: حفظ باسم ← CSV)" accept=".csv,.txt" density="compact" prepend-icon="mdi-file-delimited-outline" @change="onFile" />
-          <VAlert v-if="fileError" color="warning" variant="tonal" density="compact" border="start" class="mb-2 text-caption">{{ fileError }}</VAlert>
-          <VTextarea v-model="csvText" label="أو الصق الصفوف مباشرة" rows="5" placeholder="الاسم,البريد أو الجوال&#10;سارة العتيبي,sara@mail.com&#10;محمد الحارثي,0551234567" dir="ltr" />
-          <div class="d-flex align-center justify-space-between">
-            <VBtn size="x-small" variant="text" color="secondary" prepend-icon="mdi-download-outline" @click="downloadTemplate">تحميل قالب جاهز</VBtn>
-            <span class="text-caption text-medium-emphasis">{{ parseCsv(csvText).length }} صفًا صالحًا</span>
-          </div>
-        </VCardText>
-        <VCardActions>
-          <VSpacer />
-          <VBtn variant="text" @click="importDialog = false">إلغاء</VBtn>
-          <VBtn color="primary" variant="flat" :disabled="!parseCsv(csvText).length" prepend-icon="mdi-import" @click="doImport">استيراد</VBtn>
-        </VCardActions>
-      </VCard>
-    </VDialog>
+    <BaseModal v-model="importDialog" title="استيراد المستبينين من شيت" :max-width="560">
+      <div class="seg mb-3 w-full">
+        <button type="button" class="seg-btn flex flex-1 items-center justify-center gap-1" :class="{ 'is-active': importSource === 'internal' }" @click="importSource = 'internal'"><BaseIcon name="mdi-account-check-outline" :size="16" />من داخل المنصة</button>
+        <button type="button" class="seg-btn flex flex-1 items-center justify-center gap-1" :class="{ 'is-active': importSource === 'external' }" @click="importSource = 'external'"><BaseIcon name="mdi-account-arrow-left-outline" :size="16" />من خارج المنصة</button>
+      </div>
+      <label class="mb-1 block text-sm font-medium text-muted">ملف CSV (من Excel: حفظ باسم ← CSV)</label>
+      <input type="file" accept=".csv,.txt" class="mb-2 block w-full text-sm text-content file:me-3 file:rounded-ui file:border-0 file:bg-surfalt file:px-3 file:py-1.5 file:text-content" @change="onFile">
+      <div v-if="fileError" class="mb-2 rounded-ui border-s-4 p-2 text-xs text-content" style="background: rgba(var(--v-theme-warning), 0.14); border-color: rgb(var(--v-theme-warning))">{{ fileError }}</div>
+      <BaseTextarea v-model="csvText" label="أو الصق الصفوف مباشرة" :rows="5" placeholder="الاسم,البريد أو الجوال&#10;سارة العتيبي,sara@mail.com&#10;محمد الحارثي,0551234567" dir="ltr" />
+      <div class="mt-2 flex items-center justify-between">
+        <BaseButton size="sm" variant="ghost" @click="downloadTemplate"><BaseIcon name="mdi-download-outline" :size="16" :style="{ color: 'rgb(var(--v-theme-secondary))' }" /><span :style="{ color: 'rgb(var(--v-theme-secondary))' }">تحميل قالب جاهز</span></BaseButton>
+        <span class="text-xs text-muted">{{ parseCsv(csvText).length }} صفًا صالحًا</span>
+      </div>
+      <template #actions>
+        <BaseButton variant="ghost" @click="importDialog = false">إلغاء</BaseButton>
+        <BaseButton variant="brand" :disabled="!parseCsv(csvText).length" @click="doImport"><BaseIcon name="mdi-import" :size="16" />استيراد</BaseButton>
+      </template>
+    </BaseModal>
 
-    <VSnackbar :model-value="!!snackbar" timeout="2600" color="secondary" @update:model-value="snackbar = ''">{{ snackbar }}</VSnackbar>
+    <BaseSnackbar :model-value="!!snackbar" :timeout="2600" color="secondary" @update:model-value="snackbar = ''">{{ snackbar }}</BaseSnackbar>
   </div>
 
-  <VCard v-else class="pa-8 text-center ma-4">
-    <VIcon icon="mdi-help-circle-outline" size="48" color="medium-emphasis" class="mb-2" />
-    <p class="text-body-1">الاستبيان غير موجود.</p>
-    <VBtn color="primary" variant="tonal" :to="{ name: 'surveys' }">عودة لاستبياناتي</VBtn>
-  </VCard>
+  <BaseCard v-else class="m-4 py-8 text-center">
+    <BaseIcon name="mdi-help-circle-outline" :size="48" :style="{ color: 'rgba(var(--v-theme-on-surface), 0.5)' }" />
+    <p class="text-content">الاستبيان غير موجود.</p>
+    <BaseButton variant="tonal-brand" :to="{ name: 'surveys' }">عودة لاستبياناتي</BaseButton>
+  </BaseCard>
 </template>
