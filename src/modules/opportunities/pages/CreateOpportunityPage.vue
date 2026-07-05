@@ -4,10 +4,12 @@ import PageHeader from '@/components/shared/PageHeader.vue'
 import { usePostedOpportunitiesStore } from '@/stores/PostedOpportunitiesStore'
 import { useGamificationStore } from '@/stores/GamificationStore'
 import { ai } from '@/services/ai'
-import { OPPORTUNITY_TYPES } from '@/services/sectors'
+import { OPPORTUNITY_TYPES, classifyText } from '@/services/sectors'
+import { useReviewQueueStore } from '@/stores/ReviewQueueStore'
 
 const store = usePostedOpportunitiesStore()
 const gamification = useGamificationStore()
+const review = useReviewQueueStore()
 
 const title = ref('')
 const department = ref<string | null>(null)
@@ -45,6 +47,9 @@ const typeLabel = computed(() => typeOptions.find(t => t.value === type.value)?.
 const classification = computed(() => ai.autoClassify(`${title.value} ${description.value} ${skills.value.join(' ')}`))
 const suggestedSkills = computed(() => classification.value.suggestedSkills.filter(s => !skills.value.includes(s)))
 const hasInput = computed(() => !!(title.value.trim() || description.value.trim()))
+
+// حوكمة التصنيف: تنبيه حيّ إن كانت الفرصة تحتاج مراجعة إدارية (غامضة/عامة/بلا تطابق)
+const governance = computed(() => classifyText(`${title.value} ${description.value} ${skills.value.join(' ')}`))
 function addSuggestedSkill(s: string) {
   if (!skills.value.includes(s))
     skills.value = [...skills.value, s]
@@ -93,8 +98,12 @@ function publish() {
     status: 'published',
     salaryRange: salaryRange.value,
   })
+  // حوكمة: وجّه الفرص الغامضة/العامة لطابور المراجعة الإدارية بدل قبولها بصمت
+  const g = governance.value
+  if (g.needsReview)
+    review.flag({ kind: 'opportunity', title: title.value, reason: g.reason ?? 'تحتاج مراجعة تصنيف', suggestedSector: g.sectorId })
   gamification.record('postOpportunity', `نشرت فرصة «${title.value}»`)
-  snackbar.value = 'تم نشر الفرصة بنجاح!'
+  snackbar.value = g.needsReview ? 'نُشرت الفرصة — وأُحيلت لمراجعة التصنيف' : 'تم نشر الفرصة بنجاح!'
   resetForm()
 }
 
@@ -165,6 +174,11 @@ function openPreview() {
                   <VIcon icon="mdi-plus" start size="12" />{{ s }}
                 </VChip>
               </div>
+            </VAlert>
+
+            <!-- حوكمة التصنيف: تنبيه المراجعة الإدارية -->
+            <VAlert v-if="hasInput && governance.needsReview" color="warning" variant="tonal" density="comfortable" class="mt-2" border="start" icon="mdi-alert-outline">
+              <span class="text-body-2">هذه الفرصة قد تحتاج مراجعة تصنيف: <strong>{{ governance.reason }}</strong>. ستُحال تلقائيًّا لطابور المراجعة عند النشر.</span>
             </VAlert>
           </VCard>
 

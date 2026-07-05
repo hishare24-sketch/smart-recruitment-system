@@ -378,6 +378,79 @@ export function isGenericLabel(label: string): boolean {
   return GENERIC_BLOCKLIST.includes(n)
 }
 
+/** قواعد الحوكمة السبع (ورقة 07) — مرجع + المفروضة آليًّا معلّمة `enforced` */
+export const GOVERNANCE_RULES: { id: string, rule: string, example: string, enforced: boolean }[] = [
+  { id: 'shared_sectors', rule: 'الأقسام القطاعية مشتركة بين الباحثين والجهات والخبراء.', example: 'قطاع التقنية يستخدمه الجميع.', enforced: true },
+  { id: 'sector_vs_title', rule: 'الفصل بين القطاع (مستوى أعلى) والمسمّى/التخصّص (مستوى أدق).', example: 'التقنية ← تطوير البرمجيات ← مطور Laravel', enforced: true },
+  { id: 'type_vs_sector', rule: 'نوع الفرصة حقل مستقل عن القطاع.', example: 'شراكة نوع فرصة لا قطاع.', enforced: true },
+  { id: 'no_generic', rule: 'لا تظهر كلمات عامة كأقسام رئيسية.', example: 'عمال/موظفين/تقني/متفرقات → تخصّص أو مراجعة.', enforced: true },
+  { id: 'user_vs_sector', rule: 'مسمّى المستخدم (الطرف) منفصل عن قطاعه.', example: 'خبير مهني + قطاع الموارد البشرية.', enforced: false },
+  { id: 'dual_context', rule: 'التصنيفات المزدوجة عبر وسم ثانوي حسب السياق.', example: 'حدائق: خدمات منزلية أو زراعة.', enforced: false },
+  { id: 'other_hidden', rule: '«أخرى» ليست خيارًا بارزًا؛ تُراجَع دوريًّا.', example: 'متفرقات تُحوَّل لقطاعات فعلية.', enforced: true },
+]
+
+/** القطاعات المرئية للمنتقيات — تُخفي «أخرى/S21» افتراضيًّا (قاعدة other_hidden) */
+export function visibleSectors(includeOther = false): Sector[] {
+  return sectorsByPriority().filter(s => includeOther || s.code !== 'S21')
+}
+
+export interface ClassificationResult {
+  /** كود القطاع المُقترَح (قد يكون S21 عند الحاجة للمراجعة) */
+  sectorCode?: string
+  sectorId?: string
+  /** يحتاج مراجعة إدارية؟ (كلمة عامة · بلا تطابق · غموض · أخرى) */
+  needsReview: boolean
+  reason?: string
+}
+
+/**
+ * تصنيف نصّ حرّ إلى قطاع مع تطبيق الحوكمة: الكلمات العامة وعدم التطابق والغموض
+ * و«أخرى» تُوجَّه للمراجعة الإدارية بدل قبولها بصمت.
+ */
+export function classifyText(text: string): ClassificationResult {
+  const raw = (text ?? '').trim()
+  if (!raw)
+    return { needsReview: true, reason: 'نصّ فارغ' }
+  if (isGenericLabel(raw))
+    return { sectorCode: 'S21', sectorId: 'other', needsReview: true, reason: `كلمة عامة «${raw}» تحتاج تصنيفًا دقيقًا` }
+
+  const t = raw.toLowerCase()
+  const counts = new Map<string, number>()
+  const bump = (code: string, n: number) => counts.set(code, (counts.get(code) ?? 0) + n)
+  for (const s of SECTORS) {
+    if (raw.includes(s.label))
+      bump(s.code, 2)
+    for (const sub of s.subs) {
+      if (raw.includes(sub.label))
+        bump(s.code, 2)
+      for (const kw of sub.keywords) {
+        if (t.includes(kw.toLowerCase()))
+          bump(s.code, 1)
+      }
+      for (const sk of sub.skills) {
+        if (t.includes(sk.toLowerCase()))
+          bump(s.code, 1)
+      }
+    }
+  }
+
+  const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1])
+  if (!sorted.length)
+    return { sectorCode: 'S21', sectorId: 'other', needsReview: true, reason: 'لم يُطابَق أي قطاع' }
+
+  const [topCode, topScore] = sorted[0]
+  if (topCode === 'S21')
+    return { sectorCode: 'S21', sectorId: 'other', needsReview: true, reason: 'مصنّف كأخرى' }
+
+  const ambiguous = sorted.length > 1 && sorted[1][1] === topScore
+  return {
+    sectorCode: topCode,
+    sectorId: getSector(topCode)?.id,
+    needsReview: ambiguous,
+    reason: ambiguous ? 'تصنيف غامض (تعادل قطاعين) — يُنصح بالمراجعة' : undefined,
+  }
+}
+
 // ————————————————————————————————————————————————————————————————
 // مساعدات الوصول والبحث
 // ————————————————————————————————————————————————————————————————

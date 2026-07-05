@@ -1,25 +1,27 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import PageHeader from '@/components/shared/PageHeader.vue'
 import StatCard from '@/components/shared/StatCard.vue'
 import { useRoleRequestsStore } from '@/stores/RoleRequestsStore'
+import { useReviewQueueStore } from '@/stores/ReviewQueueStore'
 import { ROLE_META } from '@/services/roles'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
 const roleRequests = useRoleRequestsStore()
+const review = useReviewQueueStore()
 const snackbar = ref('')
 function decideRequest(id: number, approve: boolean, name: string) {
   roleRequests.decide(id, approve)
   snackbar.value = approve ? `اعتُمد طلب ${name} وفُعّل الدور` : `رُفض طلب ${name}`
 }
 
-const stats = [
+const stats = computed(() => [
   { title: 'إجمالي المستخدمين', value: '14,208', icon: 'mdi-account-multiple-outline', color: 'primary' },
   { title: 'الفرص النشطة', value: '3,142', icon: 'mdi-briefcase-outline', color: 'secondary' },
   { title: 'التوصيات الموثّقة', value: '8,761', icon: 'mdi-account-star-outline', color: 'accent' },
-  { title: 'السير المنشأة', value: '5,930', icon: 'mdi-file-account-outline', color: 'success' },
-]
+  { title: 'بانتظار مراجعة التصنيف', value: String(review.pendingCount), icon: 'mdi-tag-search-outline', color: 'warning' },
+])
 
 const usersByRole = [
   { label: 'باحثون عن عمل', value: 68, color: 'primary' },

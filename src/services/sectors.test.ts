@@ -3,7 +3,10 @@ import {
   ALL_SECTOR_SKILLS,
   ALL_SUBS,
   GENERIC_BLOCKLIST,
+  GOVERNANCE_RULES,
+  classifyText,
   LEGACY_SECTOR_MAP,
+  visibleSectors,
   OPPORTUNITY_TYPES,
   OPPORTUNITY_TYPE_IDS,
   OPP_TYPE_FROM_REQUEST_KIND,
@@ -132,6 +135,44 @@ describe('sectors — governance', () => {
     const tags = s20.subs.filter(x => x.type === 'opportunity_tag').map(x => x.id)
     expect(tags).toContain('business_partnerships')
     expect(tags).toContain('cofounder')
+  })
+
+  it('documents the 7 governance rules and enforces at least the two required', () => {
+    expect(GOVERNANCE_RULES.length).toBe(7)
+    expect(GOVERNANCE_RULES.find(r => r.id === 'no_generic')?.enforced).toBe(true)
+    expect(GOVERNANCE_RULES.find(r => r.id === 'other_hidden')?.enforced).toBe(true)
+  })
+
+  it('hides «أخرى/S21» from visible sectors by default', () => {
+    expect(visibleSectors().some(s => s.code === 'S21')).toBe(false)
+    expect(visibleSectors(true).some(s => s.code === 'S21')).toBe(true)
+    expect(visibleSectors().length).toBe(20)
+  })
+})
+
+describe('classifyText — governance-aware classification', () => {
+  it('classifies clear text to the right sector without review', () => {
+    const r = classifyText('مطور Laravel للعمل على واجهات Vue')
+    expect(r.sectorCode).toBe('S01')
+    expect(r.sectorId).toBe('technology')
+    expect(r.needsReview).toBe(false)
+  })
+
+  it('flags a generic word for admin review', () => {
+    const r = classifyText('عمال')
+    expect(r.needsReview).toBe(true)
+    expect(r.sectorId).toBe('other')
+    expect(r.reason).toContain('عامة')
+  })
+
+  it('flags unmatched text for review under «أخرى»', () => {
+    const r = classifyText('نصّ لا ينتمي لأي قطاع إطلاقًا زقفثول')
+    expect(r.needsReview).toBe(true)
+    expect(r.sectorId).toBe('other')
+  })
+
+  it('flags empty text', () => {
+    expect(classifyText('   ').needsReview).toBe(true)
   })
 })
 
