@@ -2,11 +2,20 @@
 import { computed, ref } from 'vue'
 import PageHeader from '@/components/shared/PageHeader.vue'
 import type { MarketExpert, MarketExpertRole } from '@/stores/ExpertRolesStore'
-import { MARKET_EXPERTS, MARKET_ROLE_META } from '@/stores/ExpertRolesStore'
+import { EXPERT_TIER_META, MARKET_EXPERTS, MARKET_ROLE_META, expertTier } from '@/stores/ExpertRolesStore'
 import type { PeerRequestType } from '@/stores/PeerRequestsStore'
 import { usePeerRequestsStore } from '@/stores/PeerRequestsStore'
 import { useNotificationsStore } from '@/stores/NotificationsStore'
 import { useAuthStore } from '@/stores/AuthStore'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseChip from '@/components/ui/BaseChip.vue'
+import BaseIcon from '@/components/ui/BaseIcon.vue'
+import BaseAvatar from '@/components/ui/BaseAvatar.vue'
+import BaseInput from '@/components/ui/BaseInput.vue'
+import BaseTextarea from '@/components/ui/BaseTextarea.vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
+import BaseSnackbar from '@/components/ui/BaseSnackbar.vue'
 
 // السوق الموحّد لاكتشاف خبراء النظام البيئي (جانب الطلب) — يغذي الطلبات المتبادلة
 const peerRequests = usePeerRequestsStore()
@@ -15,6 +24,7 @@ const authStore = useAuthStore()
 
 const roleFilter = ref<'all' | MarketExpertRole>('all')
 const search = ref('')
+const snackbar = ref(false)
 
 const filtered = computed(() =>
   MARKET_EXPERTS
@@ -24,6 +34,17 @@ const filtered = computed(() =>
       return !q || e.name.includes(q) || e.specialty.includes(q) || e.title.includes(q)
     }),
 )
+
+type BaseColor = 'brand' | 'emerald' | 'accent' | 'success' | 'info' | 'warning' | 'error' | 'neutral'
+function roleColor(role: MarketExpertRole): BaseColor {
+  return ({ coach: 'brand', trainer: 'info', consultant: 'warning' } as Record<MarketExpertRole, BaseColor>)[role]
+}
+function tierColor(c: string): BaseColor {
+  return (({ primary: 'brand', secondary: 'emerald' } as Record<string, BaseColor>)[c] ?? c) as BaseColor
+}
+function tierOf(e: MarketExpert) {
+  return EXPERT_TIER_META[expertTier(e.clients)]
+}
 
 // دور الخبير → نوع الطلب المتبادل المقابل
 const ROLE_TO_REQUEST: Record<MarketExpertRole, PeerRequestType> = {
@@ -53,6 +74,7 @@ function sendRequest() {
     attachments: [],
   })
   requestDialog.value = false
+  snackbar.value = true
   notifications.push({
     icon: MARKET_ROLE_META[e.role].icon,
     color: 'success',
@@ -64,7 +86,6 @@ function sendRequest() {
   })
 }
 
-// جانب العرض: دعوة أصحاب الخبرة للانضمام
 const canJoin = computed(() => !!authStore.authUser)
 </script>
 
@@ -77,105 +98,108 @@ const canJoin = computed(() => !!authStore.authUser)
     />
 
     <!-- فلاتر -->
-    <div class="d-flex flex-wrap align-center ga-3 mb-4">
-      <VBtnToggle v-model="roleFilter" mandatory color="primary" variant="outlined" density="comfortable">
-        <VBtn value="all" size="small">الكل ({{ MARKET_EXPERTS.length }})</VBtn>
-        <VBtn v-for="(meta, role) in MARKET_ROLE_META" :key="role" :value="role" size="small" :prepend-icon="meta.icon">
-          {{ meta.label }}
-        </VBtn>
-      </VBtnToggle>
-      <VTextField
-        v-model="search"
-        placeholder="ابحث بالاسم أو التخصص..."
-        prepend-inner-icon="mdi-magnify"
-        density="compact"
-        hide-details
-        clearable
-        style="max-width: 280px"
-      />
+    <div class="mb-4 flex flex-wrap items-center gap-3">
+      <div class="rounded-ui inline-flex flex-wrap overflow-hidden border-ui">
+        <button
+          class="px-3 py-2 text-sm transition"
+          :class="roleFilter === 'all' ? 'bg-brand text-on-brand' : 'text-muted hover:bg-surfalt'"
+          @click="roleFilter = 'all'"
+        >الكل ({{ MARKET_EXPERTS.length }})</button>
+        <button
+          v-for="(meta, role) in MARKET_ROLE_META"
+          :key="role"
+          class="flex items-center gap-1 px-3 py-2 text-sm transition"
+          :class="roleFilter === role ? 'bg-brand text-on-brand' : 'text-muted hover:bg-surfalt'"
+          @click="roleFilter = role"
+        >
+          <BaseIcon :name="meta.icon" :size="16" /> {{ meta.label }}
+        </button>
+      </div>
+      <BaseInput v-model="search" prefix-icon="mdi-magnify" placeholder="ابحث بالاسم أو التخصص..." class="w-[280px]">
+        <template #suffix>
+          <button v-if="search" type="button" class="text-muted" aria-label="مسح" @click="search = ''">
+            <BaseIcon name="mdi-close" :size="18" />
+          </button>
+        </template>
+      </BaseInput>
     </div>
 
-    <VRow>
-      <VCol v-for="e in filtered" :key="e.id" cols="12" sm="6" lg="4">
-        <VCard class="pa-5 h-100 d-flex flex-column">
-          <div class="d-flex align-center ga-3 mb-2">
-            <VAvatar :color="MARKET_ROLE_META[e.role].color" variant="tonal" size="48">
-              <span class="text-h6 font-weight-bold">{{ e.initial }}</span>
-            </VAvatar>
-            <div class="flex-grow-1">
-              <div class="d-flex align-center ga-1">
-                <span class="text-body-1 font-weight-bold">{{ e.name }}</span>
-                <VIcon v-if="e.verified" icon="mdi-check-decagram" color="primary" size="16" />
-              </div>
-              <div class="text-caption text-medium-emphasis">{{ e.title }}</div>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <BaseCard v-for="e in filtered" :key="e.id" class="flex h-full flex-col">
+        <div class="mb-2 flex items-center gap-3">
+          <BaseAvatar :color="roleColor(e.role)" :size="48" tonal>{{ e.initial }}</BaseAvatar>
+          <div class="flex-1">
+            <div class="flex items-center gap-1">
+              <span class="font-bold">{{ e.name }}</span>
+              <BaseIcon v-if="e.verified" name="mdi-check-decagram" :size="16" style="color: rgb(var(--v-theme-primary))" />
             </div>
+            <div class="text-xs text-muted">{{ e.title }}</div>
           </div>
+        </div>
 
-          <VChip size="small" :color="MARKET_ROLE_META[e.role].color" variant="tonal" label :prepend-icon="MARKET_ROLE_META[e.role].icon" class="align-self-start mb-2">
-            {{ MARKET_ROLE_META[e.role].label }}
-          </VChip>
+        <div class="mb-2 flex flex-wrap gap-1">
+          <BaseChip :color="roleColor(e.role)"><BaseIcon :name="MARKET_ROLE_META[e.role].icon" :size="14" /> {{ MARKET_ROLE_META[e.role].label }}</BaseChip>
+          <BaseChip :color="tierColor(tierOf(e).color)"><BaseIcon :name="tierOf(e).icon" :size="14" /> {{ tierOf(e).label }}</BaseChip>
+        </div>
 
-          <div class="text-body-2 mb-3">{{ e.specialty }}</div>
+        <div class="mb-3 text-sm">{{ e.specialty }}</div>
 
-          <div class="d-flex align-center ga-3 text-caption text-medium-emphasis mb-3 mt-auto">
-            <span><VIcon icon="mdi-star" color="warning" size="14" /> {{ e.rating }}</span>
-            <span><VIcon icon="mdi-account-group-outline" size="14" /> {{ e.clients }} عميلًا</span>
-            <span class="ms-auto font-weight-bold text-primary">من {{ e.priceFrom }} ﷼ {{ e.priceUnit }}</span>
-          </div>
+        <div class="mb-3 mt-auto flex items-center gap-3 text-xs text-muted">
+          <span class="flex items-center gap-1"><BaseIcon name="mdi-star" :size="14" style="color: #f59e0b" /> {{ e.rating }}</span>
+          <span class="flex items-center gap-1"><BaseIcon name="mdi-account-group-outline" :size="14" /> {{ e.clients }} عميلًا</span>
+          <span class="ms-auto font-bold" style="color: rgb(var(--v-theme-primary))">من {{ e.priceFrom }} ﷼ {{ e.priceUnit }}</span>
+        </div>
 
-          <div class="d-flex ga-2">
-            <VBtn variant="outlined" size="small" :to="{ name: 'expert-profile', params: { slug: e.slug } }">
-              الملف
-            </VBtn>
-            <VBtn :color="MARKET_ROLE_META[e.role].color" variant="flat" size="small" class="flex-grow-1" prepend-icon="mdi-send" @click="openRequest(e)">
-              اطلب {{ MARKET_ROLE_META[e.role].service }}
-            </VBtn>
-          </div>
-        </VCard>
-      </VCol>
-    </VRow>
+        <div class="flex gap-2">
+          <BaseButton variant="outline" size="sm" :to="{ name: 'expert-profile', params: { slug: e.slug } }">الملف</BaseButton>
+          <BaseButton :variant="e.role === 'consultant' ? 'accent' : e.role === 'trainer' ? 'emerald' : 'brand'" size="sm" class="flex-1" @click="openRequest(e)">
+            <BaseIcon name="mdi-send" :size="16" /> اطلب {{ MARKET_ROLE_META[e.role].service }}
+          </BaseButton>
+        </div>
+      </BaseCard>
+    </div>
 
-    <VCard v-if="!filtered.length" class="pa-10 text-center">
-      <VIcon icon="mdi-magnify-remove-outline" size="48" color="medium-emphasis" />
-      <p class="text-body-2 text-medium-emphasis mt-2 mb-0">لا نتائج مطابقة — جرّب تخصصًا أو اسمًا آخر.</p>
-    </VCard>
+    <BaseCard v-if="!filtered.length" class="py-10 text-center">
+      <BaseIcon name="mdi-magnify-remove-outline" :size="48" class="text-muted" />
+      <p class="mt-2 text-sm text-muted">لا نتائج مطابقة — جرّب تخصصًا أو اسمًا آخر.</p>
+    </BaseCard>
 
     <!-- دعوة جانب العرض -->
-    <VCard v-if="canJoin" class="brand-gradient pa-5 mt-6 text-center" theme="darkTheme">
-      <p class="text-body-1 text-white mb-3">لديك خبرة إرشاد أو تدريب أو استشارة؟ انضم إلى السوق وحوّل خبرتك إلى دخل.</p>
-      <div class="d-flex justify-center flex-wrap ga-2">
-        <VBtn v-for="(meta, role) in MARKET_ROLE_META" :key="role" color="accent" variant="outlined" size="small" :prepend-icon="meta.icon" :to="`/join/${role}`">
-          انضم {{ meta.label }}
-        </VBtn>
+    <div v-if="canJoin" class="brand-gradient rounded-ui-lg mt-6 p-5 text-center">
+      <p class="mb-3 text-white">لديك خبرة إرشاد أو تدريب أو استشارة؟ انضم إلى السوق وحوّل خبرتك إلى دخل.</p>
+      <div class="flex flex-wrap justify-center gap-2">
+        <RouterLink
+          v-for="(meta, role) in MARKET_ROLE_META"
+          :key="role"
+          :to="`/join/${role}`"
+          class="rounded-ui inline-flex items-center gap-1 border border-white/60 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-white/10"
+        >
+          <BaseIcon :name="meta.icon" :size="16" /> انضم {{ meta.label }}
+        </RouterLink>
       </div>
-    </VCard>
+    </div>
 
     <!-- طلب خدمة -->
-    <VDialog v-model="requestDialog" max-width="480">
-      <VCard v-if="selected" class="pa-2">
-        <VCardTitle class="d-flex align-center ga-2">
-          <VIcon :icon="MARKET_ROLE_META[selected.role].icon" :color="MARKET_ROLE_META[selected.role].color" />
-          طلب {{ MARKET_ROLE_META[selected.role].service }}
-        </VCardTitle>
-        <VCardText>
-          <div class="d-flex align-center ga-2 mb-3">
-            <VAvatar :color="MARKET_ROLE_META[selected.role].color" variant="tonal" size="36">
-              <span class="font-weight-bold">{{ selected.initial }}</span>
-            </VAvatar>
-            <div>
-              <div class="text-body-2 font-weight-bold">{{ selected.name }}</div>
-              <div class="text-caption text-medium-emphasis">{{ selected.specialty }} · من {{ selected.priceFrom }} ﷼ {{ selected.priceUnit }}</div>
-            </div>
+    <BaseModal v-model="requestDialog" :title="selected ? `طلب ${MARKET_ROLE_META[selected.role].service}` : ''" :max-width="480">
+      <template v-if="selected">
+        <div class="mb-3 flex items-center gap-2">
+          <BaseAvatar :color="roleColor(selected.role)" :size="36" tonal>{{ selected.initial }}</BaseAvatar>
+          <div>
+            <div class="text-sm font-bold">{{ selected.name }}</div>
+            <div class="text-xs text-muted">{{ selected.specialty }} · من {{ selected.priceFrom }} ﷼ {{ selected.priceUnit }}</div>
           </div>
-          <VTextarea v-model="reason" label="صف هدفك من الخدمة" rows="3" auto-grow placeholder="مثال: أريد خطة انتقال من الدعم الفني إلى تطوير الواجهات خلال 6 أشهر" />
-          <p class="text-caption text-medium-emphasis mb-0">يصل طلبك للخبير عبر «الطلبات المتبادلة» وتتابع رده من هناك.</p>
-        </VCardText>
-        <VCardActions>
-          <VSpacer />
-          <VBtn variant="text" @click="requestDialog = false">إلغاء</VBtn>
-          <VBtn :color="MARKET_ROLE_META[selected.role].color" variant="flat" :disabled="!reason.trim()" prepend-icon="mdi-send" @click="sendRequest">إرسال الطلب</VBtn>
-        </VCardActions>
-      </VCard>
-    </VDialog>
+        </div>
+        <BaseTextarea v-model="reason" label="صف هدفك من الخدمة" :rows="3" placeholder="مثال: أريد خطة انتقال من الدعم الفني إلى تطوير الواجهات خلال 6 أشهر" />
+        <p class="mt-2 text-xs text-muted">يصل طلبك للخبير عبر «الطلبات المتبادلة» وتتابع رده من هناك.</p>
+      </template>
+      <template #actions>
+        <BaseButton variant="ghost" @click="requestDialog = false">إلغاء</BaseButton>
+        <BaseButton :variant="selected?.role === 'consultant' ? 'accent' : 'brand'" :disabled="!reason.trim()" @click="sendRequest">
+          <BaseIcon name="mdi-send" :size="18" /> إرسال الطلب
+        </BaseButton>
+      </template>
+    </BaseModal>
+
+    <BaseSnackbar v-model="snackbar" color="success" :timeout="3000">أُرسل طلبك — تابع في الطلبات المتبادلة.</BaseSnackbar>
   </div>
 </template>
