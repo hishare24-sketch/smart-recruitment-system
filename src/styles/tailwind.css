@@ -70,6 +70,29 @@
     background: rgba(var(--v-theme-on-surface), 0.08);
   }
 
+  /* أزرار tonal (خلفية alpha من اللون الدلالي) — رموز Tailwind لا تدعم alpha على متغيّرات Vuetify */
+  .btn-tonal-brand {
+    background: rgba(var(--v-theme-primary), 0.14);
+    color: rgb(var(--v-theme-primary));
+  }
+  .btn-tonal-brand:hover {
+    background: rgba(var(--v-theme-primary), 0.22);
+  }
+  .btn-tonal-accent {
+    background: rgba(var(--v-theme-accent), 0.16);
+    color: rgb(var(--v-theme-accent));
+  }
+  .btn-tonal-accent:hover {
+    background: rgba(var(--v-theme-accent), 0.24);
+  }
+  .btn-tonal-emerald {
+    background: rgba(var(--v-theme-secondary), 0.16);
+    color: rgb(var(--v-theme-secondary));
+  }
+  .btn-tonal-emerald:hover {
+    background: rgba(var(--v-theme-secondary), 0.24);
+  }
+
   /* دخول لطيف للوحة المنسدلة عبر CSS فقط (لا Transition من Vue كي يبقى الإزالة فوريًّا) */
   .dd-panel {
     animation: dd-in 0.15s ease-out;

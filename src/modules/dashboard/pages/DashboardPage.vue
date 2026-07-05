@@ -13,9 +13,21 @@ import { useInterviewersStore } from '@/stores/InterviewersStore'
 import StatCard from '@/components/shared/StatCard.vue'
 import GamificationCard from '@/components/shared/GamificationCard.vue'
 import OpportunityCard from '@/modules/opportunities/components/OpportunityCard.vue'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseChip from '@/components/ui/BaseChip.vue'
+import BaseIcon from '@/components/ui/BaseIcon.vue'
+import BaseAvatar from '@/components/ui/BaseAvatar.vue'
+import BaseProgressRing from '@/components/ui/BaseProgressRing.vue'
 import { mockOpportunities } from '@/modules/opportunities/services/mockOpportunities'
 import { LEVEL_META } from '@/stores/InterviewsStore'
 import { ai } from '@/services/ai'
+
+// تحويل رمز لون Vuetify إلى نغمة BaseChip
+type ChipColor = 'brand' | 'emerald' | 'accent' | 'success' | 'info' | 'warning' | 'error' | 'neutral'
+function chipColor(c: string): ChipColor {
+  return (({ primary: 'brand', secondary: 'emerald', amber: 'warning' } as Record<string, ChipColor>)[c] ?? c) as ChipColor
+}
 
 const { t } = useI18n()
 const authStore = useAuthStore()
@@ -141,184 +153,182 @@ const aiSuggestions = [
 <template>
   <div>
     <!-- AI greeting banner -->
-    <VCard class="brand-gradient mb-6 pa-5" theme="darkTheme">
-      <div class="d-flex align-center ga-4">
-        <VAvatar color="rgba(255,255,255,0.15)" size="56" rounded="lg">
-          <VIcon icon="mdi-robot-happy-outline" size="30" color="white" />
-        </VAvatar>
+    <div class="brand-gradient rounded-ui-lg mb-6 p-5">
+      <div class="flex items-center gap-4">
+        <div class="flex h-14 w-14 items-center justify-center rounded-ui" style="background: rgba(255, 255, 255, 0.15)">
+          <BaseIcon name="mdi-robot-happy-outline" :size="30" class="text-white" />
+        </div>
         <div class="text-white">
-          <div class="text-h6 font-weight-bold">
+          <div class="text-xl font-bold">
             {{ t('dashboard.welcome', { name: userName }) }}
           </div>
-          <div class="text-body-2 opacity-90">
+          <div class="text-sm opacity-90">
             {{ t('dashboard.aiGreeting', { opportunities: 3, wishes: 6, endorsements: 2 }) }}
           </div>
         </div>
       </div>
-    </VCard>
+    </div>
 
     <!-- Proactive AI nudges (seeker + company) -->
-    <div v-if="(isCompany ? companyNudges : proactiveNudges).length" class="mb-4 d-flex flex-column ga-2">
-      <VAlert
+    <div v-if="(isCompany ? companyNudges : proactiveNudges).length" class="mb-4 flex flex-col gap-2">
+      <div
         v-for="(n, i) in (isCompany ? companyNudges : proactiveNudges)"
         :key="i"
-        :type="n.tone"
-        variant="tonal"
-        density="compact"
-        border="start"
+        class="rounded-ui border-s-4 p-3"
+        :style="{ borderColor: `rgb(var(--v-theme-${n.tone}))`, background: `rgba(var(--v-theme-${n.tone}), 0.1)` }"
       >
-        <div class="d-flex align-center justify-space-between flex-wrap ga-2">
-          <div class="d-flex align-center ga-2">
-            <VIcon :icon="n.icon" size="20" />
-            <span class="text-body-2">{{ n.text }}</span>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <BaseIcon :name="n.icon" :size="20" :style="{ color: `rgb(var(--v-theme-${n.tone}))` }" />
+            <span class="text-sm">{{ n.text }}</span>
           </div>
-          <VBtn v-if="n.action" size="x-small" variant="flat" :color="n.tone === 'warning' ? 'warning' : 'accent'" :to="{ name: n.action }">
+          <RouterLink
+            v-if="n.action"
+            :to="{ name: n.action }"
+            class="rounded-ui inline-flex h-8 items-center px-3 text-sm font-semibold text-on-accent"
+            :style="{ background: `rgb(var(--v-theme-${n.tone === 'warning' ? 'warning' : 'accent'}))` }"
+          >
             {{ n.actionLabel }}
-          </VBtn>
+          </RouterLink>
         </div>
-      </VAlert>
+      </div>
     </div>
 
     <!-- Stat cards -->
-    <VRow class="mb-2">
-      <VCol v-for="stat in stats" :key="stat.title" cols="12" sm="6" lg="3">
-        <StatCard v-bind="stat" />
-      </VCol>
-    </VRow>
+    <div class="mb-2 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <StatCard v-for="stat in stats" :key="stat.title" v-bind="stat" />
+    </div>
 
-    <VRow>
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
       <!-- Main column -->
-      <VCol cols="12" lg="8">
-        <div class="d-flex align-center justify-space-between mb-3 mt-2">
-          <h2 class="text-h6 font-weight-bold">
+      <div class="lg:col-span-2">
+        <div class="mb-3 mt-2 flex items-center justify-between">
+          <h2 class="text-xl font-bold">
             {{ isCompany ? 'أحدث الترشيحات' : t('dashboard.recommendedOpportunities') }}
           </h2>
-          <VBtn variant="text" color="secondary" :to="{ name: isCompany ? 'candidates' : 'opportunities' }" size="small">
+          <RouterLink
+            :to="{ name: isCompany ? 'candidates' : 'opportunities' }"
+            class="rounded-ui px-2 py-1 text-sm font-medium transition hover:bg-surfalt"
+            style="color: rgb(var(--v-theme-secondary))"
+          >
             {{ t('dashboard.viewAll') }}
-          </VBtn>
+          </RouterLink>
         </div>
 
         <!-- Company: latest candidates -->
-        <VCard v-if="isCompany">
-          <VList lines="two">
-            <template v-for="(c, i) in topCandidates" :key="c.id">
-              <VListItem @click="$router.push({ name: 'candidate-profile', params: { id: c.id } })">
-                <template #prepend>
-                  <VAvatar color="secondary"><span class="font-weight-bold">{{ c.name.charAt(0) }}</span></VAvatar>
-                </template>
-                <VListItemTitle class="font-weight-bold">{{ c.name }}</VListItemTitle>
-                <VListItemSubtitle>{{ c.title }} · تطابق {{ c.matchRate }}%</VListItemSubtitle>
-                <template #append>
-                  <VChip color="success" size="small" label>{{ c.matchRate }}%</VChip>
-                </template>
-              </VListItem>
-              <VDivider v-if="i < topCandidates.length - 1" />
-            </template>
-          </VList>
-        </VCard>
+        <BaseCard v-if="isCompany" :padded="false">
+          <button
+            v-for="(c, i) in topCandidates"
+            :key="c.id"
+            class="flex w-full items-center gap-3 p-4 text-start transition hover:bg-surfalt"
+            :class="i < topCandidates.length - 1 ? 'border-b border-ui' : ''"
+            @click="$router.push({ name: 'candidate-profile', params: { id: c.id } })"
+          >
+            <BaseAvatar color="emerald" :size="40">{{ c.name.charAt(0) }}</BaseAvatar>
+            <div class="flex-1">
+              <div class="font-bold">{{ c.name }}</div>
+              <div class="text-sm text-muted">{{ c.title }} · تطابق {{ c.matchRate }}%</div>
+            </div>
+            <BaseChip color="success">{{ c.matchRate }}%</BaseChip>
+          </button>
+        </BaseCard>
 
         <!-- Seeker: recommended opportunities -->
-        <VRow v-else>
-          <VCol v-for="opp in recommended" :key="opp.id" cols="12" md="6">
-            <OpportunityCard :opportunity="opp" />
-          </VCol>
-        </VRow>
+        <div v-else class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <OpportunityCard v-for="opp in recommended" :key="opp.id" :opportunity="opp" />
+        </div>
 
         <!-- Incoming wishes -->
-        <h2 class="text-h6 font-weight-bold mb-3 mt-5">
+        <h2 class="mb-3 mt-5 text-xl font-bold">
           {{ isCompany ? 'الرغبات المرسلة' : t('dashboard.latestWishes') }}
         </h2>
-        <VCard>
-          <VList lines="two">
-            <template v-for="(wish, i) in wishes" :key="i">
-              <VListItem>
-                <template #prepend>
-                  <VAvatar color="secondary" variant="tonal" rounded="lg">
-                    <VIcon icon="mdi-hand-heart-outline" />
-                  </VAvatar>
-                </template>
-                <VListItemTitle class="font-weight-bold">
-                  {{ wish.company }}
-                </VListItemTitle>
-                <VListItemSubtitle>
-                  {{ wish.amount }} · {{ wish.duration }}
-                </VListItemSubtitle>
-                <template #append>
-                  <VChip :color="wishStatusMeta[wish.status].color" size="small" label>
-                    {{ wishStatusMeta[wish.status].label }}
-                  </VChip>
-                </template>
-              </VListItem>
-              <VDivider v-if="i < wishes.length - 1" />
-            </template>
-          </VList>
-        </VCard>
-      </VCol>
+        <BaseCard :padded="false">
+          <div
+            v-for="(wish, i) in wishes"
+            :key="i"
+            class="flex items-center gap-3 p-4"
+            :class="i < wishes.length - 1 ? 'border-b border-ui' : ''"
+          >
+            <BaseAvatar color="emerald" :size="40" tonal square>
+              <BaseIcon name="mdi-hand-heart-outline" :size="22" />
+            </BaseAvatar>
+            <div class="flex-1">
+              <div class="font-bold">{{ wish.company }}</div>
+              <div class="text-sm text-muted">{{ wish.amount }} · {{ wish.duration }}</div>
+            </div>
+            <BaseChip :color="chipColor(wishStatusMeta[wish.status].color)">
+              {{ wishStatusMeta[wish.status].label }}
+            </BaseChip>
+          </div>
+        </BaseCard>
+      </div>
 
       <!-- Side column -->
-      <VCol cols="12" lg="4">
+      <div>
         <!-- Trust summary (seeker) -->
-        <VCard v-if="!isCompany" class="pa-4 mt-2 mb-4">
-          <div class="d-flex align-center ga-4">
-            <VProgressCircular :model-value="trustStore.score" :size="72" :width="8" :color="trustStore.level.color">
-              <span class="text-subtitle-1 font-weight-bold">{{ trustStore.score }}</span>
-            </VProgressCircular>
-            <div class="flex-grow-1">
-              <div class="d-flex align-center ga-2">
-                <span class="text-subtitle-2 font-weight-bold">نسبة الثقة</span>
-                <VChip :color="trustStore.level.color" size="x-small" label>{{ trustStore.level.label }}</VChip>
+        <BaseCard v-if="!isCompany" class="mt-2 mb-4">
+          <div class="flex items-center gap-4">
+            <BaseProgressRing :value="trustStore.score" :size="72" :width="8" :color="trustStore.level.color">
+              <span class="text-lg font-bold">{{ trustStore.score }}</span>
+            </BaseProgressRing>
+            <div class="flex-1">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-bold">نسبة الثقة</span>
+                <BaseChip :color="chipColor(trustStore.level.color)">{{ trustStore.level.label }}</BaseChip>
               </div>
-              <div class="text-caption text-success d-flex align-center ga-1">
-                <VIcon icon="mdi-trending-up" size="16" /> ارتفعت {{ trustDelta }}% هذا الأسبوع
+              <div class="flex items-center gap-1 text-xs" style="color: rgb(var(--v-theme-success))">
+                <BaseIcon name="mdi-trending-up" :size="16" /> ارتفعت {{ trustDelta }}% هذا الأسبوع
               </div>
-              <VBtn variant="text" color="primary" size="x-small" class="mt-1 px-0" :to="{ name: 'profile' }">عرض التفاصيل</VBtn>
+              <RouterLink :to="{ name: 'profile' }" class="mt-1 inline-block text-xs font-semibold" style="color: rgb(var(--v-theme-primary))">
+                عرض التفاصيل
+              </RouterLink>
             </div>
           </div>
-        </VCard>
+        </BaseCard>
 
         <!-- Quick analytics (company, doc §3.3-ج) -->
-        <VCard v-if="isCompany" class="pa-4 mt-2 mb-4">
-          <div class="d-flex align-center ga-2 mb-3">
-            <VIcon icon="mdi-chart-bar" color="secondary" />
-            <span class="text-subtitle-1 font-weight-bold">تحليلات سريعة — آخر 30 يومًا</span>
+        <BaseCard v-if="isCompany" class="mt-2 mb-4">
+          <div class="mb-3 flex items-center gap-2">
+            <BaseIcon name="mdi-chart-bar" :size="22" style="color: rgb(var(--v-theme-secondary))" />
+            <span class="font-bold">تحليلات سريعة — آخر 30 يومًا</span>
           </div>
-          <div class="d-flex align-end ga-2 mb-1" style="height: 88px">
-            <div v-for="w in weeklyApplications" :key="w.label" class="flex-grow-1 text-center d-flex flex-column justify-end" style="height: 100%">
-              <div class="text-caption font-weight-bold">{{ w.value }}</div>
-              <div class="bar-lime rounded-t mx-auto" :style="{ height: `${w.pct * 0.6}%`, width: '70%' }" />
+          <div class="mb-1 flex items-end gap-2" style="height: 88px">
+            <div v-for="w in weeklyApplications" :key="w.label" class="flex h-full flex-1 flex-col justify-end text-center">
+              <div class="text-xs font-bold">{{ w.value }}</div>
+              <div class="bar-lime mx-auto rounded-t" :style="{ height: `${w.pct * 0.6}%`, width: '70%' }" />
             </div>
           </div>
-          <div class="d-flex ga-2">
-            <div v-for="w in weeklyApplications" :key="w.label" class="flex-grow-1 text-center text-caption text-medium-emphasis">
+          <div class="flex gap-2">
+            <div v-for="w in weeklyApplications" :key="w.label" class="flex-1 text-center text-xs text-muted">
               {{ w.label }}
             </div>
           </div>
-          <VDivider class="my-3" />
-          <div class="text-body-2 font-weight-bold mb-2">أكثر المهارات شيوعًا بين المتقدمين</div>
-          <div class="d-flex flex-wrap ga-1 mb-2">
-            <VChip v-for="[skill, count] in topSkills" :key="skill" size="small" color="primary" variant="tonal" label>
+          <div class="my-3 border-t border-ui" />
+          <div class="mb-2 text-sm font-bold">أكثر المهارات شيوعًا بين المتقدمين</div>
+          <div class="mb-2 flex flex-wrap gap-1">
+            <BaseChip v-for="[skill, count] in topSkills" :key="skill" color="brand">
               {{ skill }} · {{ count }}
-            </VChip>
+            </BaseChip>
           </div>
-          <VBtn variant="text" color="secondary" size="small" class="px-0" :to="{ name: 'analytics' }">
+          <RouterLink :to="{ name: 'analytics' }" class="text-sm font-medium" style="color: rgb(var(--v-theme-secondary))">
             التحليلات الكاملة
-          </VBtn>
-        </VCard>
+          </RouterLink>
+        </BaseCard>
 
         <!-- Smart cross-role agenda (multi-role users) -->
-        <VCard v-if="crossRoleAgenda.length" class="pa-4 mt-2 mb-4">
-          <div class="d-flex align-center ga-2 mb-2">
-            <VIcon icon="mdi-calendar-multiple" color="secondary" />
-            <span class="text-subtitle-1 font-weight-bold">أجندتك عبر الأدوار</span>
+        <BaseCard v-if="crossRoleAgenda.length" class="mt-2 mb-4">
+          <div class="mb-2 flex items-center gap-2">
+            <BaseIcon name="mdi-calendar-multiple" :size="22" style="color: rgb(var(--v-theme-secondary))" />
+            <span class="font-bold">أجندتك عبر الأدوار</span>
           </div>
-          <div v-for="item in crossRoleAgenda" :key="item.key" class="d-flex align-center ga-2 py-2">
-            <VChip size="x-small" :color="item.color" label class="flex-shrink-0">{{ item.roleLabel }}</VChip>
-            <div class="flex-grow-1">
-              <div class="text-body-2 font-weight-bold">{{ item.title }}</div>
-              <div class="text-caption text-medium-emphasis">{{ item.datetime }}</div>
+          <div v-for="item in crossRoleAgenda" :key="item.key" class="flex items-center gap-2 py-2">
+            <BaseChip :color="chipColor(item.color)" class="shrink-0">{{ item.roleLabel }}</BaseChip>
+            <div class="flex-1">
+              <div class="text-sm font-bold">{{ item.title }}</div>
+              <div class="text-xs text-muted">{{ item.datetime }}</div>
             </div>
           </div>
-        </VCard>
+        </BaseCard>
 
         <!-- Gamification (all roles — points/level/streak/leaderboard are universal) -->
         <div class="mb-4">
@@ -326,84 +336,97 @@ const aiSuggestions = [
         </div>
 
         <!-- Recommended interview (seeker) -->
-        <VCard v-if="!isCompany && recommendedInterview" class="pa-4 mb-4" variant="tonal" color="accent">
-          <div class="d-flex align-center ga-2 mb-2">
-            <VIcon icon="mdi-account-tie-voice-outline" />
-            <span class="text-subtitle-2 font-weight-bold">مقابلة موصى بها</span>
-            <VChip size="x-small" color="success" label class="ms-auto">+{{ recommendedInterview.trustGain }}% ثقة</VChip>
+        <BaseCard
+          v-if="!isCompany && recommendedInterview"
+          class="mb-4"
+          :style="{ background: 'rgba(var(--v-theme-accent), 0.12)', borderColor: 'rgba(var(--v-theme-accent), 0.3)' }"
+        >
+          <div class="mb-2 flex items-center gap-2">
+            <BaseIcon name="mdi-account-tie-voice-outline" :size="22" style="color: rgb(var(--v-theme-accent))" />
+            <span class="text-sm font-bold">مقابلة موصى بها</span>
+            <BaseChip color="success" class="ms-auto">+{{ recommendedInterview.trustGain }}% ثقة</BaseChip>
           </div>
-          <p class="text-body-2 mb-3">{{ recommendedInterview.reason }}</p>
-          <VBtn color="accent" size="small" block prepend-icon="mdi-play" :to="{ name: 'interviews' }">
-            ابدأ مقابلة {{ LEVEL_META[recommendedInterview.level].label }}
-          </VBtn>
-        </VCard>
+          <p class="mb-3 text-sm">{{ recommendedInterview.reason }}</p>
+          <BaseButton variant="accent" size="sm" block :to="{ name: 'interviews' }">
+            <BaseIcon name="mdi-play" :size="18" /> ابدأ مقابلة {{ LEVEL_META[recommendedInterview.level].label }}
+          </BaseButton>
+        </BaseCard>
 
         <!-- Pending proof requests (seeker) -->
-        <VCard v-if="!isCompany && pendingProofs.length" class="pa-4 mb-4">
-          <div class="d-flex align-center ga-2 mb-3">
-            <VIcon icon="mdi-account-star-outline" color="secondary" />
-            <span class="text-subtitle-1 font-weight-bold">إثباتات معلّقة ({{ pendingProofs.length }})</span>
+        <BaseCard v-if="!isCompany && pendingProofs.length" class="mb-4">
+          <div class="mb-3 flex items-center gap-2">
+            <BaseIcon name="mdi-account-star-outline" :size="22" style="color: rgb(var(--v-theme-secondary))" />
+            <span class="font-bold">إثباتات معلّقة ({{ pendingProofs.length }})</span>
           </div>
-          <div v-for="req in pendingProofs" :key="req.id" class="d-flex align-center ga-2 mb-2">
-            <VAvatar color="secondary" variant="tonal" size="36"><VIcon icon="mdi-account" /></VAvatar>
-            <div class="flex-grow-1">
-              <div class="text-body-2 font-weight-bold">{{ req.from }}</div>
-              <div class="text-caption text-medium-emphasis">يطلب إثبات «{{ req.skill }}» · {{ req.date }}</div>
+          <div v-for="req in pendingProofs" :key="req.id" class="mb-2 flex items-center gap-2">
+            <BaseAvatar color="emerald" :size="36" tonal>
+              <BaseIcon name="mdi-account" :size="20" />
+            </BaseAvatar>
+            <div class="flex-1">
+              <div class="text-sm font-bold">{{ req.from }}</div>
+              <div class="text-xs text-muted">يطلب إثبات «{{ req.skill }}» · {{ req.date }}</div>
             </div>
-            <VBtn icon="mdi-check" size="x-small" color="success" variant="tonal" @click="profileStore.resolveProofRequest(req.id, true)" />
-            <VBtn icon="mdi-close" size="x-small" color="error" variant="text" @click="profileStore.resolveProofRequest(req.id, false)" />
+            <button
+              class="flex h-8 w-8 items-center justify-center rounded-full"
+              style="background: rgba(var(--v-theme-success), 0.16); color: rgb(var(--v-theme-success))"
+              aria-label="قبول"
+              @click="profileStore.resolveProofRequest(req.id, true)"
+            >
+              <BaseIcon name="mdi-check" :size="18" />
+            </button>
+            <button
+              class="flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-surfalt"
+              style="color: rgb(var(--v-theme-error))"
+              aria-label="رفض"
+              @click="profileStore.resolveProofRequest(req.id, false)"
+            >
+              <BaseIcon name="mdi-close" :size="18" />
+            </button>
           </div>
-        </VCard>
+        </BaseCard>
 
         <!-- AI assistant mini -->
-        <VCard class="pa-4 mt-2 mb-4">
-          <div class="d-flex align-center ga-2 mb-3">
-            <VIcon icon="mdi-robot-happy-outline" color="secondary" />
-            <span class="text-subtitle-1 font-weight-bold">{{ t('nav.assistant') }}</span>
+        <BaseCard class="mt-2 mb-4">
+          <div class="mb-3 flex items-center gap-2">
+            <BaseIcon name="mdi-robot-happy-outline" :size="22" style="color: rgb(var(--v-theme-secondary))" />
+            <span class="font-bold">{{ t('nav.assistant') }}</span>
           </div>
-          <div class="d-flex flex-column ga-2">
-            <VBtn
+          <div class="flex flex-col gap-2">
+            <BaseButton
               v-for="(s, i) in aiSuggestions"
               :key="i"
-              variant="tonal"
-              color="primary"
-              size="small"
-              class="justify-start text-none"
-              prepend-icon="mdi-message-text-outline"
+              variant="tonal-brand"
+              size="sm"
+              align="start"
+              block
               :to="{ name: 'assistant' }"
             >
-              {{ s }}
-            </VBtn>
+              <BaseIcon name="mdi-message-text-outline" :size="18" /> {{ s }}
+            </BaseButton>
           </div>
-        </VCard>
+        </BaseCard>
 
         <!-- Recent activity -->
-        <VCard class="pa-4">
-          <div class="text-subtitle-1 font-weight-bold mb-2">
+        <BaseCard>
+          <div class="mb-3 font-bold">
             {{ t('dashboard.recentActivity') }}
           </div>
-          <VTimeline side="end" density="compact" truncate-line="both" class="mt-2">
-            <VTimelineItem
-              v-for="(act, i) in activities"
-              :key="i"
-              :dot-color="'primary'"
-              size="x-small"
-            >
-              <div class="d-flex align-center ga-2">
-                <VIcon :icon="act.icon" size="18" color="primary" />
-                <div>
-                  <div class="text-body-2">
-                    {{ act.text }}
-                  </div>
-                  <div class="text-caption text-medium-emphasis">
-                    {{ act.time }}
-                  </div>
-                </div>
+          <div class="flex flex-col gap-3">
+            <div v-for="(act, i) in activities" :key="i" class="flex items-start gap-3">
+              <div
+                class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+                style="background: rgba(var(--v-theme-primary), 0.14); color: rgb(var(--v-theme-primary))"
+              >
+                <BaseIcon :name="act.icon" :size="16" />
               </div>
-            </VTimelineItem>
-          </VTimeline>
-        </VCard>
-      </VCol>
-    </VRow>
+              <div>
+                <div class="text-sm">{{ act.text }}</div>
+                <div class="text-xs text-muted">{{ act.time }}</div>
+              </div>
+            </div>
+          </div>
+        </BaseCard>
+      </div>
+    </div>
   </div>
 </template>
