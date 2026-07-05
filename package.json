@@ -9,12 +9,10 @@
     "preview": "vite preview",
     "typecheck": "vue-tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "db:migrate": "node scripts/db-migrate.mjs"
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@mdi/font": "^7.4.47",
-    "@supabase/supabase-js": "^2.110.0",
     "axios": "^1.7.7",
     "pinia": "^2.2.6",
     "socket.io-client": "^4.8.3",

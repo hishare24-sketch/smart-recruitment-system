@@ -29,13 +29,11 @@ jobs:
 
       - run: npm ci
 
+      # نُزع Supabase (المرحلة 4). نسخة GitHub Pages بناء إنتاج بلا باك-إند
+      # (VITE_USE_REAL_API غير مُعرّف → محاكاة محلية كاملة). نشر المكدّس الحقيقي
+      # (NestJS) يأتي في المرحلة 6 (Docker/Nginx/staging).
       - name: Build
         run: npm run build
-        env:
-          # مفتاح publishable علني بطبيعته (يُشحن لكل متصفح) — الحماية بسياسات RLS.
-          # سر المستودع SUPABASE_ANON_KEY (إن وُجد) يتقدّم عليه ليسهل التدوير لاحقًا.
-          VITE_SUPABASE_URL: https://maqogxdksjpibsnkskiq.supabase.co
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'sb_publishable_nsggT6GJVEReVTcYCl86Fg_cSV5Two0' }}
 
       - uses: actions/configure-pages@v5
         # Auto-enable Pages (source: GitHub Actions) so no manual settings step is needed

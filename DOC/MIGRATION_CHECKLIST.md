@@ -3,7 +3,7 @@
 > تتبّع تقدّم التحويل مرحلةً بمرحلة. الخطة الكاملة والقرارات في [`ARCHITECTURE.md`](./ARCHITECTURE.md).
 > الهدف: **Vue SPA + NestJS + JWT (`api/`) + Docker/Nginx/staging + Tailwind**، عقد `api/openapi.yaml` مصدر الحقيقة، Supabase محوّل يُنزع.
 
-**📍 الموضع الحالي:** انتهت المراحل 1 و2 و3 (كلها مُتحقَّقة حيًّا) — كل المخازن الخاصة تُخدَم من NestJS. **التالي المرحلة 4** (نزع Supabase نهائيًّا + بثّ لحظي عبر WebSocket Gateway).
+**📍 الموضع الحالي:** انتهت المراحل 1–4 (كلها مُتحقَّقة حيًّا) — NestJS هو الباك-إند الوحيد (مصادقة + كل المخازن + بثّ لحظي WebSocket)، Supabase مُزال بالكامل. **التالي المرحلة 5** (Vuetify → Tailwind).
 
 ---
 
@@ -42,11 +42,11 @@
 - [x] **تحقّق حيّ بعد كل مخزن** — كل الدفعات أعلاه مُتحقَّقة حيًّا (register→JWT · Profile · PublicProfile · Marketplace · Interviews/Interviewers · Surveys/Notifications · Wallet/Plan · السحب الأخير). **المصادر المرجعية لكل نداءات المخازن الخاصة صارت NestJS، وSupabase مُعطَّل في الوضع الحقيقي.**
 - [x] تحقّق حيّ بعد كل مخزن (Auth ✓ · Profile ✓ · PublicProfile ✓ · Marketplace ✓ · Interviews/Interviewers ✓ · Surveys/Notifications ✓ · Wallet/Plan ✓)
 
-## 🟡 المرحلة 4 — نزع Supabase + البثّ اللحظي — جارية
+## ✅ المرحلة 4 — نزع Supabase + البثّ اللحظي — مُنجزة ومُتحقَّقة حيًّا
 - [x] **البثّ اللحظي عبر NestJS WebSocket Gateway (Socket.IO) — بديل Supabase Realtime.** كيان `DirectMessage` + مورد `/direct-messages` (send/list/read/resolve) + `MessagesGateway` (توثيق JWT في المصافحة، غرفة لكل uuid، دفع للمستقبِل). `directMessages.ts` أُعيدت كتابته للـ NestJS REST + `socket.io-client`، و`MessagesStore.wireInbound` صار يعتمد `USE_REAL_API` + uuid الجلسة (بلا Supabase). openapi + مخطط `DirectMessage`. **مُتحقَّق حيًّا:** المستخدم A في المتصفح مشترك عبر WS، والمستخدم B يرسل من الخادم → وصلت **لحظيًا بلا تحديث** لمخزن A (محادثة peer جديدة + unread + إشعار)، عربية سليمة (✅)، بلا أخطاء console. e2e: 17 اختبارًا (منها تسليم WS بين عميلين).
 - [x] استبدال `directMessages` بنداءات العقد (مُنجز أعلاه). `cloudSync` صار مُوجَّهًا لـ NestJS/معطّلًا في الوضع الحقيقي منذ المرحلة 3.
-- [ ] **إزالة Supabase نهائيًّا:** حذف فرع Supabase من `AuthService`، تفريغ محرّك Supabase من `cloudSync.ts` (إبقاء توجيه NestJS + fallback محلي)، حذف `src/services/supabase.ts` + `supabase.test.ts` + مجلّد `supabase/`، تنظيف `.env`/`deploy.yml`.
-- [x] تحقّق حيّ: رسالة لحظية بين مستخدمين ✓
+- [x] **أُزيل Supabase نهائيًّا:** نُزع فرع Supabase من `AuthService` (صار NestJS + محاكاة فقط)، وأُفرِغ محرّك Supabase من `cloudSync.ts` (بقي توجيه NestJS + fallback محلي off)، و`syncPublicProfileDoc` صار محايدًا (الصفحة العامة عبر موردها). حُذفت `src/services/supabase.ts` + `supabase.test.ts` + مجلّد `supabase/` (6 ترحيلات + schema) + `scripts/db-migrate.mjs`؛ ونُزعت حزمة `@supabase/supabase-js` + سكربت `db:migrate` + متغيّرات Supabase من `.env.development` و`deploy.yml`. أُعيدت كتابة `cloudSync.test.ts` لسلوك NestJS. **الأثر:** حجم الحزمة الرئيسية انخفض ~657KB→477KB. **تحقّق حيّ:** التطبيق يُقلع نظيفًا (21 مخزنًا، الجلسة محفوظة)، بلا أخطاء console. typecheck + **185 اختبار** + build خضراء.
+- [x] تحقّق حيّ: رسالة لحظية بين مستخدمين ✓ (المرحلة 4a)
 
 ## ⬜ المرحلة 5 — الواجهة: Vuetify → Tailwind
 - [ ] إعداد Tailwind + رموز التصميم من الثيم الحالي
