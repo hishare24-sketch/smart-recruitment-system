@@ -214,6 +214,7 @@ function createDocSync(config: EngineConfig): { status: Ref<SyncStatus> } {
 const NEST_PRIVATE_STORES = new Set([
   'requests', 'postedOpportunities', 'applications', // السوق
   'interviews', 'interviewerWorkspace', // المقابلات وورشة المقيّم
+  'surveys', 'notifications', // الاستبيانات والإشعارات
 ])
 
 /**
