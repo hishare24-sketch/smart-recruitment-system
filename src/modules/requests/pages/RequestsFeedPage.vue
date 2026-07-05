@@ -8,6 +8,7 @@ import { ai } from '@/services/ai'
 import EmptyState from '@/components/shared/EmptyState.vue'
 import TaxonomyTree from '@/components/shared/TaxonomyTree.vue'
 import { categorizeSkill } from '@/services/taxonomy'
+import { sectorForField } from '@/services/sectors'
 import { useProfileStore } from '@/stores/ProfileStore'
 import { matchScore } from '@/services/matching'
 import { requestMatchProfile, seekerMatchProfile } from '@/services/matchProfile'
@@ -69,6 +70,7 @@ const treeSel = ref<{ category?: string, sub?: string }>({})
 const treeItems = computed(() => store.requests.map(r => ({
   skills: r.skills,
   text: `${r.title} ${r.field} ${r.skills.join(' ')}`,
+  sector: sectorForField(r.field)?.id,
 })))
 
 // AI personalized top match (highest LIVE match with the user's profile)
@@ -118,7 +120,9 @@ const filtered = computed(() => {
       return false
     if (r.budgetValue < minBudget.value)
       return false
-    if (treeSel.value.category && !r.skills.some(s => categorizeSkill(s) === treeSel.value.category))
+    if (treeSel.value.category
+      && sectorForField(r.field)?.id !== treeSel.value.category
+      && !r.skills.some(s => categorizeSkill(s) === treeSel.value.category))
       return false
     if (treeSel.value.sub && !`${r.title} ${r.field} ${r.skills.join(' ')}`.includes(treeSel.value.sub))
       return false

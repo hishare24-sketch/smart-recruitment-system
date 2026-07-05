@@ -6,17 +6,26 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseChip from '@/components/ui/BaseChip.vue'
 import BaseIcon from '@/components/ui/BaseIcon.vue'
 
-// Each item carries its skills (for category counting) and a text blob (for
-// sub-category keyword counting).
-const props = defineProps<{ items: { skills: string[], text: string }[] }>()
+// Each item carries its skills (for category counting), a text blob (for
+// sub-category keyword counting), and an optional resolved `sector` slug
+// (from a department/field) so items classify by sector even without a
+// recognized skill.
+const props = defineProps<{ items: { skills: string[], text: string, sector?: string }[] }>()
 const selection = defineModel<{ category?: string, sub?: string }>({ default: () => ({}) })
 
 const catSearch = ref('')
 const expanded = ref<Set<string>>(new Set())
+const showAll = ref(false)
+const LIMIT = 8
+
+// عنصر ينتمي لقطاع إن صنّفت إحدى مهاراته إليه أو كان قطاعه المشتقّ هو نفسه
+function inCategory(it: { skills: string[], sector?: string }, catId: string): boolean {
+  return it.sector === catId || it.skills.some(s => categorizeSkill(s) === catId)
+}
 
 const tree = computed(() => {
   return TAXONOMY.map((cat) => {
-    const inCat = props.items.filter(it => it.skills.some(s => categorizeSkill(s) === cat.id))
+    const inCat = props.items.filter(it => inCategory(it, cat.id))
     const subs = cat.subcategories
       .map(name => ({ name, count: inCat.filter(it => it.text.includes(name)).length }))
       .filter(s => s.count > 0)
@@ -30,6 +39,10 @@ const visibleTree = computed(() => {
     return tree.value
   return tree.value.filter(c => c.label.includes(q) || c.subs.some(s => s.name.includes(q)))
 })
+
+// أولوية العرض: أهمّ LIMIT قطاعًا أولًا (TAXONOMY مرتّبة بالأولوية S01..S21) + «المزيد»
+const displayTree = computed(() => (showAll.value || catSearch.value.trim() ? visibleTree.value : visibleTree.value.slice(0, LIMIT)))
+const hiddenCount = computed(() => Math.max(0, visibleTree.value.length - LIMIT))
 
 const total = computed(() => props.items.length)
 
@@ -77,7 +90,7 @@ function clearAll() {
     </BaseInput>
 
     <div class="space-y-0.5">
-      <template v-for="cat in visibleTree" :key="cat.id">
+      <template v-for="cat in displayTree" :key="cat.id">
         <button
           class="flex w-full items-center gap-1 rounded-ui px-2 py-1.5 text-start transition"
           :class="selection.category === cat.id && !selection.sub ? '' : 'hover:bg-surfalt'"
@@ -107,6 +120,16 @@ function clearAll() {
         </template>
       </template>
     </div>
+
+    <button
+      v-if="!catSearch && hiddenCount > 0"
+      type="button"
+      class="mt-1 flex w-full items-center justify-center gap-1 rounded-ui py-1.5 text-xs font-medium text-brand transition hover:bg-surfalt"
+      @click="showAll = !showAll"
+    >
+      <BaseIcon :name="showAll ? 'mdi-chevron-up' : 'mdi-chevron-down'" :size="16" />
+      {{ showAll ? 'عرض أقل' : `المزيد (+${hiddenCount})` }}
+    </button>
 
     <div v-if="!visibleTree.length" class="py-3 text-center text-xs text-muted">لا تصنيفات مطابقة</div>
 

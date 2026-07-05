@@ -11,6 +11,7 @@ import { categorizeSkill } from '@/services/taxonomy'
 import { useProfileStore } from '@/stores/ProfileStore'
 import { matchScore } from '@/services/matching'
 import { opportunityMatchProfile, seekerMatchProfile } from '@/services/matchProfile'
+import { sectorForField } from '@/services/sectors'
 import type { Opportunity } from '../interfaces/Opportunity'
 import { ai } from '@/services/ai'
 import BaseCard from '@/components/ui/BaseCard.vue'
@@ -49,6 +50,7 @@ const treeSel = ref<{ category?: string, sub?: string }>({})
 const treeItems = computed(() => mockOpportunities.map(o => ({
   skills: o.skills,
   text: `${o.title} ${o.city} ${o.skills.join(' ')}`,
+  sector: sectorForField(o.department)?.id,
 })))
 
 const search = ref('')
@@ -82,7 +84,9 @@ const filtered = computed(() => {
     const matchesCity = !selectedCity.value || o.city === selectedCity.value
     const matchesSalary = o.salaryMax >= minSalary.value
     const matchesSaved = !savedOnly.value || savedStore.isSaved(o.id)
-    const matchesCategory = !treeSel.value.category || o.skills.some(s => categorizeSkill(s) === treeSel.value.category)
+    const matchesCategory = !treeSel.value.category
+      || sectorForField(o.department)?.id === treeSel.value.category
+      || o.skills.some(s => categorizeSkill(s) === treeSel.value.category)
     const matchesSub = !treeSel.value.sub || `${o.title} ${o.city} ${o.skills.join(' ')}`.includes(treeSel.value.sub)
     const matchesNew = !activeChips.value.has('newToday') || o.postedDaysAgo <= 1
     const matchesSkills = !activeChips.value.has('skills') || o.skills.some(s => userSkills.value.includes(s))
