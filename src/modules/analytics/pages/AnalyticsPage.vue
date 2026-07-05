@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import PageHeader from '@/components/shared/PageHeader.vue'
 import StatCard from '@/components/shared/StatCard.vue'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseIcon from '@/components/ui/BaseIcon.vue'
+import BaseProgressBar from '@/components/ui/BaseProgressBar.vue'
 
 const kpis = [
   { title: 'الفرص المنشورة', value: 18, icon: 'mdi-briefcase-outline', color: 'primary' },
@@ -44,64 +48,65 @@ const levels = [
       icon="mdi-chart-box-outline"
     >
       <template #actions>
-        <VBtn color="primary" variant="outlined" prepend-icon="mdi-download">تصدير التقرير</VBtn>
+        <BaseButton variant="outline"><BaseIcon name="mdi-download" :size="16" />تصدير التقرير</BaseButton>
       </template>
     </PageHeader>
 
-    <VRow class="mb-2">
-      <VCol v-for="k in kpis" :key="k.title" cols="12" sm="6" lg="3">
-        <StatCard v-bind="k" />
-      </VCol>
-    </VRow>
+    <div class="mb-2 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <StatCard v-for="k in kpis" :key="k.title" v-bind="k" />
+    </div>
 
-    <VRow>
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
       <!-- Applications bar chart -->
-      <VCol cols="12" lg="8">
-        <VCard class="pa-5" height="100%">
-          <div class="text-subtitle-1 font-weight-bold mb-4">الترشيحات خلال آخر 6 أشهر</div>
-          <div class="d-flex align-end justify-space-between ga-3" style="height: 220px">
-            <div v-for="m in monthly" :key="m.month" class="d-flex flex-column align-center flex-grow-1">
-              <div class="text-caption font-weight-bold mb-1">{{ m.value }}</div>
+      <div class="lg:col-span-8">
+        <BaseCard class="h-full">
+          <div class="mb-4 text-base font-bold text-content">الترشيحات خلال آخر 6 أشهر</div>
+          <div class="flex items-end justify-between gap-3" style="height: 220px">
+            <div v-for="m in monthly" :key="m.month" class="flex flex-1 flex-col items-center">
+              <div class="mb-1 text-xs font-bold text-content">{{ m.value }}</div>
               <div
-                class="w-100 rounded-t-lg"
+                class="w-full rounded-t-lg"
                 :style="{ height: `${(m.value / maxVal) * 170}px`, background: 'linear-gradient(180deg,#319795,#1A365D)' }"
               />
-              <div class="text-caption text-medium-emphasis mt-2">{{ m.month }}</div>
+              <div class="mt-2 text-xs text-muted">{{ m.month }}</div>
             </div>
           </div>
-        </VCard>
-      </VCol>
+        </BaseCard>
+      </div>
 
       <!-- Candidate levels -->
-      <VCol cols="12" lg="4">
-        <VCard class="pa-5" height="100%">
-          <div class="text-subtitle-1 font-weight-bold mb-4">توزيع المرشحين حسب المستوى</div>
+      <div class="lg:col-span-4">
+        <BaseCard class="h-full">
+          <div class="mb-4 text-base font-bold text-content">توزيع المرشحين حسب المستوى</div>
           <div v-for="lvl in levels" :key="lvl.label" class="mb-4">
-            <div class="d-flex justify-space-between text-body-2 mb-1">
+            <div class="mb-1 flex justify-between text-sm text-content">
               <span>{{ lvl.label }}</span>
-              <span class="font-weight-bold">{{ lvl.value }}%</span>
+              <span class="font-bold">{{ lvl.value }}%</span>
             </div>
-            <VProgressLinear :model-value="lvl.value" :color="lvl.color" height="10" rounded />
+            <BaseProgressBar :value="lvl.value" :color="lvl.color" :height="10" />
           </div>
-          <VDivider class="my-4" />
-          <VAlert type="info" variant="tonal" density="compact" class="text-caption">
-            <VIcon icon="mdi-robot-happy-outline" size="14" /> توقّع الـ AI: الطلب على مهارات Vue.js سيرتفع 18% الربع القادم.
-          </VAlert>
-        </VCard>
-      </VCol>
+          <hr class="my-4 border-ui">
+          <div class="flex items-center gap-1 rounded-ui p-2 text-xs text-content" style="background: rgba(var(--v-theme-info), 0.14)">
+            <BaseIcon name="mdi-robot-happy-outline" :size="14" :style="{ color: 'rgb(var(--v-theme-info))' }" /> توقّع الـ AI: الطلب على مهارات Vue.js سيرتفع 18% الربع القادم.
+          </div>
+        </BaseCard>
+      </div>
 
       <!-- Top skills -->
-      <VCol cols="12">
-        <VCard class="pa-5">
-          <div class="text-subtitle-1 font-weight-bold mb-4">أكثر المهارات شيوعاً بين المرشحين</div>
-          <div v-for="s in topSkills" :key="s.skill" class="d-flex align-center ga-3 mb-3">
-            <div class="text-body-2 font-weight-medium" style="width: 100px">{{ s.skill }}</div>
-            <VProgressLinear :model-value="(s.count / maxSkill) * 100" color="accent" height="14" rounded class="flex-grow-1">
-              <span class="text-caption on-accent font-weight-bold">{{ s.count }}</span>
-            </VProgressLinear>
+      <div class="lg:col-span-12">
+        <BaseCard>
+          <div class="mb-4 text-base font-bold text-content">أكثر المهارات شيوعاً بين المرشحين</div>
+          <div v-for="s in topSkills" :key="s.skill" class="mb-3 flex items-center gap-3">
+            <div class="text-sm font-medium text-content" style="width: 100px">{{ s.skill }}</div>
+            <div class="relative h-3.5 flex-1 overflow-hidden rounded-full" style="background: rgba(var(--v-theme-on-surface), 0.12)">
+              <div
+                class="flex h-full items-center justify-end rounded-full px-2 text-[10px] font-bold"
+                :style="{ width: `${(s.count / maxSkill) * 100}%`, background: 'rgb(var(--v-theme-accent))', color: 'rgb(var(--v-theme-on-accent))' }"
+              >{{ s.count }}</div>
+            </div>
           </div>
-        </VCard>
-      </VCol>
-    </VRow>
+        </BaseCard>
+      </div>
+    </div>
   </div>
 </template>
