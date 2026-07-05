@@ -16,11 +16,25 @@ import { ALL_SKILLS, TAXONOMY, categorizeSkill, getCategory } from '@/services/t
 import { LEVEL_META, TYPE_META, useInterviewsStore } from '@/stores/InterviewsStore'
 import { KIND_META, useInterviewersStore } from '@/stores/InterviewersStore'
 import type { Booking } from '@/stores/InterviewersStore'
-import { SWITCHABLE_ROLES } from '@/services/roles'
 import { COMPANY_SIZES } from '@/interfaces/RoleProfiles'
 import { OPPORTUNITY_TYPES } from '@/services/sectors'
 import { useRoleProfilesStore } from '@/stores/RoleProfilesStore'
 import type { UserRole } from '@/interfaces/Auth'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseChip from '@/components/ui/BaseChip.vue'
+import BaseIcon from '@/components/ui/BaseIcon.vue'
+import BaseAvatar from '@/components/ui/BaseAvatar.vue'
+import BaseProgressBar from '@/components/ui/BaseProgressBar.vue'
+import BaseInput from '@/components/ui/BaseInput.vue'
+import BaseTextarea from '@/components/ui/BaseTextarea.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
+import BaseSwitch from '@/components/ui/BaseSwitch.vue'
+import BaseTagInput from '@/components/ui/BaseTagInput.vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
+import BaseSnackbar from '@/components/ui/BaseSnackbar.vue'
+import BaseRating from '@/components/ui/BaseRating.vue'
+import BaseDropdown from '@/components/ui/BaseDropdown.vue'
 
 const { t } = useI18n()
 const interviewsStore = useInterviewsStore()
@@ -28,6 +42,23 @@ const interviewersStore = useInterviewersStore()
 const trust = useTrustStore()
 const reviewsStore = useReviewsStore()
 const reviewsCount = computed(() => reviewsStore.countFor('toCandidate', 'me'))
+
+// —— تلوين مربوط بثيم Vuetify (بديل ألوان Vuetify) ——
+type BaseColor = 'brand' | 'emerald' | 'accent' | 'success' | 'info' | 'warning' | 'error' | 'neutral'
+function mapColor(c?: string): BaseColor {
+  return (({ primary: 'brand', secondary: 'emerald', 'medium-emphasis': 'neutral', 'surface-variant': 'neutral', grey: 'neutral', amber: 'warning' } as Record<string, BaseColor>)[c ?? ''] ?? c ?? 'brand') as BaseColor
+}
+// لون CSS من رمز ثيم (أو hex مباشر) — للأيقونات والنصوص
+function colorVar(c?: string): string {
+  if (!c)
+    return 'rgb(var(--v-theme-on-surface))'
+  if (c.startsWith('#'))
+    return c
+  if (c === 'medium-emphasis')
+    return 'rgba(var(--v-theme-on-surface), 0.6)'
+  const alias: Record<string, string> = { amber: 'warning' }
+  return `rgb(var(--v-theme-${alias[c] ?? c}))`
+}
 
 // Certified-interviewer reports + digital certificate
 const certifiedReports = computed(() => interviewersStore.completedReports)
@@ -43,6 +74,17 @@ const profile = useProfileStore()
 const resumesStore = useResumesStore()
 const user = computed(() => authStore.authUser)
 const tab = ref('skills')
+const SEEKER_TABS = [
+  { value: 'skills', label: 'المهارات', icon: 'mdi-star-outline' },
+  { value: 'experience', label: 'الخبرات', icon: 'mdi-briefcase-outline' },
+  { value: 'certificates', label: 'الشهادات', icon: 'mdi-certificate-outline' },
+  { value: 'endorsements', label: 'التوصيات', icon: 'mdi-account-star-outline' },
+  { value: 'resumes', label: 'السير الذاتية', icon: 'mdi-file-account-outline' },
+  { value: 'interviews', label: 'المقابلات', icon: 'mdi-account-tie-voice-outline' },
+  { value: 'reviews', label: 'التقييمات', icon: 'mdi-star-outline' },
+  { value: 'prefs', label: 'التفضيلات', icon: 'mdi-tune' },
+  { value: 'privacy', label: 'الخصوصية', icon: 'mdi-shield-lock-outline' },
+]
 
 // ===== Multi-role profile tabs (doc §3.4) =====
 const roleProfiles = useRoleProfilesStore()
@@ -66,12 +108,26 @@ const AVAILABILITY_OPTIONS = [
   { value: 'within_three_months', title: 'خلال 3 أشهر' },
   { value: 'not_available', title: 'غير متاح حاليًا' },
 ]
-// أنواع العمل المفضّلة من المصدر المعتمد الموحّد (services/sectors.ts)
+// أنواع العمل المفضّلة من المصدر المعتمد الموحّد (services/sectors.ts) — تُخزَّن بالمعرّف
 const EMPLOYMENT_TYPES = OPPORTUNITY_TYPES.map(o => ({ value: o.id, title: o.label }))
+function toggleEmploymentType(id: string) {
+  const set = new Set(profile.prefs.preferred_employment_types)
+  set.has(id) ? set.delete(id) : set.add(id)
+  profile.prefs.preferred_employment_types = [...set]
+}
 const VISIBILITY_OPTIONS = [
   { value: 'public', title: 'عام' },
   { value: 'private', title: 'خاص' },
 ]
+const COMPANY_SIZE_OPTIONS = COMPANY_SIZES.map(s => ({ value: s, title: s }))
+
+// نغمة صلبة (نشط) أو حدّ خافت (غير نشط) للرقائق-كأزرار
+function toggleStyle(active: boolean, color: string) {
+  if (active) {
+    return { background: `rgb(var(--v-theme-${color}))`, color: `rgb(var(--v-theme-on-${color}))`, borderColor: 'transparent' }
+  }
+  return { background: 'transparent', color: 'rgba(var(--v-theme-on-surface), 0.75)', borderColor: 'rgba(var(--v-theme-on-surface), 0.2)' }
+}
 
 // Add-skill dialog
 const skillDialog = ref(false)
@@ -267,86 +323,77 @@ const heroStats = computed(() => [
 <template>
   <div>
     <!-- Header card -->
-    <VCard class="mb-5 overflow-hidden profile-hero">
+    <BaseCard :padded="false" class="profile-hero mb-5 overflow-hidden">
       <div class="brand-gradient profile-hero__banner" />
-      <VCardText class="pt-0">
+      <div class="px-5 pb-5">
         <!-- Avatar overlaps the banner; actions sit on the surface beside it -->
-        <div class="d-flex align-end justify-space-between ga-4 profile-hero__row">
-          <VAvatar color="secondary" size="104" class="profile-hero__avatar">
-            <span class="text-h4 font-weight-bold">{{ initials }}</span>
-          </VAvatar>
-          <div class="d-flex ga-2 flex-wrap">
-            <VBtn color="primary" variant="outlined" prepend-icon="mdi-share-variant-outline" :to="{ name: 'public-resume', params: { token: 'me' } }">
-              مشاركة الملف
-            </VBtn>
-            <VBtn color="accent" prepend-icon="mdi-pencil" @click="openEdit">تعديل</VBtn>
+        <div class="profile-hero__row flex items-end justify-between gap-4">
+          <span class="profile-hero__avatar inline-flex h-[104px] w-[104px] items-center justify-center rounded-full text-3xl font-bold" style="background: rgb(var(--v-theme-secondary)); color: rgb(var(--v-theme-on-secondary))">
+            {{ initials }}
+          </span>
+          <div class="flex flex-wrap gap-2">
+            <BaseButton variant="outline" :to="{ name: 'public-resume', params: { token: 'me' } }">
+              <BaseIcon name="mdi-share-variant-outline" :size="18" />مشاركة الملف
+            </BaseButton>
+            <BaseButton variant="accent" @click="openEdit"><BaseIcon name="mdi-pencil" :size="18" />تعديل</BaseButton>
           </div>
         </div>
 
         <!-- Name & identity — on the card surface, clear of the banner -->
         <div class="mt-3">
-          <div class="d-flex align-center ga-2 flex-wrap">
-            <h1 class="text-h5 font-weight-bold mb-0">{{ user?.name }}</h1>
-            <VTooltip text="هوية موثّقة" location="top">
-              <template #activator="{ props }">
-                <VIcon v-bind="props" icon="mdi-check-decagram" color="primary" size="22" />
-              </template>
-            </VTooltip>
+          <div class="flex flex-wrap items-center gap-2">
+            <h1 class="mb-0 text-xl font-bold text-content">{{ user?.name }}</h1>
+            <BaseIcon name="mdi-check-decagram" :size="22" title="هوية موثّقة" :style="{ color: 'rgb(var(--v-theme-primary))' }" />
           </div>
-          <div class="text-body-2 text-medium-emphasis mt-1">{{ profile.headline }}</div>
-          <div class="d-flex align-center ga-2 mt-2 flex-wrap">
-            <VChip size="small" color="primary" variant="tonal" prepend-icon="mdi-shield-account-outline" label>{{ roleLabel }}</VChip>
-            <VChip size="small" color="secondary" variant="tonal" :prepend-icon="personaMeta.icon" label>{{ personaMeta.label }}</VChip>
-            <VChip size="small" :color="trust.level.color" variant="tonal" prepend-icon="mdi-star-check-outline" label>
-              ثقة {{ trust.score }}% · {{ trust.level.label }}
-            </VChip>
+          <div class="mt-1 text-sm text-muted">{{ profile.headline }}</div>
+          <div class="mt-2 flex flex-wrap items-center gap-2">
+            <BaseChip color="brand"><BaseIcon name="mdi-shield-account-outline" :size="13" />{{ roleLabel }}</BaseChip>
+            <BaseChip color="emerald"><BaseIcon :name="personaMeta.icon" :size="13" />{{ personaMeta.label }}</BaseChip>
+            <BaseChip :color="mapColor(trust.level.color)"><BaseIcon name="mdi-star-check-outline" :size="13" />ثقة {{ trust.score }}% · {{ trust.level.label }}</BaseChip>
           </div>
         </div>
 
-        <p class="text-body-2 text-medium-emphasis mt-4 mb-0" style="max-width: 720px">{{ profile.summary }}</p>
+        <p class="mb-0 mt-4 text-sm text-muted" style="max-width: 720px">{{ profile.summary }}</p>
 
         <!-- At-a-glance stat strip -->
-        <VRow class="mt-4" dense>
-          <VCol v-for="s in heroStats" :key="s.label" cols="6" md="3">
-            <div class="stat-tile d-flex align-center ga-3 pa-3">
-              <VAvatar :color="s.color" variant="tonal" size="42" rounded="lg">
-                <VIcon :icon="s.icon" size="22" />
-              </VAvatar>
-              <div>
-                <div class="text-h6 font-weight-bold lh-1">{{ s.value }}</div>
-                <div class="text-caption text-medium-emphasis">{{ s.label }}</div>
-              </div>
+        <div class="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div v-for="st in heroStats" :key="st.label" class="stat-tile flex items-center gap-3 p-3">
+            <BaseAvatar :color="mapColor(st.color)" tonal :size="42" square>
+              <BaseIcon :name="st.icon" :size="22" />
+            </BaseAvatar>
+            <div>
+              <div class="text-lg font-bold leading-[1.15] text-content">{{ st.value }}</div>
+              <div class="text-xs text-muted">{{ st.label }}</div>
             </div>
-          </VCol>
-        </VRow>
+          </div>
+        </div>
 
         <!-- Profile completion -->
         <div class="mt-4">
-          <div class="d-flex justify-space-between text-caption mb-1">
-            <span class="text-medium-emphasis">اكتمال الملف الشخصي</span>
-            <span class="font-weight-bold text-primary">{{ profileCompletion }}%</span>
+          <div class="mb-1 flex justify-between text-xs">
+            <span class="text-muted">اكتمال الملف الشخصي</span>
+            <span class="font-bold" :style="{ color: 'rgb(var(--v-theme-primary))' }">{{ profileCompletion }}%</span>
           </div>
-          <VProgressLinear :model-value="profileCompletion" color="primary" bg-color="surface-variant" height="8" rounded />
+          <BaseProgressBar :value="profileCompletion" :height="8" color="primary" />
         </div>
-      </VCardText>
-    </VCard>
+      </div>
+    </BaseCard>
 
     <!-- Role profile tabs (multi-role accounts only) -->
-    <VTabs
-      v-if="ownedProRoles.length > 1"
-      v-model="roleTab"
-      color="primary"
-      class="mb-5 role-profile-tabs"
-      density="comfortable"
-      grow
-    >
-      <VTab v-for="r in ownedProRoles" :key="r" :value="r" :prepend-icon="ROLE_TAB_META[r].icon">
+    <div v-if="ownedProRoles.length > 1" class="mb-5 flex flex-wrap gap-1">
+      <button
+        v-for="r in ownedProRoles"
+        :key="r"
+        type="button"
+        class="nav-tab"
+        :class="{ 'is-active': roleTab === r }"
+        @click="roleTab = r"
+      >
+        <BaseIcon :name="ROLE_TAB_META[r].icon" :size="18" />
         {{ ROLE_TAB_META[r].label }}
-        <VChip v-if="authStore.roleStatus(r) === 'pending'" size="x-small" color="warning" label class="ms-1">
-          {{ t('roleSwitcher.pending') }}
-        </VChip>
-      </VTab>
-    </VTabs>
+        <BaseChip v-if="authStore.roleStatus(r) === 'pending'" color="warning" class="ms-1">{{ t('roleSwitcher.pending') }}</BaseChip>
+      </button>
+    </div>
 
     <div v-show="roleTab === 'seeker'">
       <!-- Trust score -->
@@ -354,637 +401,543 @@ const heroStats = computed(() => [
         <TrustScoreCard />
       </div>
 
-      <VTabs v-model="tab" color="primary" class="mb-4" show-arrows>
-      <VTab value="skills" prepend-icon="mdi-star-outline">المهارات</VTab>
-      <VTab value="experience" prepend-icon="mdi-briefcase-outline">الخبرات</VTab>
-      <VTab value="certificates" prepend-icon="mdi-certificate-outline">الشهادات</VTab>
-      <VTab value="endorsements" prepend-icon="mdi-account-star-outline">التوصيات</VTab>
-      <VTab value="resumes" prepend-icon="mdi-file-account-outline">السير الذاتية</VTab>
-      <VTab value="interviews" prepend-icon="mdi-account-tie-voice-outline">المقابلات</VTab>
-      <VTab value="reviews" prepend-icon="mdi-star-outline">
-        التقييمات
-        <VChip v-if="reviewsCount" size="x-small" color="amber" class="ms-1" label>{{ reviewsCount }}</VChip>
-      </VTab>
-      <VTab value="prefs" prepend-icon="mdi-tune">التفضيلات</VTab>
-      <VTab value="privacy" prepend-icon="mdi-shield-lock-outline">الخصوصية</VTab>
-    </VTabs>
+      <div class="mb-4 flex flex-wrap gap-1">
+        <button
+          v-for="tb in SEEKER_TABS"
+          :key="tb.value"
+          type="button"
+          class="nav-tab flex-none"
+          :class="{ 'is-active': tab === tb.value }"
+          @click="tab = tb.value"
+        >
+          <BaseIcon :name="tb.icon" :size="18" />
+          {{ tb.label }}
+          <BaseChip v-if="tb.value === 'reviews' && reviewsCount" color="warning" class="ms-1">{{ reviewsCount }}</BaseChip>
+        </button>
+      </div>
 
-    <VWindow v-model="tab">
       <!-- Skills -->
-      <VWindowItem value="skills">
-        <VCard class="pa-5">
-          <div class="d-flex justify-space-between mb-1">
-            <h3 class="text-subtitle-1 font-weight-bold">المهارات الموثّقة ({{ profile.skills.length }})</h3>
-            <VBtn color="accent" size="small" prepend-icon="mdi-plus" @click="skillDialog = true">إضافة مهارة</VBtn>
+      <BaseCard v-if="tab === 'skills'">
+        <div class="mb-1 flex justify-between">
+          <h3 class="text-base font-bold text-content">المهارات الموثّقة ({{ profile.skills.length }})</h3>
+          <BaseButton variant="tonal-accent" size="sm" @click="skillDialog = true"><BaseIcon name="mdi-plus" :size="16" />إضافة مهارة</BaseButton>
+        </div>
+        <p class="mb-4 text-xs text-muted">كل مهارة مدعومة بإثباتات (اختبار، توصية، مشروع، شهادة) تحدّد نسبة الثقة والمستوى</p>
+
+        <!-- AI skill-gap insight -->
+        <div v-if="skillInsight" class="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-ui border-s-4 bg-surfalt p-3" :style="{ borderColor: 'rgb(var(--v-theme-secondary))' }">
+          <span class="flex items-center gap-2 text-sm text-content">
+            <BaseIcon name="mdi-robot-happy-outline" :size="20" :style="{ color: 'rgb(var(--v-theme-secondary))' }" />{{ skillInsight.message }}
+          </span>
+          <BaseButton size="sm" variant="accent" :to="{ name: 'interviews' }"><BaseIcon name="mdi-account-tie-voice-outline" :size="16" />أثبت الآن</BaseButton>
+        </div>
+
+        <template v-for="group in skillGroups" :key="group.category?.id ?? 'other'">
+          <div class="mb-2 mt-3 flex items-center gap-2">
+            <BaseIcon :name="group.category?.icon ?? 'mdi-shape-outline'" :size="20" :style="{ color: colorVar(group.category?.color) }" />
+            <span class="text-sm font-bold text-content">{{ group.category?.label ?? 'أخرى' }}</span>
+            <BaseChip color="neutral">{{ group.skills.length }}</BaseChip>
           </div>
-          <p class="text-caption text-medium-emphasis mb-4">كل مهارة مدعومة بإثباتات (اختبار، توصية، مشروع، شهادة) تحدّد نسبة الثقة والمستوى</p>
-
-          <!-- AI skill-gap insight -->
-          <VAlert v-if="skillInsight" color="secondary" variant="tonal" density="comfortable" class="mb-4" border="start">
-            <template #prepend>
-              <VIcon icon="mdi-robot-happy-outline" />
-            </template>
-            <div class="d-flex align-center justify-space-between flex-wrap ga-2">
-              <span class="text-body-2">{{ skillInsight.message }}</span>
-              <VBtn size="x-small" color="accent" variant="flat" prepend-icon="mdi-account-tie-voice-outline" :to="{ name: 'interviews' }">
-                أثبت الآن
-              </VBtn>
-            </div>
-          </VAlert>
-
-          <template v-for="group in skillGroups" :key="group.category?.id ?? 'other'">
-            <div class="d-flex align-center ga-2 mt-3 mb-2">
-              <VIcon :icon="group.category?.icon ?? 'mdi-shape-outline'" :color="group.category?.color ?? 'medium-emphasis'" size="20" />
-              <span class="text-subtitle-2 font-weight-bold">{{ group.category?.label ?? 'أخرى' }}</span>
-              <VChip size="x-small" variant="tonal" label>{{ group.skills.length }}</VChip>
-            </div>
-            <VRow dense>
-              <VCol v-for="skill in group.skills" :key="skill.id" cols="12" md="6">
-                <VCard variant="outlined" class="pa-3 h-100">
-                  <div class="d-flex justify-space-between align-center mb-2">
-                    <div class="d-flex align-center ga-2">
-                      <span class="text-body-1 font-weight-bold">{{ skill.name }}</span>
-                      <VChip size="x-small" :color="confidenceColor(skillConfidence(skill))" label>{{ levelOf(skill) }}</VChip>
-                    </div>
-                    <div class="d-flex align-center ga-1">
-                      <VBtn icon="mdi-plus" variant="text" size="x-small" color="accent" @click="openAddProof(skill)" />
-                      <VBtn icon="mdi-information-outline" variant="text" size="x-small" @click="openDetail(skill)" />
-                      <VBtn icon="mdi-delete-outline" variant="text" size="x-small" color="error" @click="profile.removeSkill(skill.id)" />
-                    </div>
-                  </div>
-
-                  <!-- Proof source icons -->
-                  <div class="d-flex align-center ga-1 mb-2 flex-wrap">
-                    <VTooltip v-for="p in skill.proofs" :key="p.id" :text="`${PROOF_META[p.type].label}: ${p.label}`" location="top">
-                      <template #activator="{ props }">
-                        <VAvatar v-bind="props" :color="PROOF_META[p.type].color" variant="tonal" size="26" class="cursor-pointer" @click="openDetail(skill)">
-                          <VIcon :icon="PROOF_META[p.type].icon" size="15" />
-                        </VAvatar>
-                      </template>
-                    </VTooltip>
-                    <VBtn variant="text" size="x-small" color="secondary" prepend-icon="mdi-account-star-outline" class="ms-1" @click="requestEndorsementProof(skill)">
-                      طلب إثبات
-                    </VBtn>
-                  </div>
-
-                  <!-- Confidence bar -->
-                  <div class="d-flex justify-space-between text-caption mb-1">
-                    <span class="text-medium-emphasis">نسبة الثقة</span>
-                    <span class="font-weight-bold" :class="`text-${confidenceColor(skillConfidence(skill))}`">{{ skillConfidence(skill) }}%</span>
-                  </div>
-                  <VProgressLinear :model-value="skillConfidence(skill)" :color="confidenceColor(skillConfidence(skill))" height="8" rounded />
-                </VCard>
-              </VCol>
-            </VRow>
-          </template>
-          <div v-if="!profile.skills.length" class="text-center text-medium-emphasis py-6">لا مهارات بعد — أضف أول مهارة</div>
-        </VCard>
-      </VWindowItem>
-
-      <!-- Experience -->
-      <VWindowItem value="experience">
-        <VCard class="pa-5">
-          <div class="d-flex justify-space-between mb-4">
-            <h3 class="text-subtitle-1 font-weight-bold">الخبرات العملية ({{ profile.experiences.length }})</h3>
-            <VBtn color="accent" size="small" prepend-icon="mdi-plus" @click="expDialog = true">إضافة خبرة</VBtn>
-          </div>
-          <VRow dense>
-            <VCol v-for="exp in profile.experiences" :key="exp.id" cols="12" md="6">
-              <VCard variant="outlined" class="pa-3 h-100 d-flex">
-                <VAvatar color="primary" variant="tonal" rounded="lg" class="me-3 flex-shrink-0"><VIcon icon="mdi-briefcase-outline" /></VAvatar>
-                <div class="flex-grow-1">
-                  <div class="text-subtitle-2 font-weight-bold">{{ exp.title }}</div>
-                  <div class="text-body-2 text-secondary">{{ exp.company }} · {{ exp.period }}</div>
-                  <div class="text-body-2 text-medium-emphasis mt-1">{{ exp.desc }}</div>
+          <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div v-for="skill in group.skills" :key="skill.id" class="rounded-ui-lg border-ui p-3">
+              <div class="mb-2 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="font-bold text-content">{{ skill.name }}</span>
+                  <BaseChip :color="confidenceColor(skillConfidence(skill))">{{ levelOf(skill) }}</BaseChip>
                 </div>
-                <VBtn icon="mdi-delete-outline" variant="text" size="x-small" color="error" class="flex-shrink-0" @click="profile.removeExperience(exp.id)" />
-              </VCard>
-            </VCol>
-          </VRow>
-          <div v-if="!profile.experiences.length" class="text-center text-medium-emphasis py-6">لا خبرات بعد — أضف أول خبرة</div>
-        </VCard>
-      </VWindowItem>
-
-      <!-- Certificates -->
-      <VWindowItem value="certificates">
-        <VCard class="pa-5">
-          <div class="d-flex justify-space-between mb-4">
-            <h3 class="text-subtitle-1 font-weight-bold">الشهادات والدورات ({{ profile.certificates.length }})</h3>
-            <VBtn color="accent" size="small" prepend-icon="mdi-plus" @click="certDialog = true">إضافة</VBtn>
-          </div>
-          <VRow>
-            <VCol v-for="cert in profile.certificates" :key="cert.id" cols="12" sm="6">
-              <VCard variant="outlined" class="pa-3 d-flex align-center ga-3">
-                <VAvatar color="success" variant="tonal" rounded="lg"><VIcon icon="mdi-certificate-outline" /></VAvatar>
-                <div class="flex-grow-1">
-                  <div class="text-body-2 font-weight-bold">{{ cert.name }}</div>
-                  <div class="text-caption text-medium-emphasis">{{ cert.issuer }} · {{ cert.date }}</div>
-                </div>
-                <VBtn icon="mdi-delete-outline" variant="text" size="x-small" color="error" @click="profile.removeCertificate(cert.id)" />
-              </VCard>
-            </VCol>
-          </VRow>
-        </VCard>
-      </VWindowItem>
-
-      <!-- Endorsements -->
-      <VWindowItem value="endorsements">
-        <VCard class="pa-5">
-          <div class="d-flex justify-space-between mb-4">
-            <h3 class="text-subtitle-1 font-weight-bold">التوصيات والتزكيات</h3>
-            <VBtn color="accent" size="small" prepend-icon="mdi-plus" @click="requestEndorsement">طلب توصية</VBtn>
-          </div>
-          <VRow>
-            <VCol v-for="e in endorsements" :key="e.name" cols="12" sm="6">
-              <VCard variant="outlined" class="pa-3">
-                <div class="d-flex align-center ga-3">
-                  <VAvatar color="secondary" variant="tonal"><VIcon icon="mdi-account" /></VAvatar>
-                  <div class="flex-grow-1">
-                    <div class="text-body-2 font-weight-bold">
-                      {{ e.name }}
-                      <VIcon v-if="e.trusted" icon="mdi-check-decagram" color="success" size="16" />
-                    </div>
-                    <div class="text-caption text-medium-emphasis">{{ e.relation }}</div>
-                  </div>
-                  <VChip size="x-small" label prepend-icon="mdi-format-quote-close">{{ e.type }}</VChip>
-                </div>
-              </VCard>
-            </VCol>
-          </VRow>
-        </VCard>
-      </VWindowItem>
-
-      <!-- Resumes -->
-      <VWindowItem value="resumes">
-        <VCard class="pa-5">
-          <div class="d-flex justify-space-between mb-4">
-            <h3 class="text-subtitle-1 font-weight-bold">السير الذاتية المنشأة ({{ resumesStore.count }})</h3>
-            <VBtn color="accent" size="small" prepend-icon="mdi-plus" :to="{ name: 'resume-builder' }">إنشاء سيرة</VBtn>
-          </div>
-          <VList>
-            <VListItem v-for="r in resumesStore.resumes" :key="r.id" class="px-2">
-              <template #prepend>
-                <VAvatar :color="r.active ? 'success' : 'primary'" variant="tonal" rounded="lg"><VIcon icon="mdi-file-account-outline" /></VAvatar>
-              </template>
-              <VListItemTitle class="font-weight-bold">
-                {{ r.name }}
-                <VChip v-if="r.active" color="success" size="x-small" label class="ms-1">نشطة</VChip>
-              </VListItemTitle>
-              <VListItemSubtitle>{{ r.template }} · {{ r.language }} · أُنشئت {{ r.createdAt }}</VListItemSubtitle>
-              <template #append>
-                <VBtn v-if="!r.active" variant="tonal" color="success" size="x-small" class="me-1" @click="resumesStore.setActive(r.id)">تعيين كنشطة</VBtn>
-                <VBtn icon="mdi-open-in-new" variant="text" size="small" :to="{ name: 'public-resume', params: { token: String(r.id) } }" />
-                <VMenu>
-                  <template #activator="{ props }">
-                    <VBtn v-bind="props" icon="mdi-dots-vertical" variant="text" size="small" />
-                  </template>
-                  <VList density="compact">
-                    <VListItem prepend-icon="mdi-pencil" title="تعديل" :to="{ name: 'resume-builder' }" />
-                    <VListItem prepend-icon="mdi-file-pdf-box" title="تصدير PDF" @click="exportResume(r.name, 'PDF')" />
-                    <VListItem prepend-icon="mdi-share-variant" title="مشاركة الرابط" @click="shareResume(r.id)" />
-                    <VListItem prepend-icon="mdi-delete-outline" title="حذف" base-color="error" @click="resumesStore.remove(r.id)" />
-                  </VList>
-                </VMenu>
-              </template>
-            </VListItem>
-          </VList>
-          <div v-if="!resumesStore.count" class="text-center text-medium-emphasis py-6">لا سير ذاتية بعد — أنشئ أول سيرة</div>
-        </VCard>
-      </VWindowItem>
-
-      <!-- Interviews -->
-      <VWindowItem value="interviews">
-        <VCard class="pa-5">
-          <div class="d-flex justify-space-between mb-4">
-            <h3 class="text-subtitle-1 font-weight-bold">المقابلات المُنجزة ({{ interviewsStore.completed.length }})</h3>
-            <VBtn color="accent" size="small" prepend-icon="mdi-plus" :to="{ name: 'interviews' }">مقابلة جديدة</VBtn>
-          </div>
-          <VList v-if="interviewsStore.completed.length" lines="two" class="py-0">
-            <VListItem v-for="iv in interviewsStore.completed" :key="iv.id" :to="{ name: 'interview-result', params: { id: iv.id } }">
-              <template #prepend>
-                <VAvatar color="success" variant="tonal" rounded="lg"><VIcon :icon="TYPE_META[iv.type].icon" /></VAvatar>
-              </template>
-              <VListItemTitle class="font-weight-bold">{{ TYPE_META[iv.type].label }} · {{ LEVEL_META[iv.level].label }}</VListItemTitle>
-              <VListItemSubtitle>{{ iv.date }} · النتيجة {{ iv.result?.score }}% ({{ iv.result?.level }})</VListItemSubtitle>
-              <template #append>
-                <VChip color="success" size="small" label>{{ iv.result?.score }}%</VChip>
-              </template>
-            </VListItem>
-          </VList>
-          <div v-else class="text-center text-medium-emphasis py-6">
-            لا مقابلات بعد — أجرِ مقابلة AI لتحديد مستواك ورفع نسبة ثقتك
-          </div>
-
-          <!-- Certified-interviewer reports -->
-          <template v-if="certifiedReports.length">
-            <VDivider class="my-4" />
-            <div class="d-flex align-center ga-2 mb-3">
-              <VIcon icon="mdi-account-tie" color="secondary" />
-              <h3 class="text-subtitle-1 font-weight-bold">تقارير المقيّمين المعتمدين ({{ certifiedReports.length }})</h3>
-            </div>
-            <VCard v-for="b in certifiedReports" :key="b.id" variant="outlined" class="pa-3 mb-2">
-              <div class="d-flex align-center justify-space-between flex-wrap ga-2">
-                <div>
-                  <div class="text-body-2 font-weight-bold">{{ b.interviewerName }} · {{ KIND_META[b.kind].label }}</div>
-                  <div class="text-caption text-medium-emphasis">{{ b.datetime }} · المستوى {{ b.report?.level }}</div>
-                </div>
-                <div class="d-flex align-center ga-2">
-                  <VChip color="success" size="small" label>{{ b.report?.overall }}%</VChip>
-                  <VBtn size="x-small" color="secondary" variant="tonal" prepend-icon="mdi-certificate-outline" @click="openCertificate(b)">الشهادة</VBtn>
+                <div class="flex items-center gap-1">
+                  <button class="icon-btn h-7 w-7" style="color: rgb(var(--v-theme-accent))" aria-label="إضافة إثبات" @click="openAddProof(skill)"><BaseIcon name="mdi-plus" :size="16" /></button>
+                  <button class="icon-btn h-7 w-7" aria-label="تفاصيل" @click="openDetail(skill)"><BaseIcon name="mdi-information-outline" :size="16" /></button>
+                  <button class="icon-btn h-7 w-7" style="color: rgb(var(--v-theme-error))" aria-label="حذف" @click="profile.removeSkill(skill.id)"><BaseIcon name="mdi-delete-outline" :size="16" /></button>
                 </div>
               </div>
-            </VCard>
-          </template>
-        </VCard>
-      </VWindowItem>
+
+              <!-- Proof source icons -->
+              <div class="mb-2 flex flex-wrap items-center gap-1">
+                <BaseAvatar
+                  v-for="p in skill.proofs"
+                  :key="p.id"
+                  :color="mapColor(PROOF_META[p.type].color)"
+                  tonal
+                  :size="26"
+                  class="cursor-pointer"
+                  :title="`${PROOF_META[p.type].label}: ${p.label}`"
+                  @click="openDetail(skill)"
+                >
+                  <BaseIcon :name="PROOF_META[p.type].icon" :size="15" />
+                </BaseAvatar>
+                <button class="ms-1 inline-flex items-center gap-1 text-xs font-medium" style="color: rgb(var(--v-theme-secondary))" @click="requestEndorsementProof(skill)">
+                  <BaseIcon name="mdi-account-star-outline" :size="15" />طلب إثبات
+                </button>
+              </div>
+
+              <!-- Confidence bar -->
+              <div class="mb-1 flex justify-between text-xs">
+                <span class="text-muted">نسبة الثقة</span>
+                <span class="font-bold" :style="{ color: colorVar(confidenceColor(skillConfidence(skill))) }">{{ skillConfidence(skill) }}%</span>
+              </div>
+              <BaseProgressBar :value="skillConfidence(skill)" :color="confidenceColor(skillConfidence(skill))" :height="8" />
+            </div>
+          </div>
+        </template>
+        <div v-if="!profile.skills.length" class="py-6 text-center text-muted">لا مهارات بعد — أضف أول مهارة</div>
+      </BaseCard>
+
+      <!-- Experience -->
+      <BaseCard v-else-if="tab === 'experience'">
+        <div class="mb-4 flex justify-between">
+          <h3 class="text-base font-bold text-content">الخبرات العملية ({{ profile.experiences.length }})</h3>
+          <BaseButton variant="tonal-accent" size="sm" @click="expDialog = true"><BaseIcon name="mdi-plus" :size="16" />إضافة خبرة</BaseButton>
+        </div>
+        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div v-for="exp in profile.experiences" :key="exp.id" class="flex gap-3 rounded-ui-lg border-ui p-3">
+            <BaseAvatar color="brand" tonal square class="shrink-0"><BaseIcon name="mdi-briefcase-outline" :size="20" /></BaseAvatar>
+            <div class="flex-1">
+              <div class="text-sm font-bold text-content">{{ exp.title }}</div>
+              <div class="text-sm" :style="{ color: 'rgb(var(--v-theme-secondary))' }">{{ exp.company }} · {{ exp.period }}</div>
+              <div class="mt-1 text-sm text-muted">{{ exp.desc }}</div>
+            </div>
+            <button class="icon-btn h-7 w-7 shrink-0" style="color: rgb(var(--v-theme-error))" aria-label="حذف" @click="profile.removeExperience(exp.id)"><BaseIcon name="mdi-delete-outline" :size="16" /></button>
+          </div>
+        </div>
+        <div v-if="!profile.experiences.length" class="py-6 text-center text-muted">لا خبرات بعد — أضف أول خبرة</div>
+      </BaseCard>
+
+      <!-- Certificates -->
+      <BaseCard v-else-if="tab === 'certificates'">
+        <div class="mb-4 flex justify-between">
+          <h3 class="text-base font-bold text-content">الشهادات والدورات ({{ profile.certificates.length }})</h3>
+          <BaseButton variant="tonal-accent" size="sm" @click="certDialog = true"><BaseIcon name="mdi-plus" :size="16" />إضافة</BaseButton>
+        </div>
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div v-for="cert in profile.certificates" :key="cert.id" class="flex items-center gap-3 rounded-ui-lg border-ui p-3">
+            <BaseAvatar color="success" tonal square><BaseIcon name="mdi-certificate-outline" :size="20" /></BaseAvatar>
+            <div class="flex-1">
+              <div class="text-sm font-bold text-content">{{ cert.name }}</div>
+              <div class="text-xs text-muted">{{ cert.issuer }} · {{ cert.date }}</div>
+            </div>
+            <button class="icon-btn h-7 w-7" style="color: rgb(var(--v-theme-error))" aria-label="حذف" @click="profile.removeCertificate(cert.id)"><BaseIcon name="mdi-delete-outline" :size="16" /></button>
+          </div>
+        </div>
+      </BaseCard>
+
+      <!-- Endorsements -->
+      <BaseCard v-else-if="tab === 'endorsements'">
+        <div class="mb-4 flex justify-between">
+          <h3 class="text-base font-bold text-content">التوصيات والتزكيات</h3>
+          <BaseButton variant="tonal-accent" size="sm" @click="requestEndorsement"><BaseIcon name="mdi-plus" :size="16" />طلب توصية</BaseButton>
+        </div>
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div v-for="e in endorsements" :key="e.name" class="flex items-center gap-3 rounded-ui-lg border-ui p-3">
+            <BaseAvatar color="emerald" tonal><BaseIcon name="mdi-account" :size="20" /></BaseAvatar>
+            <div class="flex-1">
+              <div class="flex items-center gap-1 text-sm font-bold text-content">
+                {{ e.name }}
+                <BaseIcon v-if="e.trusted" name="mdi-check-decagram" :size="16" :style="{ color: 'rgb(var(--v-theme-success))' }" />
+              </div>
+              <div class="text-xs text-muted">{{ e.relation }}</div>
+            </div>
+            <BaseChip color="neutral"><BaseIcon name="mdi-format-quote-close" :size="12" />{{ e.type }}</BaseChip>
+          </div>
+        </div>
+      </BaseCard>
+
+      <!-- Resumes -->
+      <BaseCard v-else-if="tab === 'resumes'">
+        <div class="mb-4 flex justify-between">
+          <h3 class="text-base font-bold text-content">السير الذاتية المنشأة ({{ resumesStore.count }})</h3>
+          <BaseButton variant="tonal-accent" size="sm" :to="{ name: 'resume-builder' }"><BaseIcon name="mdi-plus" :size="16" />إنشاء سيرة</BaseButton>
+        </div>
+        <div class="flex flex-col gap-1">
+          <div v-for="r in resumesStore.resumes" :key="r.id" class="flex items-center gap-3 rounded-ui px-2 py-2 hover:bg-surfalt">
+            <BaseAvatar :color="r.active ? 'success' : 'brand'" tonal square><BaseIcon name="mdi-file-account-outline" :size="20" /></BaseAvatar>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-1 font-bold text-content">
+                {{ r.name }}
+                <BaseChip v-if="r.active" color="success">نشطة</BaseChip>
+              </div>
+              <div class="truncate text-xs text-muted">{{ r.template }} · {{ r.language }} · أُنشئت {{ r.createdAt }}</div>
+            </div>
+            <BaseButton v-if="!r.active" variant="tonal-emerald" size="sm" @click="resumesStore.setActive(r.id)">تعيين كنشطة</BaseButton>
+            <BaseButton variant="ghost" size="sm" :to="{ name: 'public-resume', params: { token: String(r.id) } }"><BaseIcon name="mdi-open-in-new" :size="18" /></BaseButton>
+            <BaseDropdown>
+              <template #trigger="{ toggle }">
+                <button class="icon-btn h-9 w-9" aria-label="خيارات" @click="toggle"><BaseIcon name="mdi-dots-vertical" :size="18" /></button>
+              </template>
+              <div class="min-w-[180px] py-1">
+                <router-link class="menu-row" :to="{ name: 'resume-builder' }"><BaseIcon name="mdi-pencil" :size="18" />تعديل</router-link>
+                <button class="menu-row" @click="exportResume(r.name, 'PDF')"><BaseIcon name="mdi-file-pdf-box" :size="18" />تصدير PDF</button>
+                <button class="menu-row" @click="shareResume(r.id)"><BaseIcon name="mdi-share-variant" :size="18" />مشاركة الرابط</button>
+                <button class="menu-row" style="color: rgb(var(--v-theme-error))" @click="resumesStore.remove(r.id)"><BaseIcon name="mdi-delete-outline" :size="18" />حذف</button>
+              </div>
+            </BaseDropdown>
+          </div>
+        </div>
+        <div v-if="!resumesStore.count" class="py-6 text-center text-muted">لا سير ذاتية بعد — أنشئ أول سيرة</div>
+      </BaseCard>
+
+      <!-- Interviews -->
+      <BaseCard v-else-if="tab === 'interviews'">
+        <div class="mb-4 flex justify-between">
+          <h3 class="text-base font-bold text-content">المقابلات المُنجزة ({{ interviewsStore.completed.length }})</h3>
+          <BaseButton variant="tonal-accent" size="sm" :to="{ name: 'interviews' }"><BaseIcon name="mdi-plus" :size="16" />مقابلة جديدة</BaseButton>
+        </div>
+        <div v-if="interviewsStore.completed.length" class="flex flex-col gap-1">
+          <router-link
+            v-for="iv in interviewsStore.completed"
+            :key="iv.id"
+            class="flex items-center gap-3 rounded-ui px-2 py-2 hover:bg-surfalt"
+            :to="{ name: 'interview-result', params: { id: iv.id } }"
+          >
+            <BaseAvatar color="success" tonal square><BaseIcon :name="TYPE_META[iv.type].icon" :size="20" /></BaseAvatar>
+            <div class="min-w-0 flex-1">
+              <div class="font-bold text-content">{{ TYPE_META[iv.type].label }} · {{ LEVEL_META[iv.level].label }}</div>
+              <div class="truncate text-xs text-muted">{{ iv.date }} · النتيجة {{ iv.result?.score }}% ({{ iv.result?.level }})</div>
+            </div>
+            <BaseChip color="success">{{ iv.result?.score }}%</BaseChip>
+          </router-link>
+        </div>
+        <div v-else class="py-6 text-center text-muted">
+          لا مقابلات بعد — أجرِ مقابلة AI لتحديد مستواك ورفع نسبة ثقتك
+        </div>
+
+        <!-- Certified-interviewer reports -->
+        <template v-if="certifiedReports.length">
+          <hr class="my-4 border-ui">
+          <div class="mb-3 flex items-center gap-2">
+            <BaseIcon name="mdi-account-tie" :size="22" :style="{ color: 'rgb(var(--v-theme-secondary))' }" />
+            <h3 class="text-base font-bold text-content">تقارير المقيّمين المعتمدين ({{ certifiedReports.length }})</h3>
+          </div>
+          <div v-for="b in certifiedReports" :key="b.id" class="mb-2 rounded-ui-lg border-ui p-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <div class="text-sm font-bold text-content">{{ b.interviewerName }} · {{ KIND_META[b.kind].label }}</div>
+                <div class="text-xs text-muted">{{ b.datetime }} · المستوى {{ b.report?.level }}</div>
+              </div>
+              <div class="flex items-center gap-2">
+                <BaseChip color="success">{{ b.report?.overall }}%</BaseChip>
+                <BaseButton variant="tonal-emerald" size="sm" @click="openCertificate(b)"><BaseIcon name="mdi-certificate-outline" :size="16" />الشهادة</BaseButton>
+              </div>
+            </div>
+          </div>
+        </template>
+      </BaseCard>
 
       <!-- Reviews (about the candidate) -->
-      <VWindowItem value="reviews">
-        <VCard class="pa-5">
-          <div class="d-flex align-center ga-2 mb-1">
-            <VIcon icon="mdi-star-check-outline" color="amber" />
-            <h3 class="text-subtitle-1 font-weight-bold">تقييمات المقيّمين عنك</h3>
-          </div>
-          <p class="text-caption text-medium-emphasis mb-4">تقييمات علنية موثّقة من المقيّمين المعتمدين — يمكنك الرد مرة واحدة على كل تقييم.</p>
-          <ReviewsPanel direction="toCandidate" subject-id="me" subject-name="أنت" can-reply />
-        </VCard>
-      </VWindowItem>
-
-      <!-- Privacy -->
-      <VWindowItem value="privacy">
-        <VCard class="pa-5">
-          <h3 class="text-subtitle-1 font-weight-bold mb-4">إعدادات الخصوصية</h3>
-          <div v-for="(s, i) in privacySettings" :key="i" class="d-flex align-center justify-space-between flex-wrap ga-2 py-2">
-            <span class="text-body-2">{{ s.label }}</span>
-            <VBtnToggle v-model="s.value" mandatory density="compact" color="primary" variant="outlined">
-              <VBtn v-for="opt in privacyOptions" :key="opt.value" :value="opt.value" size="small">{{ opt.title }}</VBtn>
-            </VBtnToggle>
-          </div>
-          <VDivider class="my-2" />
-          <div class="d-flex align-center justify-space-between py-1">
-            <span class="text-body-2">السماح للآخرين بطلب إثبات مهارة مني</span>
-            <VSwitch v-model="proofRequestEnabled" color="secondary" hide-details density="compact" />
-          </div>
-          <div class="d-flex align-center justify-space-between py-1">
-            <span class="text-body-2">إتاحة نتائج مقابلاتي للجهات</span>
-            <VSwitch v-model="interviewsForCompanies" color="secondary" hide-details density="compact" />
-          </div>
-          <div class="d-flex align-center justify-space-between py-1">
-            <span class="text-body-2">السماح للمقيّمين بطلب إجراء مقابلة معي</span>
-            <VSwitch v-model="interviewerRequestsEnabled" color="secondary" hide-details density="compact" />
-          </div>
-        </VCard>
-      </VWindowItem>
+      <BaseCard v-else-if="tab === 'reviews'">
+        <div class="mb-1 flex items-center gap-2">
+          <BaseIcon name="mdi-star-check-outline" :size="22" :style="{ color: colorVar('amber') }" />
+          <h3 class="text-base font-bold text-content">تقييمات المقيّمين عنك</h3>
+        </div>
+        <p class="mb-4 text-xs text-muted">تقييمات علنية موثّقة من المقيّمين المعتمدين — يمكنك الرد مرة واحدة على كل تقييم.</p>
+        <ReviewsPanel direction="toCandidate" subject-id="me" subject-name="أنت" can-reply />
+      </BaseCard>
 
       <!-- Seeker preferences (seeker_profiles) -->
-      <VWindowItem value="prefs">
-        <VCard class="pa-5">
-          <h3 class="text-subtitle-1 font-weight-bold mb-1">تفضيلات التوظيف والجاهزية</h3>
-          <p class="text-caption text-medium-emphasis mb-4">تساعد هذه التفضيلات محرّك الترشيح الذكي على مطابقتك بالفرص الأنسب</p>
-          <VRow dense>
-            <VCol cols="12" md="6">
-              <VSelect v-model="profile.prefs.availability" :items="AVAILABILITY_OPTIONS" label="الجاهزية للعمل" prepend-inner-icon="mdi-calendar-clock-outline" />
-            </VCol>
-            <VCol cols="12" md="6">
-              <VTextField v-model="profile.prefs.location" label="موقعك الحالي" prepend-inner-icon="mdi-map-marker-outline" />
-            </VCol>
-            <VCol cols="12" md="6">
-              <VTextField v-model.number="profile.prefs.expected_salary" type="number" label="الراتب المتوقع (شهريًا)" prepend-inner-icon="mdi-cash-multiple" clearable />
-            </VCol>
-            <VCol cols="12" md="6">
-              <VSelect v-model="profile.prefs.preferred_employment_types" :items="EMPLOYMENT_TYPES" label="أنواع العمل المفضّلة" prepend-inner-icon="mdi-briefcase-outline" multiple chips closable-chips />
-            </VCol>
-            <VCol cols="12" md="6">
-              <VCombobox v-model="profile.prefs.preferred_fields" label="المجالات المفضّلة" prepend-inner-icon="mdi-tag-multiple-outline" multiple chips closable-chips />
-            </VCol>
-            <VCol cols="12" md="6">
-              <VCombobox v-model="profile.prefs.preferred_locations" label="المواقع المفضّلة" prepend-inner-icon="mdi-map-marker-multiple-outline" multiple chips closable-chips />
-            </VCol>
-          </VRow>
-          <VDivider class="my-3" />
-          <div class="d-flex align-center justify-space-between py-1">
-            <div>
-              <div class="text-body-2 font-weight-bold">العرض الذاتي</div>
-              <div class="text-caption text-medium-emphasis">اعرض نفسك للجهات كمرشح متاح دون انتظار فرصة منشورة</div>
-            </div>
-            <VSwitch v-model="profile.prefs.self_offer_active" color="secondary" hide-details density="compact" />
+      <BaseCard v-else-if="tab === 'prefs'">
+        <h3 class="mb-1 text-base font-bold text-content">تفضيلات التوظيف والجاهزية</h3>
+        <p class="mb-4 text-xs text-muted">تساعد هذه التفضيلات محرّك الترشيح الذكي على مطابقتك بالفرص الأنسب</p>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <label class="mb-1 block text-sm font-medium text-muted">الجاهزية للعمل</label>
+            <BaseSelect :model-value="profile.prefs.availability" :items="AVAILABILITY_OPTIONS" prefix-icon="mdi-calendar-clock-outline" @update:model-value="v => v && (profile.prefs.availability = v as typeof profile.prefs.availability)" />
           </div>
-        </VCard>
-      </VWindowItem>
-    </VWindow>
+          <BaseInput v-model="profile.prefs.location" label="موقعك الحالي" prefix-icon="mdi-map-marker-outline" />
+          <BaseInput v-model.number="profile.prefs.expected_salary" type="number" label="الراتب المتوقع (شهريًا)" prefix-icon="mdi-cash-multiple" />
+          <div class="md:col-span-2">
+            <label class="mb-1 block text-sm font-medium text-muted">أنواع العمل المفضّلة</label>
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="et in EMPLOYMENT_TYPES"
+                :key="et.value"
+                type="button"
+                class="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition"
+                :style="toggleStyle(profile.prefs.preferred_employment_types.includes(et.value), 'primary')"
+                @click="toggleEmploymentType(et.value)"
+              >{{ et.title }}</button>
+            </div>
+          </div>
+          <BaseTagInput v-model="profile.prefs.preferred_fields" label="المجالات المفضّلة" placeholder="اكتب مجالًا واضغط Enter" />
+          <BaseTagInput v-model="profile.prefs.preferred_locations" label="المواقع المفضّلة" placeholder="اكتب موقعًا واضغط Enter" />
+        </div>
+        <hr class="my-3 border-ui">
+        <div class="flex items-center justify-between py-1">
+          <div>
+            <div class="text-sm font-bold text-content">العرض الذاتي</div>
+            <div class="text-xs text-muted">اعرض نفسك للجهات كمرشح متاح دون انتظار فرصة منشورة</div>
+          </div>
+          <BaseSwitch v-model="profile.prefs.self_offer_active" />
+        </div>
+      </BaseCard>
+
+      <!-- Privacy -->
+      <BaseCard v-else-if="tab === 'privacy'">
+        <h3 class="mb-4 text-base font-bold text-content">إعدادات الخصوصية</h3>
+        <div v-for="(pv, i) in privacySettings" :key="i" class="flex flex-wrap items-center justify-between gap-2 py-2">
+          <span class="text-sm text-content">{{ pv.label }}</span>
+          <div class="seg">
+            <button
+              v-for="opt in privacyOptions"
+              :key="opt.value"
+              type="button"
+              class="seg-btn"
+              :class="{ 'is-active': pv.value === opt.value }"
+              @click="pv.value = opt.value"
+            >{{ opt.title }}</button>
+          </div>
+        </div>
+        <hr class="my-2 border-ui">
+        <BaseSwitch v-model="proofRequestEnabled" label="السماح للآخرين بطلب إثبات مهارة مني" />
+        <BaseSwitch v-model="interviewsForCompanies" label="إتاحة نتائج مقابلاتي للجهات" />
+        <BaseSwitch v-model="interviewerRequestsEnabled" label="السماح للمقيّمين بطلب إجراء مقابلة معي" />
+      </BaseCard>
     </div>
 
     <!-- ===== Interviewer profile (interviewer_profiles) ===== -->
     <div v-if="roleTab === 'interviewer'">
-      <VCard class="pa-5 mb-5">
-        <div class="d-flex align-center justify-space-between flex-wrap ga-2 mb-1">
-          <h3 class="text-subtitle-1 font-weight-bold">ملف المقيّم المعتمد</h3>
-          <VChip v-if="roleProfiles.interviewer.is_approved || authStore.hasRole('interviewer')" color="success" size="small" label prepend-icon="mdi-check-decagram">
-            معتمد
-          </VChip>
-          <VChip v-else color="warning" size="small" label prepend-icon="mdi-clock-outline">
-            {{ t('roleSwitcher.pending') }}
-          </VChip>
+      <BaseCard class="mb-5">
+        <div class="mb-1 flex flex-wrap items-center justify-between gap-2">
+          <h3 class="text-base font-bold text-content">ملف المقيّم المعتمد</h3>
+          <BaseChip v-if="roleProfiles.interviewer.is_approved || authStore.hasRole('interviewer')" color="success"><BaseIcon name="mdi-check-decagram" :size="13" />معتمد</BaseChip>
+          <BaseChip v-else color="warning"><BaseIcon name="mdi-clock-outline" :size="13" />{{ t('roleSwitcher.pending') }}</BaseChip>
         </div>
-        <div class="d-flex justify-space-between text-caption mb-1 mt-3">
-          <span class="text-medium-emphasis">اكتمال ملف المقيّم</span>
-          <span class="font-weight-bold text-primary">{{ roleProfiles.interviewerCompletion }}%</span>
+        <div class="mb-1 mt-3 flex justify-between text-xs">
+          <span class="text-muted">اكتمال ملف المقيّم</span>
+          <span class="font-bold" :style="{ color: 'rgb(var(--v-theme-primary))' }">{{ roleProfiles.interviewerCompletion }}%</span>
         </div>
-        <VProgressLinear :model-value="roleProfiles.interviewerCompletion" color="primary" height="8" rounded class="mb-4" />
-        <VRow dense>
-          <VCol cols="12" md="6">
-            <VCombobox v-model="roleProfiles.interviewer.specializations" label="التخصصات التي تقيّمها" prepend-inner-icon="mdi-star-check-outline" multiple chips closable-chips />
-          </VCol>
-          <VCol cols="12" md="6">
-            <VTextField v-model.number="roleProfiles.interviewer.hourly_rate" type="number" label="السعر لكل ساعة (ر.س)" prepend-inner-icon="mdi-cash-multiple" />
-          </VCol>
-          <VCol cols="12" md="6">
-            <VCombobox v-model="roleProfiles.interviewer.interview_types" label="أنواع المقابلات" prepend-inner-icon="mdi-format-list-checks" multiple chips closable-chips />
-          </VCol>
-          <VCol cols="12" md="6">
-            <VCombobox v-model="roleProfiles.interviewer.certificates" label="الشهادات والخبرات" prepend-inner-icon="mdi-certificate-outline" multiple chips closable-chips />
-          </VCol>
-        </VRow>
-        <VRow dense class="mt-1">
-          <VCol v-for="stat in [
-            { label: 'مقابلات منفّذة', value: roleProfiles.interviewer.total_interviews, icon: 'mdi-account-tie-voice-outline', color: 'primary' },
-            { label: 'متوسط التقييم', value: roleProfiles.interviewer.average_rating || '—', icon: 'mdi-star-outline', color: 'amber' },
-            { label: 'إجمالي الأرباح', value: `${roleProfiles.interviewer.total_earnings} ر.س`, icon: 'mdi-wallet-outline', color: 'secondary' },
-          ]" :key="stat.label" cols="4">
-            <div class="text-center pa-3 rounded-lg" style="background: rgba(var(--v-theme-primary), 0.06)">
-              <VIcon :icon="stat.icon" :color="stat.color" size="20" class="mb-1" />
-              <div class="text-body-2 font-weight-bold">{{ stat.value }}</div>
-              <div class="text-caption text-medium-emphasis">{{ stat.label }}</div>
-            </div>
-          </VCol>
-        </VRow>
-      </VCard>
-      <VCard class="pa-5">
-        <h3 class="text-subtitle-1 font-weight-bold mb-3">خصوصية دور المقيّم</h3>
-        <div class="d-flex align-center justify-space-between flex-wrap ga-2 py-2">
-          <span class="text-body-2">ظهور ملف المقيّم في السوق</span>
-          <VBtnToggle v-model="roleProfiles.interviewer.visibility" mandatory density="compact" color="primary" variant="outlined">
-            <VBtn v-for="opt in VISIBILITY_OPTIONS" :key="opt.value" :value="opt.value" size="small">{{ opt.title }}</VBtn>
-          </VBtnToggle>
+        <BaseProgressBar :value="roleProfiles.interviewerCompletion" :height="8" color="primary" class="mb-4" />
+        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <BaseTagInput v-model="roleProfiles.interviewer.specializations" label="التخصصات التي تقيّمها" placeholder="اكتب تخصصًا واضغط Enter" />
+          <BaseInput v-model.number="roleProfiles.interviewer.hourly_rate" type="number" label="السعر لكل ساعة (ر.س)" prefix-icon="mdi-cash-multiple" />
+          <BaseTagInput v-model="roleProfiles.interviewer.interview_types" label="أنواع المقابلات" placeholder="اكتب نوعًا واضغط Enter" />
+          <BaseTagInput v-model="roleProfiles.interviewer.certificates" label="الشهادات والخبرات" placeholder="اكتب شهادة واضغط Enter" />
         </div>
-        <div class="d-flex align-center justify-space-between py-1">
-          <span class="text-body-2">إشعارات طلبات التقييم الجديدة</span>
-          <VSwitch v-model="roleProfiles.interviewer.notifications_enabled" color="secondary" hide-details density="compact" />
+        <div class="mt-3 grid grid-cols-3 gap-3">
+          <div
+            v-for="stat in [
+              { label: 'مقابلات منفّذة', value: roleProfiles.interviewer.total_interviews, icon: 'mdi-account-tie-voice-outline', color: 'primary' },
+              { label: 'متوسط التقييم', value: roleProfiles.interviewer.average_rating || '—', icon: 'mdi-star-outline', color: 'amber' },
+              { label: 'إجمالي الأرباح', value: `${roleProfiles.interviewer.total_earnings} ر.س`, icon: 'mdi-wallet-outline', color: 'secondary' },
+            ]"
+            :key="stat.label"
+            class="rounded-ui p-3 text-center"
+            style="background: rgba(var(--v-theme-primary), 0.06)"
+          >
+            <BaseIcon :name="stat.icon" :size="20" class="mb-1" :style="{ color: colorVar(stat.color) }" />
+            <div class="text-sm font-bold text-content">{{ stat.value }}</div>
+            <div class="text-xs text-muted">{{ stat.label }}</div>
+          </div>
         </div>
-        <div class="d-flex align-center justify-space-between py-1">
-          <span class="text-body-2">إظهار أدواري الأخرى في ملفي العام</span>
-          <VSwitch v-model="roleProfiles.linkRolesPublicly" color="secondary" hide-details density="compact" />
+      </BaseCard>
+      <BaseCard>
+        <h3 class="mb-3 text-base font-bold text-content">خصوصية دور المقيّم</h3>
+        <div class="flex flex-wrap items-center justify-between gap-2 py-2">
+          <span class="text-sm text-content">ظهور ملف المقيّم في السوق</span>
+          <div class="seg">
+            <button v-for="opt in VISIBILITY_OPTIONS" :key="opt.value" type="button" class="seg-btn" :class="{ 'is-active': roleProfiles.interviewer.visibility === opt.value }" @click="roleProfiles.interviewer.visibility = opt.value as typeof roleProfiles.interviewer.visibility">{{ opt.title }}</button>
+          </div>
         </div>
-      </VCard>
+        <BaseSwitch v-model="roleProfiles.interviewer.notifications_enabled" label="إشعارات طلبات التقييم الجديدة" />
+        <BaseSwitch v-model="roleProfiles.linkRolesPublicly" label="إظهار أدواري الأخرى في ملفي العام" />
+      </BaseCard>
     </div>
 
     <!-- ===== Employer profile (employer_profiles) ===== -->
     <div v-if="roleTab === 'company'">
-      <VCard class="pa-5 mb-5">
-        <div class="d-flex align-center justify-space-between flex-wrap ga-2 mb-1">
-          <h3 class="text-subtitle-1 font-weight-bold">ملف جهة التوظيف</h3>
-          <div class="d-flex align-center ga-1">
-            <VChip color="secondary" size="small" variant="tonal" label :prepend-icon="ORG_TYPE_META[personaStore.state.orgType].icon">
-              {{ ORG_TYPE_META[personaStore.state.orgType].label }}
-            </VChip>
-            <VChip v-if="roleProfiles.employer.is_verified" color="success" size="small" label prepend-icon="mdi-check-decagram">
-              شركة موثّقة
-            </VChip>
+      <BaseCard class="mb-5">
+        <div class="mb-1 flex flex-wrap items-center justify-between gap-2">
+          <h3 class="text-base font-bold text-content">ملف جهة التوظيف</h3>
+          <div class="flex items-center gap-1">
+            <BaseChip color="emerald"><BaseIcon :name="ORG_TYPE_META[personaStore.state.orgType].icon" :size="13" />{{ ORG_TYPE_META[personaStore.state.orgType].label }}</BaseChip>
+            <BaseChip v-if="roleProfiles.employer.is_verified" color="success"><BaseIcon name="mdi-check-decagram" :size="13" />شركة موثّقة</BaseChip>
           </div>
         </div>
-        <div class="d-flex justify-space-between text-caption mb-1 mt-3">
-          <span class="text-medium-emphasis">اكتمال ملف الجهة</span>
-          <span class="font-weight-bold text-primary">{{ roleProfiles.employerCompletion }}%</span>
+        <div class="mb-1 mt-3 flex justify-between text-xs">
+          <span class="text-muted">اكتمال ملف الجهة</span>
+          <span class="font-bold" :style="{ color: 'rgb(var(--v-theme-primary))' }">{{ roleProfiles.employerCompletion }}%</span>
         </div>
-        <VProgressLinear :model-value="roleProfiles.employerCompletion" color="primary" height="8" rounded class="mb-4" />
-        <VRow dense>
-          <VCol cols="12" md="6">
-            <VTextField v-model="roleProfiles.employer.company_name" label="اسم الجهة / الشركة" prepend-inner-icon="mdi-office-building-outline" />
-          </VCol>
-          <VCol cols="12" md="6">
-            <VTextField v-model="roleProfiles.employer.industry" label="المجال" prepend-inner-icon="mdi-tag-outline" />
-          </VCol>
-          <VCol cols="12" md="6">
-            <VSelect v-model="roleProfiles.employer.company_size" :items="COMPANY_SIZES" label="حجم الشركة" prepend-inner-icon="mdi-account-group-outline" />
-          </VCol>
-          <VCol cols="12" md="6">
-            <VSelect
-              :model-value="personaStore.state.orgType"
-              :items="orgTypeItems"
-              label="نوع المنشأة"
-              prepend-inner-icon="mdi-domain"
-              @update:model-value="personaStore.setOrgType($event)"
-            />
-          </VCol>
-          <VCol cols="12" md="6">
-            <VTextField v-model="roleProfiles.employer.company_website" label="الموقع الإلكتروني" prepend-inner-icon="mdi-web" dir="ltr" />
-          </VCol>
-          <VCol cols="12">
-            <VTextarea v-model="roleProfiles.employer.company_description" label="نبذة عن الشركة" prepend-inner-icon="mdi-text" rows="3" auto-grow />
-          </VCol>
-        </VRow>
-      </VCard>
-      <VCard class="pa-5">
-        <h3 class="text-subtitle-1 font-weight-bold mb-3">خصوصية دور جهة التوظيف</h3>
-        <div class="d-flex align-center justify-space-between flex-wrap ga-2 py-2">
-          <span class="text-body-2">ظهور الشركة للمرشحين ونتائج البحث</span>
-          <VBtnToggle v-model="roleProfiles.employer.visibility" mandatory density="compact" color="primary" variant="outlined">
-            <VBtn v-for="opt in VISIBILITY_OPTIONS" :key="opt.value" :value="opt.value" size="small">{{ opt.title }}</VBtn>
-          </VBtnToggle>
+        <BaseProgressBar :value="roleProfiles.employerCompletion" :height="8" color="primary" class="mb-4" />
+        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <BaseInput v-model="roleProfiles.employer.company_name" label="اسم الجهة / الشركة" prefix-icon="mdi-office-building-outline" />
+          <BaseInput v-model="roleProfiles.employer.industry" label="المجال" prefix-icon="mdi-tag-outline" />
+          <div>
+            <label class="mb-1 block text-sm font-medium text-muted">حجم الشركة</label>
+            <BaseSelect :model-value="roleProfiles.employer.company_size" :items="COMPANY_SIZE_OPTIONS" prefix-icon="mdi-account-group-outline" @update:model-value="v => v && (roleProfiles.employer.company_size = v as typeof roleProfiles.employer.company_size)" />
+          </div>
+          <div>
+            <label class="mb-1 block text-sm font-medium text-muted">نوع المنشأة</label>
+            <BaseSelect :model-value="personaStore.state.orgType" :items="orgTypeItems" prefix-icon="mdi-domain" @update:model-value="v => v && personaStore.setOrgType(v)" />
+          </div>
+          <BaseInput v-model="roleProfiles.employer.company_website" label="الموقع الإلكتروني" prefix-icon="mdi-web" dir="ltr" />
+          <BaseTextarea v-model="roleProfiles.employer.company_description" label="نبذة عن الشركة" :rows="3" class="md:col-span-2" />
         </div>
-        <div class="d-flex align-center justify-space-between py-1">
-          <span class="text-body-2">إشعارات المتقدمين الجدد</span>
-          <VSwitch v-model="roleProfiles.employer.notifications_enabled" color="secondary" hide-details density="compact" />
+      </BaseCard>
+      <BaseCard>
+        <h3 class="mb-3 text-base font-bold text-content">خصوصية دور جهة التوظيف</h3>
+        <div class="flex flex-wrap items-center justify-between gap-2 py-2">
+          <span class="text-sm text-content">ظهور الشركة للمرشحين ونتائج البحث</span>
+          <div class="seg">
+            <button v-for="opt in VISIBILITY_OPTIONS" :key="opt.value" type="button" class="seg-btn" :class="{ 'is-active': roleProfiles.employer.visibility === opt.value }" @click="roleProfiles.employer.visibility = opt.value as typeof roleProfiles.employer.visibility">{{ opt.title }}</button>
+          </div>
         </div>
-        <div class="d-flex align-center justify-space-between py-1">
-          <span class="text-body-2">إظهار أدواري الأخرى في ملفي العام</span>
-          <VSwitch v-model="roleProfiles.linkRolesPublicly" color="secondary" hide-details density="compact" />
-        </div>
-      </VCard>
+        <BaseSwitch v-model="roleProfiles.employer.notifications_enabled" label="إشعارات المتقدمين الجدد" />
+        <BaseSwitch v-model="roleProfiles.linkRolesPublicly" label="إظهار أدواري الأخرى في ملفي العام" />
+      </BaseCard>
     </div>
 
     <!-- Add skill dialog -->
-    <VDialog v-model="skillDialog" max-width="420">
-      <VCard class="pa-2">
-        <VCardTitle>إضافة مهارة</VCardTitle>
-        <VCardText>
-          <VSelect v-model="newSkillCategory" :items="categoryOptions" label="التصنيف" clearable class="mb-3" />
-          <VCombobox
-            v-model="newSkillName"
-            :items="categorySkillSuggestions"
-            label="اسم المهارة"
-            :hint="newSkillCategory ? 'اختر من الاقتراحات أو اكتب مهارة جديدة' : 'اختر تصنيفًا لاقتراح مهارات، أو اكتب مباشرة'"
-            persistent-hint
-            class="mb-3"
-          />
-          <div class="text-body-2 mb-1">المستوى</div>
-          <VRating v-model="newSkillLevel" color="accent" />
-        </VCardText>
-        <VCardActions class="justify-end">
-          <VBtn variant="text" @click="skillDialog = false">إلغاء</VBtn>
-          <VBtn color="accent" :disabled="!newSkillName.trim()" @click="saveSkill">إضافة</VBtn>
-        </VCardActions>
-      </VCard>
-    </VDialog>
+    <BaseModal v-model="skillDialog" title="إضافة مهارة" :max-width="420">
+      <div class="mb-3">
+        <label class="mb-1 block text-sm font-medium text-muted">التصنيف</label>
+        <BaseSelect :model-value="newSkillCategory ?? null" :items="categoryOptions" placeholder="—" clearable @update:model-value="v => newSkillCategory = v ?? undefined" />
+      </div>
+      <BaseInput v-model="newSkillName" label="اسم المهارة" list="skill-suggestions" class="mb-1" />
+      <datalist id="skill-suggestions">
+        <option v-for="opt in categorySkillSuggestions" :key="opt" :value="opt" />
+      </datalist>
+      <p class="mb-3 text-xs text-muted">{{ newSkillCategory ? 'اختر من الاقتراحات أو اكتب مهارة جديدة' : 'اختر تصنيفًا لاقتراح مهارات، أو اكتب مباشرة' }}</p>
+      <div class="mb-1 text-sm text-content">المستوى</div>
+      <BaseRating v-model="newSkillLevel" />
+      <template #actions>
+        <BaseButton variant="ghost" @click="skillDialog = false">إلغاء</BaseButton>
+        <BaseButton variant="accent" :disabled="!newSkillName.trim()" @click="saveSkill">إضافة</BaseButton>
+      </template>
+    </BaseModal>
 
     <!-- Add proof dialog -->
-    <VDialog v-model="proofDialog" max-width="460">
-      <VCard class="pa-2">
-        <VCardTitle>إضافة إثبات لمهارة «{{ proofSkill?.name }}»</VCardTitle>
-        <VCardText>
-          <VSelect v-model="proofType" :items="proofTypeOptions" label="نوع الإثبات" class="mb-2" />
-          <VTextField v-model="proofLabel" label="الوصف / المرجع" placeholder="مثال: اختبار Vue — 90% أو رابط مشروع" />
-          <VAlert type="info" variant="tonal" density="compact" class="mt-2 text-caption">
-            كل إثبات يرفع نسبة الثقة في المهارة حسب قوته.
-          </VAlert>
-        </VCardText>
-        <VCardActions class="justify-end">
-          <VBtn variant="text" @click="proofDialog = false">إلغاء</VBtn>
-          <VBtn color="accent" :disabled="!proofLabel.trim()" @click="saveProof">إضافة الإثبات</VBtn>
-        </VCardActions>
-      </VCard>
-    </VDialog>
+    <BaseModal v-model="proofDialog" :title="`إضافة إثبات لمهارة «${proofSkill?.name}»`" :max-width="460">
+      <div class="mb-2">
+        <label class="mb-1 block text-sm font-medium text-muted">نوع الإثبات</label>
+        <BaseSelect :model-value="proofType" :items="proofTypeOptions" @update:model-value="v => v && (proofType = v)" />
+      </div>
+      <BaseInput v-model="proofLabel" label="الوصف / المرجع" placeholder="مثال: اختبار Vue — 90% أو رابط مشروع" />
+      <div class="mt-2 flex items-start gap-2 rounded-ui border-s-4 bg-surfalt p-2 text-xs text-content" :style="{ borderColor: 'rgb(var(--v-theme-info))' }">
+        <BaseIcon name="mdi-information-outline" :size="16" :style="{ color: 'rgb(var(--v-theme-info))' }" />
+        كل إثبات يرفع نسبة الثقة في المهارة حسب قوته.
+      </div>
+      <template #actions>
+        <BaseButton variant="ghost" @click="proofDialog = false">إلغاء</BaseButton>
+        <BaseButton variant="accent" :disabled="!proofLabel.trim()" @click="saveProof">إضافة الإثبات</BaseButton>
+      </template>
+    </BaseModal>
 
     <!-- Skill detail dialog -->
-    <VDialog v-model="detailDialog" max-width="480">
-      <VCard v-if="detailSkill" class="pa-2">
-        <VCardTitle class="d-flex justify-space-between align-center">
+    <BaseModal v-model="detailDialog" :max-width="480">
+      <template v-if="detailSkill" #title>
+        <div class="flex items-center justify-between gap-2">
           <span>{{ detailSkill.name }}</span>
-          <VChip size="small" :color="confidenceColor(skillConfidence(detailSkill))" label>
-            {{ levelOf(detailSkill) }} · {{ skillConfidence(detailSkill) }}%
-          </VChip>
-        </VCardTitle>
-        <VCardText>
-          <!-- AI rationale for the confidence score -->
-          <VAlert color="secondary" variant="tonal" density="compact" class="mb-3" border="start">
-            <template #prepend>
-              <VIcon icon="mdi-robot-happy-outline" size="20" />
-            </template>
-            <span class="text-caption">{{ skillRationale }}</span>
-          </VAlert>
+          <BaseChip :color="confidenceColor(skillConfidence(detailSkill))">{{ levelOf(detailSkill) }} · {{ skillConfidence(detailSkill) }}%</BaseChip>
+        </div>
+      </template>
+      <template v-if="detailSkill">
+        <!-- AI rationale for the confidence score -->
+        <div class="mb-3 flex items-start gap-2 rounded-ui border-s-4 bg-surfalt p-2" :style="{ borderColor: 'rgb(var(--v-theme-secondary))' }">
+          <BaseIcon name="mdi-robot-happy-outline" :size="20" :style="{ color: 'rgb(var(--v-theme-secondary))' }" />
+          <span class="text-xs text-content">{{ skillRationale }}</span>
+        </div>
 
-          <div class="text-body-2 font-weight-bold mb-2">مصادر الإثبات ({{ detailSkill.proofs.length }})</div>
-          <VTimeline side="end" density="compact" align="start">
-            <VTimelineItem v-for="p in detailSkill.proofs" :key="p.id" :dot-color="PROOF_META[p.type].color" size="x-small">
-              <div class="d-flex align-center justify-space-between">
-                <div>
-                  <VChip size="x-small" :color="PROOF_META[p.type].color" variant="tonal" :prepend-icon="PROOF_META[p.type].icon" class="mb-1">
-                    {{ PROOF_META[p.type].label }} (+{{ PROOF_META[p.type].weight }})
-                  </VChip>
-                  <div class="text-body-2">{{ p.label }}</div>
-                </div>
-                <span class="text-caption text-medium-emphasis">{{ p.date }}</span>
+        <div class="mb-2 text-sm font-bold text-content">مصادر الإثبات ({{ detailSkill.proofs.length }})</div>
+        <div class="mb-4 flex flex-col gap-3">
+          <div v-for="p in detailSkill.proofs" :key="p.id" class="flex items-start gap-2">
+            <span class="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" :style="{ background: colorVar(PROOF_META[p.type].color) }" />
+            <div class="flex flex-1 items-center justify-between gap-2">
+              <div>
+                <BaseChip :color="mapColor(PROOF_META[p.type].color)" class="mb-1"><BaseIcon :name="PROOF_META[p.type].icon" :size="12" />{{ PROOF_META[p.type].label }} (+{{ PROOF_META[p.type].weight }})</BaseChip>
+                <div class="text-sm text-content">{{ p.label }}</div>
               </div>
-            </VTimelineItem>
-          </VTimeline>
-          <VBtn color="accent" variant="tonal" size="small" block prepend-icon="mdi-plus" @click="detailDialog = false; openAddProof(detailSkill)">
-            إضافة إثبات جديد
-          </VBtn>
-        </VCardText>
-      </VCard>
-    </VDialog>
+              <span class="text-xs text-muted">{{ p.date }}</span>
+            </div>
+          </div>
+        </div>
+        <BaseButton variant="tonal-accent" size="sm" block @click="detailDialog = false; openAddProof(detailSkill)">
+          <BaseIcon name="mdi-plus" :size="16" />إضافة إثبات جديد
+        </BaseButton>
+      </template>
+    </BaseModal>
 
-    <VSnackbar :model-value="!!proofSnackbar" color="secondary" timeout="4000" @update:model-value="proofSnackbar = ''">
+    <BaseSnackbar :model-value="!!proofSnackbar" color="secondary" :timeout="4000" @update:model-value="proofSnackbar = ''">
       {{ proofSnackbar }}
-    </VSnackbar>
+    </BaseSnackbar>
 
-    <VSnackbar :model-value="!!toastMsg" color="primary" location="top" timeout="3500" @update:model-value="toastMsg = ''">
+    <BaseSnackbar :model-value="!!toastMsg" color="primary" :timeout="3500" @update:model-value="toastMsg = ''">
       {{ toastMsg }}
-    </VSnackbar>
+    </BaseSnackbar>
 
     <!-- Edit profile dialog -->
-    <VDialog v-model="editDialog" max-width="520">
-      <VCard class="pa-2">
-        <VCardTitle class="d-flex justify-space-between align-center">
-          <span>تعديل الملف الشخصي</span>
-          <VBtn icon="mdi-close" variant="text" size="small" @click="editDialog = false" />
-        </VCardTitle>
-        <VCardText>
-          <VTextField v-model="editForm.headline" label="العنوان المهني" placeholder="مثال: مطوّر واجهات أمامية · الرياض" class="mb-3" />
-          <VTextarea v-model="editForm.summary" label="النبذة التعريفية" rows="4" auto-grow />
-        </VCardText>
-        <VCardActions class="justify-end">
-          <VBtn variant="text" @click="editDialog = false">إلغاء</VBtn>
-          <VBtn color="accent" prepend-icon="mdi-content-save" @click="saveEdit">حفظ</VBtn>
-        </VCardActions>
-      </VCard>
-    </VDialog>
+    <BaseModal v-model="editDialog" title="تعديل الملف الشخصي" :max-width="520">
+      <BaseInput v-model="editForm.headline" label="العنوان المهني" placeholder="مثال: مطوّر واجهات أمامية · الرياض" class="mb-3" />
+      <BaseTextarea v-model="editForm.summary" label="النبذة التعريفية" :rows="4" />
+      <template #actions>
+        <BaseButton variant="ghost" @click="editDialog = false">إلغاء</BaseButton>
+        <BaseButton variant="accent" @click="saveEdit"><BaseIcon name="mdi-content-save" :size="18" />حفظ</BaseButton>
+      </template>
+    </BaseModal>
 
     <!-- Digital certificate dialog -->
-    <VDialog v-model="certificateDialog" max-width="560">
-      <VCard v-if="certificateReport" class="pa-0 overflow-hidden">
-        <div class="brand-gradient pa-5 text-center" style="color: white">
-          <VIcon icon="mdi-certificate" size="44" />
-          <div class="text-h6 font-weight-bold mt-1">شهادة اجتياز مقابلة تقييمية</div>
-          <div class="text-caption" style="opacity: 0.85">منظومة التوظيف الذكية · موثّقة</div>
+    <BaseModal v-model="certificateDialog" :max-width="560">
+      <template v-if="certificateReport">
+        <div class="brand-gradient -mx-4 -mt-4 mb-4 p-5 text-center" style="color: white">
+          <BaseIcon name="mdi-certificate" :size="44" />
+          <div class="mt-1 text-lg font-bold">شهادة اجتياز مقابلة تقييمية</div>
+          <div class="text-xs" style="opacity: 0.85">منظومة التوظيف الذكية · موثّقة</div>
         </div>
-        <VCardText class="text-center pt-5">
-          <div class="text-body-2 text-medium-emphasis mb-1">تشهد المنصة بأن</div>
-          <div class="text-h6 font-weight-bold mb-3">{{ user?.name }}</div>
-          <div class="text-body-2 text-medium-emphasis mb-1">اجتاز</div>
-          <div class="text-subtitle-1 font-weight-bold">{{ KIND_META[certificateReport.kind].label }}</div>
-          <div class="text-body-2 mb-3">بإشراف المقيّم المعتمد «{{ certificateReport.interviewerName }}»</div>
+        <div class="text-center">
+          <div class="mb-1 text-sm text-muted">تشهد المنصة بأن</div>
+          <div class="mb-3 text-lg font-bold text-content">{{ user?.name }}</div>
+          <div class="mb-1 text-sm text-muted">اجتاز</div>
+          <div class="text-base font-bold text-content">{{ KIND_META[certificateReport.kind].label }}</div>
+          <div class="mb-3 text-sm text-content">بإشراف المقيّم المعتمد «{{ certificateReport.interviewerName }}»</div>
 
-          <div class="d-flex justify-center ga-6 my-4">
+          <div class="my-4 flex justify-center gap-6">
             <div>
-              <div class="text-h5 font-weight-bold text-success">{{ certificateReport.report?.overall }}%</div>
-              <div class="text-caption text-medium-emphasis">التقييم العام</div>
+              <div class="text-2xl font-bold" :style="{ color: 'rgb(var(--v-theme-success))' }">{{ certificateReport.report?.overall }}%</div>
+              <div class="text-xs text-muted">التقييم العام</div>
             </div>
-            <VDivider vertical />
+            <div class="w-px self-stretch bg-[rgba(var(--v-theme-on-surface),0.14)]" />
             <div>
-              <div class="text-h5 font-weight-bold text-primary">{{ certificateReport.report?.level }}</div>
-              <div class="text-caption text-medium-emphasis">المستوى المُحدَّد</div>
+              <div class="text-2xl font-bold" :style="{ color: 'rgb(var(--v-theme-primary))' }">{{ certificateReport.report?.level }}</div>
+              <div class="text-xs text-muted">المستوى المُحدَّد</div>
             </div>
-            <VDivider vertical />
+            <div class="w-px self-stretch bg-[rgba(var(--v-theme-on-surface),0.14)]" />
             <div>
-              <div class="text-h5 font-weight-bold text-accent">+{{ certificateReport.report?.trustGain }}%</div>
-              <div class="text-caption text-medium-emphasis">أثر الثقة</div>
+              <div class="text-2xl font-bold" :style="{ color: 'rgb(var(--v-theme-accent))' }">+{{ certificateReport.report?.trustGain }}%</div>
+              <div class="text-xs text-muted">أثر الثقة</div>
             </div>
           </div>
 
-          <div class="text-caption text-medium-emphasis">
-            <VIcon icon="mdi-shield-check" size="14" color="success" /> رقم التوثيق: SR-{{ certificateReport.id }}-{{ certificateReport.report?.overall }} · {{ certificateReport.datetime }}
+          <div class="flex items-center justify-center gap-1 text-xs text-muted">
+            <BaseIcon name="mdi-shield-check" :size="14" :style="{ color: 'rgb(var(--v-theme-success))' }" /> رقم التوثيق: SR-{{ certificateReport.id }}-{{ certificateReport.report?.overall }} · {{ certificateReport.datetime }}
           </div>
-        </VCardText>
-        <VCardActions class="justify-end px-4 pb-3">
-          <VBtn variant="text" @click="certificateDialog = false">إغلاق</VBtn>
-          <VBtn color="accent" prepend-icon="mdi-download" @click="toast('جارٍ تنزيل الشهادة الرقمية...')">تنزيل الشهادة</VBtn>
-        </VCardActions>
-      </VCard>
-    </VDialog>
+        </div>
+      </template>
+      <template #actions>
+        <BaseButton variant="ghost" @click="certificateDialog = false">إغلاق</BaseButton>
+        <BaseButton variant="accent" @click="toast('جارٍ تنزيل الشهادة الرقمية...')"><BaseIcon name="mdi-download" :size="18" />تنزيل الشهادة</BaseButton>
+      </template>
+    </BaseModal>
 
     <!-- Add experience dialog -->
-    <VDialog v-model="expDialog" max-width="480">
-      <VCard class="pa-2">
-        <VCardTitle>إضافة خبرة</VCardTitle>
-        <VCardText>
-          <VTextField v-model="newExp.title" label="المسمى الوظيفي" class="mb-2" />
-          <VTextField v-model="newExp.company" label="الشركة" class="mb-2" />
-          <VTextField v-model="newExp.period" label="الفترة" placeholder="مثال: 2020 - 2023" class="mb-2" />
-          <VTextarea v-model="newExp.desc" label="الوصف" rows="2" />
-        </VCardText>
-        <VCardActions class="justify-end">
-          <VBtn variant="text" @click="expDialog = false">إلغاء</VBtn>
-          <VBtn color="accent" :disabled="!newExp.title.trim()" @click="saveExp">إضافة</VBtn>
-        </VCardActions>
-      </VCard>
-    </VDialog>
+    <BaseModal v-model="expDialog" title="إضافة خبرة" :max-width="480">
+      <BaseInput v-model="newExp.title" label="المسمى الوظيفي" class="mb-2" />
+      <BaseInput v-model="newExp.company" label="الشركة" class="mb-2" />
+      <BaseInput v-model="newExp.period" label="الفترة" placeholder="مثال: 2020 - 2023" class="mb-2" />
+      <BaseTextarea v-model="newExp.desc" label="الوصف" :rows="2" />
+      <template #actions>
+        <BaseButton variant="ghost" @click="expDialog = false">إلغاء</BaseButton>
+        <BaseButton variant="accent" :disabled="!newExp.title.trim()" @click="saveExp">إضافة</BaseButton>
+      </template>
+    </BaseModal>
 
     <!-- Add certificate dialog -->
-    <VDialog v-model="certDialog" max-width="440">
-      <VCard class="pa-2">
-        <VCardTitle>إضافة شهادة</VCardTitle>
-        <VCardText>
-          <VTextField v-model="newCert.name" label="اسم الشهادة" class="mb-2" />
-          <VTextField v-model="newCert.issuer" label="الجهة المانحة" class="mb-2" />
-          <VTextField v-model="newCert.date" label="السنة" placeholder="مثال: 2024" />
-        </VCardText>
-        <VCardActions class="justify-end">
-          <VBtn variant="text" @click="certDialog = false">إلغاء</VBtn>
-          <VBtn color="accent" :disabled="!newCert.name.trim()" @click="saveCert">إضافة</VBtn>
-        </VCardActions>
-      </VCard>
-    </VDialog>
+    <BaseModal v-model="certDialog" title="إضافة شهادة" :max-width="440">
+      <BaseInput v-model="newCert.name" label="اسم الشهادة" class="mb-2" />
+      <BaseInput v-model="newCert.issuer" label="الجهة المانحة" class="mb-2" />
+      <BaseInput v-model="newCert.date" label="السنة" placeholder="مثال: 2024" />
+      <template #actions>
+        <BaseButton variant="ghost" @click="certDialog = false">إلغاء</BaseButton>
+        <BaseButton variant="accent" :disabled="!newCert.name.trim()" @click="saveCert">إضافة</BaseButton>
+      </template>
+    </BaseModal>
   </div>
 </template>
 
@@ -999,9 +952,6 @@ const heroStats = computed(() => [
 .profile-hero__avatar {
   border: 4px solid rgb(var(--v-theme-surface));
   box-shadow: 0 8px 22px rgba(6, 20, 12, 0.28);
-}
-.lh-1 {
-  line-height: 1.15;
 }
 /* At-a-glance metric tiles — opaque theme bg so it repaints on live theme switch */
 .stat-tile {
