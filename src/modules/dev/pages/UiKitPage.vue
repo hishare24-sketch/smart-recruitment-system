@@ -16,9 +16,13 @@ import BaseSelect from '@/components/ui/BaseSelect.vue'
 import BaseSlider from '@/components/ui/BaseSlider.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import BaseSnackbar from '@/components/ui/BaseSnackbar.vue'
+import BaseSwitch from '@/components/ui/BaseSwitch.vue'
+import BaseDrawer from '@/components/ui/BaseDrawer.vue'
 
 const demoModal = ref(false)
 const demoSnack = ref(false)
+const demoDrawer = ref(false)
+const demoSwitch = ref(true)
 const demoText = ref('')
 const demoCheck = ref(true)
 const demoMulti = ref<string[]>(['a'])
@@ -208,6 +212,24 @@ function toggle() {
           </template>
         </BaseModal>
         <BaseSnackbar v-model="demoSnack" color="success" :timeout="3000">تمّ الحفظ بنجاح!</BaseSnackbar>
+      </BaseCard>
+
+      <BaseCard>
+        <h2 class="mb-3 text-lg font-semibold">
+          المفتاح والدرج (BaseSwitch / BaseDrawer)
+        </h2>
+        <div class="flex flex-wrap items-center gap-4">
+          <BaseSwitch v-model="demoSwitch" label="تفعيل" />
+          <span class="text-muted text-xs">الحالة: {{ demoSwitch ? 'مُفعّل' : 'مُطفأ' }}</span>
+          <BaseButton variant="outline" size="sm" @click="demoDrawer = true">افتح الدرج الجانبي</BaseButton>
+        </div>
+        <BaseDrawer v-model="demoDrawer" :width="300">
+          <div class="p-4">
+            <h3 class="mb-2 font-bold">درج جانبي</h3>
+            <p class="text-sm text-muted">يظهر من الجهة المنطقية، ويُغلق بالخلفية أو Escape.</p>
+            <BaseButton variant="brand" size="sm" class="mt-3" @click="demoDrawer = false">إغلاق</BaseButton>
+          </div>
+        </BaseDrawer>
       </BaseCard>
 
       <BaseCard>
