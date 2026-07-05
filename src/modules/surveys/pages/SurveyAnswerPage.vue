@@ -4,6 +4,12 @@ import { useRoute } from 'vue-router'
 import { useSurveysStore } from '@/stores/SurveysStore'
 import type { AnswerValue, SurveyQuestion } from '@/stores/SurveysStore'
 import SurveyQuestionInput from '../components/SurveyQuestionInput.vue'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseChip from '@/components/ui/BaseChip.vue'
+import BaseIcon from '@/components/ui/BaseIcon.vue'
+import BaseAvatar from '@/components/ui/BaseAvatar.vue'
+import BaseProgressBar from '@/components/ui/BaseProgressBar.vue'
 
 // Public respondent view — reached in-platform or via the external share link
 type Stage = 'welcome' | 'questions' | 'thanks' | 'closed' | 'already'
@@ -84,103 +90,99 @@ function finish() {
 </script>
 
 <template>
-  <VContainer class="fill-height py-10" style="min-height: 100vh">
-    <VRow justify="center" class="w-100">
-      <VCol cols="12" sm="10" md="7" lg="6">
-        <!-- Brand -->
-        <div class="text-center mb-6">
-          <VAvatar color="primary" size="56" rounded="lg" class="mb-2">
-            <VIcon icon="mdi-poll" size="30" />
-          </VAvatar>
-          <div class="text-h6 font-weight-bold">منظومة التوظيف الذكية</div>
+  <div class="flex min-h-screen items-start justify-center px-4 py-10">
+    <div class="w-full max-w-xl">
+      <!-- Brand -->
+      <div class="mb-6 text-center">
+        <BaseAvatar color="brand" square :size="56" class="mb-2">
+          <BaseIcon name="mdi-poll" :size="30" />
+        </BaseAvatar>
+        <div class="text-lg font-bold text-content">منظومة التوظيف الذكية</div>
+      </div>
+
+      <!-- Closed / not found -->
+      <BaseCard v-if="stage === 'closed'" class="py-8 text-center">
+        <BaseIcon name="mdi-clipboard-off-outline" :size="48" class="mb-3" :style="{ color: 'rgba(var(--v-theme-on-surface), 0.5)' }" />
+        <h2 class="mb-2 text-lg font-bold text-content">هذا الاستبيان غير متاح</h2>
+        <p class="text-sm text-muted">
+          {{ survey ? 'أُغلق الاستبيان أو اكتمل عدد الاستجابات المطلوب. شكرًا لاهتمامك!' : 'الرابط غير صحيح أو أُزيل الاستبيان.' }}
+        </p>
+      </BaseCard>
+
+      <!-- Already participated -->
+      <BaseCard v-else-if="stage === 'already' && survey" class="py-8 text-center">
+        <BaseAvatar color="success" tonal :size="64" class="mb-3">
+          <BaseIcon name="mdi-check-circle-outline" :size="36" />
+        </BaseAvatar>
+        <h2 class="mb-2 text-lg font-bold text-content">شاركت في هذا الاستبيان سابقًا</h2>
+        <p class="text-sm text-muted">تُحتسب مشاركة واحدة لكل مستخدم — شكرًا لمساهمتك!</p>
+      </BaseCard>
+
+      <!-- Welcome -->
+      <BaseCard v-else-if="stage === 'welcome' && survey" class="py-8 text-center">
+        <div class="mb-3 flex justify-center"><BaseChip color="emerald">{{ survey.type }}</BaseChip></div>
+        <h1 class="mb-2 text-xl font-bold text-content">{{ survey.title }}</h1>
+        <p v-if="survey.ownerName" class="mb-1 text-xs text-muted">من: {{ survey.ownerName }}</p>
+        <p class="mb-2 text-sm text-muted">{{ survey.settings.welcomeMessage }}</p>
+        <div class="mb-3 flex flex-wrap items-center justify-center gap-3 text-xs text-muted">
+          <span class="inline-flex items-center gap-1"><BaseIcon name="mdi-help-circle-outline" :size="14" /> {{ survey.questions.length }} أسئلة</span>
+          <span v-if="survey.settings.anonymous" class="inline-flex items-center gap-1"><BaseIcon name="mdi-incognito" :size="14" /> إجاباتك مجهولة الهوية</span>
         </div>
+        <div v-if="earnsReward" class="mb-4 flex justify-center">
+          <BaseChip color="accent"><BaseIcon name="mdi-star-circle-outline" :size="14" />ستكسب +{{ reward }} نقطة عند الإكمال</BaseChip>
+        </div>
+        <BaseButton variant="accent" size="lg" @click="start"><BaseIcon name="mdi-play" :size="18" />ابدأ الاستبيان</BaseButton>
+      </BaseCard>
 
-        <!-- Closed / not found -->
-        <VCard v-if="stage === 'closed'" class="pa-8 text-center">
-          <VIcon icon="mdi-clipboard-off-outline" size="48" color="medium-emphasis" class="mb-3" />
-          <h2 class="text-h6 font-weight-bold mb-2">هذا الاستبيان غير متاح</h2>
-          <p class="text-body-2 text-medium-emphasis">
-            {{ survey ? 'أُغلق الاستبيان أو اكتمل عدد الاستجابات المطلوب. شكرًا لاهتمامك!' : 'الرابط غير صحيح أو أُزيل الاستبيان.' }}
-          </p>
-        </VCard>
+      <!-- Questions -->
+      <template v-else-if="stage === 'questions' && survey">
+        <BaseProgressBar v-if="survey.settings.showProgress && onePerPage" :value="progress" color="primary" :height="6" class="mb-4" />
 
-        <!-- Already participated -->
-        <VCard v-else-if="stage === 'already' && survey" class="pa-8 text-center">
-          <VAvatar color="success" variant="tonal" size="64" class="mb-3">
-            <VIcon icon="mdi-check-circle-outline" size="36" />
-          </VAvatar>
-          <h2 class="text-h6 font-weight-bold mb-2">شاركت في هذا الاستبيان سابقًا</h2>
-          <p class="text-body-2 text-medium-emphasis">تُحتسب مشاركة واحدة لكل مستخدم — شكرًا لمساهمتك!</p>
-        </VCard>
-
-        <!-- Welcome -->
-        <VCard v-else-if="stage === 'welcome' && survey" class="pa-8 text-center">
-          <VChip size="small" color="secondary" variant="tonal" label class="mb-3">{{ survey.type }}</VChip>
-          <h1 class="text-h5 font-weight-bold mb-2">{{ survey.title }}</h1>
-          <p v-if="survey.ownerName" class="text-caption text-medium-emphasis mb-1">من: {{ survey.ownerName }}</p>
-          <p class="text-body-2 text-medium-emphasis mb-2">{{ survey.settings.welcomeMessage }}</p>
-          <div class="text-caption text-medium-emphasis mb-3 d-flex align-center justify-center ga-3 flex-wrap">
-            <span><VIcon icon="mdi-help-circle-outline" size="14" /> {{ survey.questions.length }} أسئلة</span>
-            <span v-if="survey.settings.anonymous"><VIcon icon="mdi-incognito" size="14" /> إجاباتك مجهولة الهوية</span>
+        <!-- One question per page -->
+        <BaseCard v-if="onePerPage" class="p-6">
+          <div class="mb-2 text-xs text-muted">سؤال {{ currentIndex + 1 }} من {{ questions.length }}</div>
+          <h2 class="mb-4 text-base font-bold text-content">
+            {{ current.text }}
+            <span v-if="current.required" :style="{ color: 'rgb(var(--v-theme-error))' }">*</span>
+          </h2>
+          <SurveyQuestionInput v-model="answers[current.id]" :question="current" />
+          <div class="mt-6 flex justify-between">
+            <BaseButton variant="ghost" :disabled="currentIndex === 0" @click="prev"><BaseIcon name="mdi-chevron-right" :size="16" />السابق</BaseButton>
+            <BaseButton variant="brand" :disabled="!canProceed" @click="next">
+              {{ isLast ? 'إرسال' : 'التالي' }}<BaseIcon name="mdi-chevron-left" :size="16" />
+            </BaseButton>
           </div>
-          <VChip v-if="earnsReward" color="accent" label class="mb-4" prepend-icon="mdi-star-circle-outline">
-            ستكسب +{{ reward }} نقطة عند الإكمال
-          </VChip>
-          <div>
-            <VBtn color="accent" size="large" prepend-icon="mdi-play" @click="start">ابدأ الاستبيان</VBtn>
-          </div>
-        </VCard>
+        </BaseCard>
 
-        <!-- Questions -->
-        <template v-else-if="stage === 'questions' && survey">
-          <VProgressLinear v-if="survey.settings.showProgress && onePerPage" :model-value="progress" color="primary" height="6" rounded class="mb-4" />
-
-          <!-- One question per page -->
-          <VCard v-if="onePerPage" class="pa-6">
-            <div class="text-caption text-medium-emphasis mb-2">سؤال {{ currentIndex + 1 }} من {{ questions.length }}</div>
-            <h2 class="text-subtitle-1 font-weight-bold mb-4">
-              {{ current.text }}
-              <span v-if="current.required" class="text-error">*</span>
+        <!-- All questions in one list -->
+        <template v-else>
+          <BaseCard v-for="(q, i) in questions" :key="q.id" class="mb-3">
+            <h2 class="mb-3 text-sm font-bold text-content">
+              {{ i + 1 }}. {{ q.text }}
+              <span v-if="q.required" :style="{ color: 'rgb(var(--v-theme-error))' }">*</span>
             </h2>
-            <SurveyQuestionInput v-model="answers[current.id]" :question="current" />
-            <div class="d-flex justify-space-between mt-6">
-              <VBtn variant="text" :disabled="currentIndex === 0" prepend-icon="mdi-chevron-right" @click="prev">السابق</VBtn>
-              <VBtn color="primary" :disabled="!canProceed" append-icon="mdi-chevron-left" @click="next">
-                {{ isLast ? 'إرسال' : 'التالي' }}
-              </VBtn>
-            </div>
-          </VCard>
-
-          <!-- All questions in one list -->
-          <template v-else>
-            <VCard v-for="(q, i) in questions" :key="q.id" class="pa-5 mb-3">
-              <h2 class="text-subtitle-2 font-weight-bold mb-3">
-                {{ i + 1 }}. {{ q.text }}
-                <span v-if="q.required" class="text-error">*</span>
-              </h2>
-              <SurveyQuestionInput v-model="answers[q.id]" :question="q" />
-            </VCard>
-            <VBtn color="primary" size="large" block :disabled="missingRequired.length > 0" @click="finish">
-              إرسال الإجابات
-            </VBtn>
-            <p v-if="missingRequired.length" class="text-caption text-error text-center mt-2">
-              تبقّى {{ missingRequired.length }} أسئلة إلزامية
-            </p>
-          </template>
+            <SurveyQuestionInput v-model="answers[q.id]" :question="q" />
+          </BaseCard>
+          <BaseButton variant="brand" size="lg" block :disabled="missingRequired.length > 0" @click="finish">
+            إرسال الإجابات
+          </BaseButton>
+          <p v-if="missingRequired.length" class="mt-2 text-center text-xs" :style="{ color: 'rgb(var(--v-theme-error))' }">
+            تبقّى {{ missingRequired.length }} أسئلة إلزامية
+          </p>
         </template>
+      </template>
 
-        <!-- Thanks -->
-        <VCard v-else-if="stage === 'thanks' && survey" class="pa-8 text-center">
-          <VAvatar color="success" variant="tonal" size="64" class="mb-3">
-            <VIcon icon="mdi-check" size="36" />
-          </VAvatar>
-          <h2 class="text-h6 font-weight-bold mb-2">{{ survey.settings.thanksMessage }}</h2>
-          <VChip v-if="earnsReward" color="accent" label class="mb-2" prepend-icon="mdi-star-circle-outline">
-            أُضيفت +{{ reward }} نقطة إلى محفظتك
-          </VChip>
-          <p class="text-body-2 text-medium-emphasis">وصلت إجاباتك إلى صاحب الاستبيان مباشرة.</p>
-        </VCard>
-      </VCol>
-    </VRow>
-  </VContainer>
+      <!-- Thanks -->
+      <BaseCard v-else-if="stage === 'thanks' && survey" class="py-8 text-center">
+        <BaseAvatar color="success" tonal :size="64" class="mb-3">
+          <BaseIcon name="mdi-check" :size="36" />
+        </BaseAvatar>
+        <h2 class="mb-2 text-lg font-bold text-content">{{ survey.settings.thanksMessage }}</h2>
+        <div v-if="earnsReward" class="mb-2 flex justify-center">
+          <BaseChip color="accent"><BaseIcon name="mdi-star-circle-outline" :size="14" />أُضيفت +{{ reward }} نقطة إلى محفظتك</BaseChip>
+        </div>
+        <p class="text-sm text-muted">وصلت إجاباتك إلى صاحب الاستبيان مباشرة.</p>
+      </BaseCard>
+    </div>
+  </div>
 </template>
