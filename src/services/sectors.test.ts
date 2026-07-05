@@ -6,7 +6,9 @@ import {
   GENERIC_BLOCKLIST,
   LEGACY_SECTOR_MAP,
   OPPORTUNITY_TYPES,
+  OPPORTUNITY_TYPE_IDS,
   OPP_TYPE_FROM_REQUEST_KIND,
+  opportunityTypeLabel,
   SECTORS,
   getSector,
   isGenericLabel,
@@ -130,6 +132,19 @@ describe('opportunity types (independent field)', () => {
     const validIds = new Set(OPPORTUNITY_TYPES.map(o => o.id))
     for (const kind of ['job', 'project', 'consultation', 'task'])
       expect(validIds.has(OPP_TYPE_FROM_REQUEST_KIND[kind])).toBe(true)
+  })
+
+  it('resolves a label per opportunity type and echoes unknown ids', () => {
+    expect(opportunityTypeLabel('freelance')).toBe('عمل حر')
+    expect(opportunityTypeLabel('nope')).toBe('nope')
+    expect(OPPORTUNITY_TYPE_IDS).toContain('internship')
+  })
+
+  it('keeps the opportunities EMPLOYMENT_TYPE_LABELS in sync with the canonical source', async () => {
+    const { EMPLOYMENT_TYPE_LABELS } = await import('@/modules/opportunities/interfaces/Opportunity')
+    for (const o of OPPORTUNITY_TYPES)
+      expect(EMPLOYMENT_TYPE_LABELS[o.id]).toBe(o.label)
+    expect(Object.keys(EMPLOYMENT_TYPE_LABELS).length).toBe(OPPORTUNITY_TYPES.length)
   })
 })
 

@@ -4,6 +4,7 @@ import PageHeader from '@/components/shared/PageHeader.vue'
 import { usePostedOpportunitiesStore } from '@/stores/PostedOpportunitiesStore'
 import { useGamificationStore } from '@/stores/GamificationStore'
 import { ai } from '@/services/ai'
+import { OPPORTUNITY_TYPES } from '@/services/sectors'
 
 const store = usePostedOpportunitiesStore()
 const gamification = useGamificationStore()
@@ -22,13 +23,8 @@ const channels = ref<string[]>(['internal_chat'])
 const blindReview = ref(false)
 const description = ref('')
 
-const typeOptions = [
-  { value: 'full_time', title: 'دوام كامل' },
-  { value: 'part_time', title: 'دوام جزئي' },
-  { value: 'remote', title: 'عن بُعد' },
-  { value: 'temporary', title: 'مؤقت' },
-  { value: 'task', title: 'مهمة' },
-]
+// نوع الفرصة من المصدر المعتمد الموحّد (services/sectors.ts)
+const typeOptions = OPPORTUNITY_TYPES.map(o => ({ value: o.id, title: o.label }))
 const departmentOptions = ['التقنية', 'التسويق', 'المبيعات', 'الموارد البشرية', 'المالية', 'التصميم']
 const educationOptions = ['ثانوي', 'دبلوم', 'بكالوريوس', 'ماجستير', 'دكتوراه']
 const benefitOptions = ['سكن', 'مواصلات', 'تأمين طبي', 'تذاكر سفر', 'بدل اتصالات']
@@ -142,7 +138,7 @@ function openPreview() {
               <VCol cols="12" md="6"><VTextField v-model="title" label="المسمى الوظيفي *" /></VCol>
               <VCol cols="12" md="6"><VSelect v-model="department" label="القسم *" :items="departmentOptions" /></VCol>
               <VCol cols="12" md="6"><VTextField v-model="location" label="الموقع" prepend-inner-icon="mdi-map-marker-outline" /></VCol>
-              <VCol cols="12" md="6"><VSelect v-model="type" label="نوع الدوام" :items="typeOptions" /></VCol>
+              <VCol cols="12" md="6"><VSelect v-model="type" label="نوع الفرصة" :items="typeOptions" /></VCol>
               <VCol cols="12"><VTextarea v-model="description" label="وصف الفرصة" rows="3" /></VCol>
             </VRow>
           </VCard>

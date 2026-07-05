@@ -1,4 +1,7 @@
-export type EmploymentType = 'full_time' | 'part_time' | 'remote' | 'temporary' | 'task'
+import { OPPORTUNITY_TYPES, type OpportunityTypeId } from '@/services/sectors'
+
+// نوع الفرصة موحّد على المصدر المعتمد `OPPORTUNITY_TYPES` (services/sectors.ts)
+export type EmploymentType = OpportunityTypeId
 export type ExperienceLevel = 'entry' | 'mid' | 'senior' | 'lead'
 
 export interface MatchBreakdown {
@@ -34,13 +37,10 @@ export interface Opportunity {
   skills: string[]
 }
 
-export const EMPLOYMENT_TYPE_LABELS: Record<EmploymentType, string> = {
-  full_time: 'دوام كامل',
-  part_time: 'دوام جزئي',
-  remote: 'عن بُعد',
-  temporary: 'مؤقت',
-  task: 'مهمة',
-}
+// تسميات نوع الفرصة مشتقّة من المصدر المعتمد (تتزامن تلقائيًا مع أي توسّع)
+export const EMPLOYMENT_TYPE_LABELS = Object.fromEntries(
+  OPPORTUNITY_TYPES.map(o => [o.id, o.label]),
+) as Record<EmploymentType, string>
 
 export const EXPERIENCE_LEVEL_LABELS: Record<ExperienceLevel, string> = {
   entry: 'مبتدئ',

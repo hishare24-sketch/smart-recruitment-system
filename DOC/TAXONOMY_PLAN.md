@@ -101,11 +101,22 @@ export function migrateSector(oldId): string    // جدول old→new
       توصيل المستهلكين الطبيعية). حتى ذلك يتعايش الملفّان بلا تعارض؛ الحزمة لم تكبر (sectors.ts
       مُشذّب tree-shaken لأنه غير مستهلَك). **التحقّق:** typecheck + **202 اختبار** + build خضراء.
 
-### 🔨 المرحلة 1 — «نوع الفرصة» حقلًا مستقلًّا
-- [ ] `OPPORTUNITY_TYPES` (8): وظيفة · تدريب · عمل حر · عقد مؤقت · شراكة · تطوّع · دوام جزئي · عن بُعد
-      (توفيق مع `RequestKind = job|project|consultation|task` الحالي عبر جدول مطابقة).
-- [ ] توجيه عناصر الإكسل الموسومة `opportunity_tag` (شراكة/شريك مؤسس/تعاون) لهذا الحقل لا الشجرة.
-- [ ] دمجه في إنشاء الفرصة + الفلاتر.
+### ✅ المرحلة 1 — «نوع الفرصة» حقلًا مستقلًّا موحّدًا — مُنجزة
+**اكتُشف تشتّت: 3 مفردات منفصلة لنوع الفرصة** (`RequestKind` للطلبات · `EmploymentType` لكتالوج الفرص ·
+قائمة محليّة في `CreateOpportunityPage`) — وهو بالضبط ما تحذّر منه المصفوفة. **وُحِّدت مفردات الفرص:**
+- [x] `sectors.ts`: نوع اتحاد `OpportunityTypeId` (8) + `opportunityTypeLabel()` + `OPPORTUNITY_TYPE_IDS`
+      + `OPP_TYPE_FROM_REQUEST_KIND` (جسر `RequestKind` القديم للمستقبل).
+- [x] `interfaces/Opportunity.ts`: `EmploymentType = OpportunityTypeId`، و`EMPLOYMENT_TYPE_LABELS`
+      **مشتقّة** من `OPPORTUNITY_TYPES` (تتزامن تلقائيًا). أُزيلت المفردة المكرّرة القديمة (5 قيم).
+- [x] `mockOpportunities.ts`: القيمتان `task` (غير معتمدة) → `freelance`.
+- [x] `CreateOpportunityPage.vue`: القائمة المحليّة (5) → `OPPORTUNITY_TYPES` (8)، والتسمية «نوع الدوام»→«نوع الفرصة».
+- [x] فلتر `OpportunitiesPage` يعرض الآن الأنواع الثمانية تلقائيًّا (مشتقّ من التسميات).
+- [x] عناصر `opportunity_tag` (شراكة/شريك مؤسس/تعاون) مُرمّزة في المصفوفة تحت هذا الحقل لا الشجرة.
+- **مُتحقَّق حيًّا:** فلتر الكتالوج يعرض 8 أنواع؛ الفلترة بـ«عمل حر» تُظهر الفرصتين المُرحّلتين بتسميتهما
+      الصحيحة؛ صفحة الإنشاء `typeOptions`=8 معتمدة + التسمية الجديدة. **درس:** مسار الإنشاء
+      `/company/opportunities/create` (لا `/opportunities/create`). typecheck + **204 اختبار** + build خضراء.
+- **باقٍ للمرحلة 2/لاحقًا:** `RequestKind` للطلبات يبقى مؤقتًا (مفهوم «شكل ارتباط» متداخل)؛ توحيده الكامل
+      مع الأنواع الثمانية عبر `OPP_TYPE_FROM_REQUEST_KIND` تابع لإعادة توصيل الطلبات.
 
 ### 🔨 المرحلة 2 — ربط محور القطاع المشترك بالأطراف الثلاثة
 - [ ] منتقي قطاع/تخصّص موحّد في onboarding + الملف (باحث + جهة + خبير) من نفس المصدر.

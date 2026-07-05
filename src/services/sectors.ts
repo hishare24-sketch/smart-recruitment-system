@@ -304,7 +304,17 @@ export const SECTORS: Sector[] = [
 // ————————————————————————————————————————————————————————————————
 // المحور 3: أنواع الفرص — حقل مستقل تمامًا عن القطاع (قاعدة الحوكمة 3)
 // ————————————————————————————————————————————————————————————————
-export interface OpportunityType { id: string, label: string, en: string, icon: string }
+export type OpportunityTypeId
+  = | 'full_time'
+    | 'part_time'
+    | 'internship'
+    | 'freelance'
+    | 'temp_contract'
+    | 'remote'
+    | 'partnership'
+    | 'volunteer'
+
+export interface OpportunityType { id: OpportunityTypeId, label: string, en: string, icon: string }
 export const OPPORTUNITY_TYPES: OpportunityType[] = [
   { id: 'full_time', label: 'وظيفة دوام كامل', en: 'Full-time Job', icon: 'mdi-briefcase' },
   { id: 'part_time', label: 'وظيفة دوام جزئي', en: 'Part-time Job', icon: 'mdi-briefcase-outline' },
@@ -316,8 +326,15 @@ export const OPPORTUNITY_TYPES: OpportunityType[] = [
   { id: 'volunteer', label: 'تطوّع', en: 'Volunteering', icon: 'mdi-hand-heart-outline' },
 ]
 
+export const OPPORTUNITY_TYPE_IDS = OPPORTUNITY_TYPES.map(o => o.id)
+
+/** تسمية عربية لنوع فرصة عبر مُعرّفه (أو المُعرّف نفسه إن لم يُعرف) */
+export function opportunityTypeLabel(id: string): string {
+  return OPPORTUNITY_TYPES.find(o => o.id === id)?.label ?? id
+}
+
 /** توفيق مع `RequestKind` الحالي (job|project|consultation|task) — للترحيل التدريجي */
-export const OPP_TYPE_FROM_REQUEST_KIND: Record<string, string> = {
+export const OPP_TYPE_FROM_REQUEST_KIND: Record<string, OpportunityTypeId> = {
   job: 'full_time',
   project: 'freelance',
   consultation: 'freelance',
