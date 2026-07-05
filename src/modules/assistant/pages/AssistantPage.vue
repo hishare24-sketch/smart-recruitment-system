@@ -4,6 +4,12 @@ import { ai } from '@/services/ai'
 import { useTrustStore } from '@/stores/TrustStore'
 import { useProfileStore } from '@/stores/ProfileStore'
 import { useInterviewsStore } from '@/stores/InterviewsStore'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseChip from '@/components/ui/BaseChip.vue'
+import BaseIcon from '@/components/ui/BaseIcon.vue'
+import BaseAvatar from '@/components/ui/BaseAvatar.vue'
+import BaseInput from '@/components/ui/BaseInput.vue'
 
 interface ChatMessage { from: 'user' | 'ai', text: string, card?: import('@/services/ai').UploadAnalysis }
 interface Conversation { id: number, title: string, messages: ChatMessage[] }
@@ -11,6 +17,10 @@ interface Conversation { id: number, title: string, messages: ChatMessage[] }
 const trustStore = useTrustStore()
 const profileStore = useProfileStore()
 const interviewsStore = useInterviewsStore()
+
+function colorVar(c: string) {
+  return `rgb(var(--v-theme-${c === 'amber' ? 'warning' : c}))`
+}
 
 const conversations = ref<Conversation[]>([
   {
@@ -118,122 +128,154 @@ async function onFileChange(e: Event) {
 </script>
 
 <template>
-  <div class="d-flex ga-4" style="height: calc(100vh - 116px)">
+  <div class="flex gap-4" style="height: calc(100vh - 116px)">
     <!-- History sidebar -->
-    <VCard class="pa-3 d-none d-md-flex flex-column" style="width: 260px; min-width: 260px">
-      <VBtn color="accent" prepend-icon="mdi-plus" class="mb-3" @click="newConversation">محادثة جديدة</VBtn>
-      <VTextField v-model="historySearch" placeholder="بحث في السجل..." prepend-inner-icon="mdi-magnify" density="compact" hide-details class="mb-2" />
-      <div class="text-caption text-medium-emphasis mb-1">سجل المحادثات</div>
-      <VList class="flex-grow-1 overflow-y-auto py-0" density="compact">
-        <VListItem
+    <BaseCard :padded="false" class="hidden w-[260px] min-w-[260px] flex-col p-3 md:flex">
+      <BaseButton variant="accent" class="mb-3" @click="newConversation"><BaseIcon name="mdi-plus" :size="16" />محادثة جديدة</BaseButton>
+      <BaseInput v-model="historySearch" placeholder="بحث في السجل..." prefix-icon="mdi-magnify" class="mb-2" />
+      <div class="mb-1 text-xs text-muted">سجل المحادثات</div>
+      <div class="flex-1 overflow-y-auto">
+        <button
           v-for="conv in filteredHistory"
           :key="conv.id"
-          :active="conv.id === activeId"
-          color="primary"
-          rounded="lg"
-          prepend-icon="mdi-message-outline"
-          :title="conv.title"
-          class="mb-1"
+          type="button"
+          class="conv-row mb-1 rounded-ui"
+          :class="{ 'is-active': conv.id === activeId }"
           @click="activeId = conv.id"
-        />
-      </VList>
-    </VCard>
+        >
+          <BaseIcon name="mdi-message-outline" :size="18" />
+          <span class="flex-1 truncate">{{ conv.title }}</span>
+        </button>
+      </div>
+    </BaseCard>
 
     <!-- Chat -->
-    <div class="flex-grow-1 d-flex flex-column overflow-hidden">
-      <div class="d-flex align-center ga-3 mb-3">
-        <VAvatar color="secondary" rounded="lg"><VIcon icon="mdi-robot-happy-outline" /></VAvatar>
+    <div class="flex flex-1 flex-col overflow-hidden">
+      <div class="mb-3 flex items-center gap-3">
+        <BaseAvatar color="emerald" tonal square><BaseIcon name="mdi-robot-happy-outline" :size="20" /></BaseAvatar>
         <div>
-          <h1 class="text-h6 font-weight-bold mb-0">المساعد الذكي</h1>
-          <div class="text-caption text-success"><VIcon icon="mdi-circle" size="8" /> متصل</div>
+          <h1 class="mb-0 text-lg font-bold text-content">المساعد الذكي</h1>
+          <div class="flex items-center gap-1 text-xs" :style="{ color: 'rgb(var(--v-theme-success))' }"><BaseIcon name="mdi-circle" :size="8" /> متصل</div>
         </div>
       </div>
 
       <!-- Proactive AI alerts (context-aware) -->
       <div v-if="!proactiveDismissed && proactiveNudges.length" class="mb-3">
-        <VAlert
-          :type="proactiveNudges[0].tone"
-          variant="tonal"
-          density="compact"
-          border="start"
-          closable
-          @click:close="proactiveDismissed = true"
+        <div
+          class="flex flex-wrap items-center justify-between gap-2 rounded-ui border-s-4 p-3"
+          :style="{ background: `rgba(var(--v-theme-${proactiveNudges[0].tone}), 0.14)`, borderColor: colorVar(proactiveNudges[0].tone) }"
         >
-          <div class="d-flex align-center justify-space-between flex-wrap ga-2">
-            <div class="d-flex align-center ga-2">
-              <VIcon :icon="proactiveNudges[0].icon" size="20" />
-              <span class="text-body-2">{{ proactiveNudges[0].text }}</span>
-            </div>
-            <VBtn v-if="proactiveNudges[0].action" size="x-small" variant="flat" color="accent" :to="{ name: proactiveNudges[0].action }">
-              {{ proactiveNudges[0].actionLabel }}
-            </VBtn>
+          <div class="flex items-center gap-2">
+            <BaseIcon :name="proactiveNudges[0].icon" :size="20" :style="{ color: colorVar(proactiveNudges[0].tone) }" />
+            <span class="text-sm text-content">{{ proactiveNudges[0].text }}</span>
           </div>
-        </VAlert>
+          <div class="flex items-center gap-1">
+            <BaseButton v-if="proactiveNudges[0].action" size="sm" variant="accent" :to="{ name: proactiveNudges[0].action }">
+              {{ proactiveNudges[0].actionLabel }}
+            </BaseButton>
+            <button class="icon-btn h-8 w-8" aria-label="إغلاق" @click="proactiveDismissed = true"><BaseIcon name="mdi-close" :size="18" /></button>
+          </div>
+        </div>
       </div>
 
-      <VCard class="flex-grow-1 d-flex flex-column overflow-hidden">
-        <div ref="listRef" class="flex-grow-1 overflow-y-auto pa-4">
-          <div v-for="(msg, i) in active.messages" :key="i" class="d-flex mb-3" :class="msg.from === 'user' ? 'justify-end' : 'justify-start'">
-            <div class="d-flex ga-2" :class="msg.from === 'user' ? 'flex-row-reverse' : ''" style="max-width: 80%">
-              <VAvatar :color="msg.from === 'user' ? 'primary' : 'secondary'" size="34">
-                <VIcon :icon="msg.from === 'user' ? 'mdi-account' : 'mdi-robot-happy-outline'" size="18" />
-              </VAvatar>
-              <div class="pa-3 rounded-lg text-body-2" :class="msg.from === 'user' ? 'bg-primary' : 'bg-grey-lighten-3'">
+      <BaseCard :padded="false" class="flex flex-1 flex-col overflow-hidden">
+        <div ref="listRef" class="flex-1 overflow-y-auto p-4">
+          <div v-for="(msg, i) in active.messages" :key="i" class="mb-3 flex" :class="msg.from === 'user' ? 'justify-end' : 'justify-start'">
+            <div class="flex gap-2" :class="msg.from === 'user' ? 'flex-row-reverse' : ''" style="max-width: 80%">
+              <BaseAvatar :color="msg.from === 'user' ? 'brand' : 'emerald'" tonal :size="34">
+                <BaseIcon :name="msg.from === 'user' ? 'mdi-account' : 'mdi-robot-happy-outline'" :size="18" />
+              </BaseAvatar>
+              <div
+                class="rounded-ui-lg p-3 text-sm"
+                :class="msg.from === 'user' ? 'bg-brand text-on-brand' : 'border-ui bg-surfalt text-content'"
+              >
                 {{ msg.text }}
 
                 <!-- Structured file-analysis card -->
                 <div v-if="msg.card" class="mt-3">
-                  <div class="d-flex align-center ga-1 mb-1">
-                    <VIcon icon="mdi-thumb-up-outline" color="success" size="16" />
-                    <span class="text-caption font-weight-bold">نقاط القوة</span>
+                  <div class="mb-1 flex items-center gap-1">
+                    <BaseIcon name="mdi-thumb-up-outline" :size="16" :style="{ color: 'rgb(var(--v-theme-success))' }" />
+                    <span class="text-xs font-bold">نقاط القوة</span>
                   </div>
-                  <ul class="text-caption mb-2 ps-4">
+                  <ul class="mb-2 list-disc ps-5 text-xs">
                     <li v-for="s in msg.card.strengths" :key="s">{{ s }}</li>
                   </ul>
-                  <div class="d-flex align-center ga-1 mb-1">
-                    <VIcon icon="mdi-arrow-up-circle-outline" color="warning" size="16" />
-                    <span class="text-caption font-weight-bold">اقتراحات التحسين</span>
+                  <div class="mb-1 flex items-center gap-1">
+                    <BaseIcon name="mdi-arrow-up-circle-outline" :size="16" :style="{ color: 'rgb(var(--v-theme-warning))' }" />
+                    <span class="text-xs font-bold">اقتراحات التحسين</span>
                   </div>
-                  <ul class="text-caption mb-2 ps-4">
+                  <ul class="mb-2 list-disc ps-5 text-xs">
                     <li v-for="s in msg.card.improvements" :key="s">{{ s }}</li>
                   </ul>
-                  <div class="d-flex align-center ga-1 mb-1">
-                    <VIcon icon="mdi-tag-multiple-outline" color="secondary" size="16" />
-                    <span class="text-caption font-weight-bold">كلمات مفتاحية ATS مقترحة</span>
+                  <div class="mb-1 flex items-center gap-1">
+                    <BaseIcon name="mdi-tag-multiple-outline" :size="16" :style="{ color: 'rgb(var(--v-theme-secondary))' }" />
+                    <span class="text-xs font-bold">كلمات مفتاحية ATS مقترحة</span>
                   </div>
-                  <div class="d-flex flex-wrap ga-1">
-                    <VChip v-for="k in msg.card.atsKeywords" :key="k" size="x-small" color="secondary" variant="tonal" label>{{ k }}</VChip>
+                  <div class="flex flex-wrap gap-1">
+                    <BaseChip v-for="k in msg.card.atsKeywords" :key="k" color="emerald">{{ k }}</BaseChip>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-          <div v-if="isTyping" class="d-flex ga-2 mb-3">
-            <VAvatar color="secondary" size="34"><VIcon icon="mdi-robot-happy-outline" size="18" /></VAvatar>
-            <div class="pa-3 rounded-lg bg-grey-lighten-3"><VProgressCircular indeterminate size="18" width="2" color="secondary" /></div>
+          <div v-if="isTyping" class="mb-3 flex gap-2">
+            <BaseAvatar color="emerald" tonal :size="34"><BaseIcon name="mdi-robot-happy-outline" :size="18" /></BaseAvatar>
+            <div class="rounded-ui-lg border-ui bg-surfalt p-3">
+              <span class="inline-block h-[18px] w-[18px] animate-spin rounded-full border-2 border-current border-t-transparent" :style="{ color: 'rgb(var(--v-theme-secondary))' }" />
+            </div>
           </div>
         </div>
 
-        <VDivider />
-        <div class="d-flex flex-wrap ga-2 px-4 pt-3">
-          <VChip v-for="s in suggestions" :key="s" color="primary" variant="tonal" size="small" class="cursor-pointer" @click="send(s)">
+        <hr class="border-ui">
+        <div class="flex flex-wrap gap-2 px-4 pt-3">
+          <button
+            v-for="s in suggestions"
+            :key="s"
+            type="button"
+            class="btn-tonal-brand cursor-pointer rounded-full px-2.5 py-1 text-sm font-medium"
+            @click="send(s)"
+          >
             {{ s }}
-          </VChip>
+          </button>
         </div>
 
-        <div class="pa-4 d-flex align-center ga-2">
+        <div class="flex items-center gap-2 p-4">
           <input ref="fileInput" type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" hidden @change="onFileChange">
-          <VBtn icon="mdi-paperclip" variant="text" @click="triggerFilePick" />
-          <VTextField
+          <button class="icon-btn shrink-0" aria-label="إرفاق" @click="triggerFilePick"><BaseIcon name="mdi-paperclip" :size="20" /></button>
+          <BaseInput
             v-model="input"
             placeholder="اكتب رسالتك..."
-            hide-details
-            append-inner-icon="mdi-send"
-            @click:append-inner="send()"
+            class="flex-1"
             @keyup.enter="send()"
-          />
+          >
+            <template #suffix>
+              <button class="icon-btn h-8 w-8" aria-label="إرسال" @click="send()"><BaseIcon name="mdi-send" :size="18" /></button>
+            </template>
+          </BaseInput>
         </div>
-      </VCard>
+      </BaseCard>
     </div>
   </div>
 </template>
+
+<style scoped>
+.conv-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  text-align: start;
+  font-size: 0.875rem;
+  color: rgb(var(--v-theme-on-surface));
+  transition: background 0.15s;
+}
+.conv-row:hover {
+  background: rgba(var(--v-theme-on-surface), 0.05);
+}
+.conv-row.is-active {
+  background: rgba(var(--v-theme-primary), 0.14);
+  color: rgb(var(--v-theme-primary));
+  font-weight: 700;
+}
+</style>
