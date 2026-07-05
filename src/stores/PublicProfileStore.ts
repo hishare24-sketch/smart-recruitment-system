@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import type { UserRole } from '@/interfaces/Auth'
+import { USE_REAL_API, api } from '@/services/api'
 import type { AccountTier } from '@/stores/AccountPlanStore'
 import { TIER_RANK, useAccountPlanStore } from '@/stores/AccountPlanStore'
 import { useAuthStore } from '@/stores/AuthStore'
@@ -402,6 +403,51 @@ export const usePublicProfileStore = defineStore('publicProfile', () => {
   const trust = useTrustStore()
   const interviews = useInterviewsStore()
 
+  // ===== الربط الخلفي (NestJS) للصفحة العامة خلف المفتاح — الواجهة بلا تغيير =====
+  // وثيقة العرض تُحفظ ككتلة doc عبر PATCH /me؛ أفعال الزوّار تُرسَل لنقاط الخادم.
+  let ppReady = !USE_REAL_API
+  let ppSaveTimer: ReturnType<typeof setTimeout> | null = null
+  function pushPublicToServer() {
+    if (ppSaveTimer)
+      clearTimeout(ppSaveTimer)
+    ppSaveTimer = setTimeout(() => { api.publicProfile.updateMine({ doc: state.value }).catch(() => { /* الكاش المحلي كافٍ */ }) }, 700)
+  }
+  watch(state, () => { if (USE_REAL_API && ppReady) pushPublicToServer() }, { deep: true })
+
+  /** إماهة صفحة المالك من الخادم عند الدخول: الوثيقة (doc) + عدّادات stats الحيّة. */
+  async function hydratePublic() {
+    if (!USE_REAL_API || !auth.isAuthUser)
+      return
+    try {
+      const srv = await api.publicProfile.getMine() as { slug?: string, stats?: Record<string, number>, doc?: Record<string, unknown> } | null
+      if (srv) {
+        // وثيقة فارغة (صفحة جديدة) → نُبقي البذرة؛ وإلا نمزجها
+        const merged = srv.doc && Object.keys(srv.doc).length
+          ? mergeStored(srv.doc as Partial<PublicProfileState>)
+          : structuredClone(seed)
+        // عدّادات الجذب من stats (الزوّار يحدّثونها خادميًّا) تعلو قيم الوثيقة
+        const st = srv.stats
+        if (st) {
+          merged.views = st.views ?? merged.views
+          merged.shares = st.shares ?? merged.shares
+          merged.contacts = st.contacts ?? merged.contacts
+          merged.meetings = st.meetings ?? merged.meetings
+          merged.followersCount = st.followersCount ?? merged.followersCount
+          merged.ratingCount = st.ratingCount ?? merged.ratingCount
+          merged.ratingSum = Math.round((st.avgRating ?? 0) * (st.ratingCount ?? 0))
+        }
+        if (srv.slug)
+          merged.slug = srv.slug
+        state.value = merged
+      }
+    }
+    catch { /* يبقى البذر المحلي */ }
+    await nextTick()
+    ppReady = true
+  }
+  if (USE_REAL_API)
+    hydratePublic()
+
   /** اسم العرض: اسم الحساب إن وُجد وإلا الاسم المحفوظ في الصفحة */
   const displayName = computed(() => auth.authUser?.name ?? state.value.displayName)
 
@@ -594,6 +640,8 @@ export const usePublicProfileStore = defineStore('publicProfile', () => {
 
   // —— عدّادات الجذب ——
   function recordView() {
+    if (USE_REAL_API)
+      api.publicProfile.recordView(state.value.slug).catch(() => { /* عدّاد فقط */ })
     state.value.views++
   }
   function recordShare() {
@@ -639,6 +687,8 @@ export const usePublicProfileStore = defineStore('publicProfile', () => {
       visitorLiked: false,
     }
     state.value.testimonials.push(tm)
+    if (USE_REAL_API)
+      api.publicProfile.submitTestimonial(state.value.slug, { author: tm.author, authorRole: tm.authorRole, excerpt: tm.excerpt }).catch(() => { /* المحلي كافٍ */ })
     useNotificationsStore().push({
       icon: 'mdi-comment-quote-outline',
       color: 'warning',
@@ -671,6 +721,8 @@ export const usePublicProfileStore = defineStore('publicProfile', () => {
   function toggleFollow() {
     state.value.visitorFollows = !state.value.visitorFollows
     state.value.followersCount += state.value.visitorFollows ? 1 : -1
+    if (USE_REAL_API)
+      api.publicProfile.toggleFollow(state.value.slug, state.value.visitorFollows).catch(() => { /* عدّاد فقط */ })
     if (state.value.visitorFollows) {
       useNotificationsStore().push({
         icon: 'mdi-account-heart-outline',
@@ -691,6 +743,9 @@ export const usePublicProfileStore = defineStore('publicProfile', () => {
   function rate(stars: number) {
     if (stars < 1 || stars > 5)
       return
+    // الخادم يسجّل تقييمًا جديدًا فقط (لا يزيل تعديل التقييم المكرّر العدّاد محليًّا)
+    if (USE_REAL_API && !state.value.visitorRating)
+      api.publicProfile.rate(state.value.slug, stars).catch(() => { /* عدّاد فقط */ })
     if (state.value.visitorRating) {
       state.value.ratingSum += stars - state.value.visitorRating
     }
@@ -712,6 +767,8 @@ export const usePublicProfileStore = defineStore('publicProfile', () => {
       hidden: false,
     }
     state.value.comments.unshift(c)
+    if (USE_REAL_API)
+      api.publicProfile.addComment(state.value.slug, { author, text: c.text }).catch(() => { /* المحلي كافٍ */ })
     useNotificationsStore().push({
       icon: 'mdi-comment-account-outline',
       color: 'info',
@@ -736,6 +793,8 @@ export const usePublicProfileStore = defineStore('publicProfile', () => {
   function contact(visitorName: string, text: string) {
     if (!state.value.contactEnabled)
       return false
+    if (USE_REAL_API)
+      api.publicProfile.contact(state.value.slug, { visitorName, text }).catch(() => { /* المحلي كافٍ */ })
     useMessagesStore().startConversation(visitorName, 'زائر عبر صفحتك التعريفية', text)
     state.value.contacts++
     useNotificationsStore().push({
@@ -752,6 +811,8 @@ export const usePublicProfileStore = defineStore('publicProfile', () => {
 
   /** زائر يطلب إثبات مهارة — يصبّ في طلبات الإثبات المعلّقة بملف صاحب الصفحة */
   function requestSkillProof(skillName: string, visitorName: string, relation: string): boolean {
+    if (USE_REAL_API)
+      api.publicProfile.requestProof(state.value.slug, { skill: skillName, from: visitorName, relation }).catch(() => { /* المحلي كافٍ */ })
     profile.addProofRequest(visitorName, relation, skillName)
     useNotificationsStore().push({
       icon: 'mdi-check-decagram-outline',
@@ -769,6 +830,8 @@ export const usePublicProfileStore = defineStore('publicProfile', () => {
   function scheduleMeeting(visitorName: string, day: string, slot: string, topic: string): boolean {
     if (!state.value.schedulingEnabled)
       return false
+    if (USE_REAL_API)
+      api.publicProfile.schedule(state.value.slug, { visitorName, day, slot, topic }).catch(() => { /* المحلي كافٍ */ })
     useMessagesStore().startConversation(
       visitorName,
       'طلب جدولة مقابلة عبر صفحتك التعريفية',

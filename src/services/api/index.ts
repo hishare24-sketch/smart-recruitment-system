@@ -180,9 +180,10 @@ export const api = {
   },
   publicProfile: {
     get: (slug: string) => get(API_PATHS.publicProfile.bySlug(slug)),
+    getMine: () => get(API_PATHS.publicProfile.me),
     updateMine: (body: unknown) => patch(API_PATHS.publicProfile.me, body),
     recordView: (slug: string) => post(API_PATHS.publicProfile.view(slug)),
-    toggleFollow: (slug: string) => post<{ following: boolean, followersCount: number }>(API_PATHS.publicProfile.follow(slug)),
+    toggleFollow: (slug: string, following?: boolean) => post<{ following: boolean, followersCount: number }>(API_PATHS.publicProfile.follow(slug), { following }),
     rate: (slug: string, stars: number) => post<{ avgRating: number, ratingCount: number }>(API_PATHS.publicProfile.rate(slug), { stars }),
     addComment: (slug: string, body: { author: string, text: string }) => post(API_PATHS.publicProfile.comments(slug), body),
     contact: (slug: string, body: { visitorName: string, text: string }) => post(API_PATHS.publicProfile.contact(slug), body),

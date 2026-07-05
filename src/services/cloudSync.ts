@@ -2,6 +2,7 @@ import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js'
 import type { Ref, WatchSource } from 'vue'
 import { ref, watch } from 'vue'
 import { debounce, getSupabase } from '@/services/supabase'
+import { USE_REAL_API } from '@/services/api'
 
 /**
  * ===== محرك المزامنة السحابية (Cloud Sync Engine) =====
@@ -90,8 +91,12 @@ async function sessionUid(client: SupabaseClient): Promise<string | null> {
 }
 
 function createDocSync(config: EngineConfig): { status: Ref<SyncStatus> } {
-  const client = config.client !== undefined ? config.client : getSupabase()
   const status = ref<SyncStatus>('off')
+  // مكدّس الفريق (NestJS) هو الباك-إند عند تفعيل المفتاح — تُعطَّل مزامنة Supabase
+  // كليًّا (تُنزع في المرحلة 4). الحقن الصريح للاختبار يتجاوز البوابة.
+  if (USE_REAL_API && config.client === undefined)
+    return { status }
+  const client = config.client !== undefined ? config.client : getSupabase()
   if (!client)
     return { status }
 

@@ -20,6 +20,12 @@ export class PublicProfilesController {
   constructor(private readonly service: PublicProfilesService) {}
 
   // ----- المالك (محمي) -----
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  mine(@CurrentUser() user: User) {
+    return this.service.getMine(user.id, user.name)
+  }
+
   @Patch('me')
   @UseGuards(JwtAuthGuard)
   updateMine(@CurrentUser() user: User, @Body() dto: UpdatePublicProfileDto) {

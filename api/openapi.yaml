@@ -173,6 +173,14 @@ paths:
               schema: { $ref: '#/components/schemas/PublicProfile' }
         '404': { $ref: '#/components/responses/Error' }
   /public-profiles/me:
+    get:
+      tags: [PublicProfile]
+      summary: صفحتي للتحرير/الإماهة (get-or-create — نفس شكل الحالة المحلية)
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PublicProfile' }
     patch:
       tags: [PublicProfile]
       summary: تحديث صفحتي (الهوية/المظهر/الأقسام/المحتوى — نفس شكل الحالة المحلية)

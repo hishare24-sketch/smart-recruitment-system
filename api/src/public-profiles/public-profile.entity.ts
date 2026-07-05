@@ -107,4 +107,9 @@ export class PublicProfile {
   // وارد داخلي (رسائل «تواصل معي» + اقتراحات المواعيد) — لا يظهر في الصفحة العامة
   @Column({ type: 'simple-json', default: '[]' })
   inbox!: Array<Record<string, unknown>>
+
+  // وثيقة العرض الكاملة كما يحملها المخزن (PublicProfileState) — كتلة واحدة
+  // تفادي تعداد عشرات الأعمدة؛ تُغطّي الحقول التي لا يمثّلها المخطط المُصنَّف.
+  @Column({ type: 'simple-json', default: '{}' })
+  doc!: Record<string, unknown>
 }

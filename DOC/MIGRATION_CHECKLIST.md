@@ -32,8 +32,9 @@
 - [x] **طبقة العميل تفكّ غلاف `{ data }`** للباك-إند (`unwrapEnvelope` في `src/services/api/index.ts`) + مساعد `put` — لتصل المخازن حمولة صافية بشكل mock
 - [x] تحويل **المصادقة** عبر `api.auth.*` — للـ NestJS الأولوية عند تفعيل المفتاح (`AuthService.login/register/logout`)، ومُطابِق `fromNestUser`، و`realAuthEnabled = USE_REAL_API || supabaseEnabled` — **مُتحقَّق حيًّا:** دخول + تسجيل عبر الواجهة → توكن JWT حقيقي من NestJS في `authUser` (id من القاعدة، لا mock-token)، بلا أخطاء console
 - [x] **ProfileStore** — إماهة من `api.profile.get()`+`proofRequests()` عند الدخول (الخادم مرجع الحقيقة؛ الفارغ يعود للبذرة تفاديًا لتسرّب كاش مستخدم سابق)، و`persist` يدفع اللقطة الكاملة PATCH مُمهَّلًا (600ms) خلف علَم `ready`، و`resolveProofRequest` عبر النقطة. **الواجهة بلا تغيير.** توسعة الخادم: عمود `prefs` + `UpdateProfileDto` يقبل الوثيقة الكاملة (skills/experiences/certificates/prefs). **مُتحقَّق حيًّا:** بعد مسح الكاش وإعادة التحميل عادت البيانات من NestJS (عنوان + 5 مهارات)، بلا أخطاء console
-- [ ] بقية المخازن عبر `whenReal(() => api.x(), () => mock)` — مخزنًا بمخزن (التالي: PublicProfile → Marketplace → Interviewers/Interviews → Surveys → Notifications → Wallet/Plan)
-- [x] تحقّق حيّ بعد كل مخزن (Auth ✓ · Profile ✓)
+- [x] **PublicProfileStore** — إماهة المالك من `GET /public-profiles/me` (كتلة `doc` + عدّادات `stats` الحيّة تعلوها؛ الفارغ يبقي البذرة)، حفظ مُمهَّل `PATCH /me {doc}`، وأفعال الزوّار (view/follow/rate/comment/testimonial/contact/schedule/requestProof) تُرسَل لنقاط الخادم. توسعة الخادم: عمود `doc` + `GET /me` + `present()` يُسطّح `doc` ويُخفي `inbox`/`doc`. **مزامنة Supabase مُعطَّلة عند `USE_REAL_API`** (نُزعت فعليًّا في هذه الدفعة — كانت تصارع NestJS على الصفحة العامة). **مُتحقَّق حيًّا:** تحرير العنوان + متابعة + تقييم زائر → حُفظت في NestJS، وبعد مسح الكاش وإعادة التحميل عادت من الخادم؛ 0 نداء Supabase، بلا أخطاء console
+- [ ] بقية المخازن عبر `whenReal(() => api.x(), () => mock)` — مخزنًا بمخزن (التالي: Marketplace → Interviewers/Interviews → Surveys → Notifications → Wallet/Plan)
+- [x] تحقّق حيّ بعد كل مخزن (Auth ✓ · Profile ✓ · PublicProfile ✓)
 
 ## ⬜ المرحلة 4 — نزع Supabase + البثّ اللحظي
 - [ ] استبدال `cloudSync`/`directMessages` بنداءات العقد

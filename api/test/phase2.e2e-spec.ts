@@ -164,6 +164,26 @@ describe('Phase 2 resources (e2e)', () => {
     await http.get('/api/v1/public-profiles/does-not-exist').expect(404)
   })
 
+  it('public-profiles: GET /me get-or-create + doc blob round-trips (owner presentation)', async () => {
+    const mine = await http.get('/api/v1/public-profiles/me').set(auth()).expect(200)
+    expect(mine.body.data.slug).toBe(slug) // نفس صفحة المالك المُنشأة سابقًا
+    expect(mine.body.data.doc).toBeDefined()
+    expect(mine.body.data.stats).toBeDefined()
+
+    // حفظ وثيقة العرض الكاملة (كتلة doc) — حقول لا يمثّلها المخطط المُصنَّف
+    await http.patch('/api/v1/public-profiles/me').set(auth())
+      .send({ doc: { story: 'قصتي', featuredSkillIds: [1, 2], selectedSkillIds: [1, 2, 3], contactEnabled: true } }).expect(200)
+
+    const back = await http.get('/api/v1/public-profiles/me').set(auth()).expect(200)
+    expect(back.body.data.doc.story).toBe('قصتي')
+    expect(back.body.data.doc.featuredSkillIds).toEqual([1, 2])
+    // العام يعرض الوثيقة مسطّحة، ويخفي الداخلي (inbox/doc)
+    const pub = await http.get(`/api/v1/public-profiles/${slug}`).expect(200)
+    expect(pub.body.data.story).toBe('قصتي')
+    expect(pub.body.data.inbox).toBeUndefined()
+    expect(pub.body.data.doc).toBeUndefined()
+  })
+
   it('marketplace: opportunities list (seeded) → filter → create → apply; requests list + mine', async () => {
     const opps = await http.get('/api/v1/opportunities').set(auth()).expect(200)
     expect(opps.body.data.length).toBeGreaterThanOrEqual(3)

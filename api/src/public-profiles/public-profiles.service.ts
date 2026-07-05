@@ -40,11 +40,22 @@ export class PublicProfilesService {
     return page
   }
 
-  getBySlug(slug: string) {
-    return this.bySlugOrFail(slug)
+  /**
+   * شكل العرض العام: أعمدة الكيان + وثيقة `doc` تعلوها،
+   * مع إخفاء الداخلي (inbox/userId/doc). doc مصدر العرض؛ stats/slug من الأعمدة.
+   */
+  private present(p: PublicProfile): Record<string, unknown> {
+    const { doc, inbox, userId, ...cols } = p
+    void inbox
+    void userId
+    return { ...cols, ...(doc ?? {}) }
   }
 
-  /** صفحة المالك — تُنشأ عند أول تحرير بـ slug مشتقّ من الاسم. */
+  async getBySlug(slug: string): Promise<Record<string, unknown>> {
+    return this.present(await this.bySlugOrFail(slug))
+  }
+
+  /** صفحة المالك — تُنشأ عند أول وصول بـ slug مشتقّ من الاسم. */
   async getOrCreateForUser(userId: number, name: string): Promise<PublicProfile> {
     let page = await this.pages.findOne({ where: { userId } })
     if (!page) {
@@ -57,10 +68,24 @@ export class PublicProfilesService {
     return page
   }
 
-  async update(userId: number, name: string, dto: UpdatePublicProfileDto): Promise<PublicProfile> {
+  /**
+   * صفحة المالك للتحرير/الإماهة (get-or-create). تُعيد `doc` صريحةً (لا مسطّحة)
+   * كي يميّز المخزن الصفحة الفارغة فيبقي البذرة، مع `stats` الحيّة و`slug` المرجع.
+   */
+  async getMine(userId: number, name: string): Promise<{ slug: string, stats: PublicProfile['stats'], doc: Record<string, unknown> }> {
+    const p = await this.getOrCreateForUser(userId, name)
+    return { slug: p.slug, stats: p.stats, doc: p.doc }
+  }
+
+  async update(userId: number, name: string, dto: UpdatePublicProfileDto): Promise<Record<string, unknown>> {
     const page = await this.getOrCreateForUser(userId, name)
-    Object.assign(page, dto)
-    return this.pages.save(page)
+    // المخزن يرسل الوثيقة الكاملة تحت doc؛ الحقول المُصنَّفة (لو أُرسلت) تُدمج للعرض/البحث
+    const { doc, ...typed } = dto
+    Object.assign(page, typed)
+    if (doc !== undefined)
+      page.doc = doc
+    await this.pages.save(page)
+    return this.present(page)
   }
 
   async registerView(slug: string): Promise<void> {

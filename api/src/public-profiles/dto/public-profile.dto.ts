@@ -22,6 +22,8 @@ export class UpdatePublicProfileDto {
   // تعديل قائمتي التوصيات/التعليقات (إشراف: إظهار/إخفاء)
   @IsOptional() @IsArray() testimonials?: unknown[]
   @IsOptional() @IsArray() comments?: unknown[]
+  // وثيقة العرض الكاملة من المخزن (PublicProfileState) — كتلة واحدة
+  @IsOptional() @IsObject() doc?: Record<string, unknown>
 }
 
 export class FollowDto {
