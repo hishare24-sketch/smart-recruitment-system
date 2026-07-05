@@ -5,6 +5,22 @@ import { KIND_META, useRequestsStore } from '@/stores/RequestsStore'
 import { useProfileStore } from '@/stores/ProfileStore'
 import { useResumesStore } from '@/stores/ResumesStore'
 import { ai } from '@/services/ai'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseChip from '@/components/ui/BaseChip.vue'
+import BaseIcon from '@/components/ui/BaseIcon.vue'
+import BaseAvatar from '@/components/ui/BaseAvatar.vue'
+import BaseProgressRing from '@/components/ui/BaseProgressRing.vue'
+import BaseProgressBar from '@/components/ui/BaseProgressBar.vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
+import BaseSnackbar from '@/components/ui/BaseSnackbar.vue'
+import BaseTextarea from '@/components/ui/BaseTextarea.vue'
+
+// رمز لون Vuetify → نغمة مكوّنات الأساس
+type BaseColor = 'brand' | 'emerald' | 'accent' | 'success' | 'info' | 'warning' | 'error' | 'neutral'
+function mapColor(c: string): BaseColor {
+  return (({ primary: 'brand', secondary: 'emerald', 'medium-emphasis': 'neutral' } as Record<string, BaseColor>)[c] ?? c) as BaseColor
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -77,197 +93,197 @@ function copyNegotiation() {
 
 <template>
   <div v-if="request">
-    <VBtn variant="text" prepend-icon="mdi-arrow-right" class="mb-3" @click="router.back()">رجوع</VBtn>
+    <BaseButton variant="ghost" size="sm" class="mb-3" @click="router.back()">
+      <BaseIcon name="mdi-arrow-right" :size="18" /> رجوع
+    </BaseButton>
 
-    <VRow>
+    <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
       <!-- Main -->
-      <VCol cols="12" md="8">
-        <VCard class="pa-5 mb-4">
-          <div class="d-flex align-start ga-4 mb-3">
-            <VAvatar :color="KIND_META[request.kind].color" variant="tonal" rounded="lg" size="64">
-              <span class="text-h4 font-weight-bold">{{ request.orgInitial }}</span>
-            </VAvatar>
+      <div class="md:col-span-2">
+        <BaseCard class="mb-4">
+          <div class="mb-3 flex items-start gap-4">
+            <BaseAvatar :color="mapColor(KIND_META[request.kind].color)" :size="64" tonal square>
+              <span class="text-3xl font-bold">{{ request.orgInitial }}</span>
+            </BaseAvatar>
             <div>
-              <div class="d-flex align-center ga-2 flex-wrap">
-                <h1 class="text-h5 font-weight-bold">{{ request.title }}</h1>
-                <VChip :color="KIND_META[request.kind].color" size="small" label :prepend-icon="KIND_META[request.kind].icon">
-                  {{ KIND_META[request.kind].label }}
-                </VChip>
+              <div class="flex flex-wrap items-center gap-2">
+                <h1 class="text-2xl font-bold">{{ request.title }}</h1>
+                <BaseChip :color="mapColor(KIND_META[request.kind].color)"><BaseIcon :name="KIND_META[request.kind].icon" :size="12" /> {{ KIND_META[request.kind].label }}</BaseChip>
               </div>
-              <div class="text-body-1 text-medium-emphasis">{{ request.org }} · {{ request.field }}</div>
+              <div class="text-muted">{{ request.org }} · {{ request.field }}</div>
             </div>
           </div>
 
-          <div class="d-flex flex-wrap ga-2 mb-4">
-            <VChip variant="tonal" prepend-icon="mdi-map-marker-outline">{{ request.remote ? 'عن بُعد' : request.city }}</VChip>
-            <VChip variant="tonal" prepend-icon="mdi-clock-outline">{{ request.duration }}</VChip>
-            <VChip variant="tonal" prepend-icon="mdi-cash">{{ request.budget }}</VChip>
-            <VChip variant="tonal" prepend-icon="mdi-account-multiple-outline">{{ request.applicants }} متقدم</VChip>
+          <div class="mb-4 flex flex-wrap gap-2">
+            <BaseChip color="neutral"><BaseIcon name="mdi-map-marker-outline" :size="14" /> {{ request.remote ? 'عن بُعد' : request.city }}</BaseChip>
+            <BaseChip color="neutral"><BaseIcon name="mdi-clock-outline" :size="14" /> {{ request.duration }}</BaseChip>
+            <BaseChip color="neutral"><BaseIcon name="mdi-cash" :size="14" /> {{ request.budget }}</BaseChip>
+            <BaseChip color="neutral"><BaseIcon name="mdi-account-multiple-outline" :size="14" /> {{ request.applicants }} متقدم</BaseChip>
           </div>
 
-          <VDivider class="mb-4" />
+          <div class="mb-4 border-t border-ui" />
 
-          <h3 class="text-subtitle-1 font-weight-bold mb-2">وصف الطلب</h3>
-          <p class="text-body-2 text-medium-emphasis mb-4">{{ request.description }}</p>
+          <h3 class="mb-2 font-bold">وصف الطلب</h3>
+          <p class="mb-4 text-sm text-muted">{{ request.description }}</p>
 
-          <h3 class="text-subtitle-1 font-weight-bold mb-2">المخرجات المتوقّعة</h3>
-          <VList density="compact" class="py-0 mb-3">
-            <VListItem v-for="d in request.deliverables" :key="d" class="px-0">
-              <template #prepend><VIcon icon="mdi-check-circle-outline" color="success" size="18" /></template>
-              <VListItemTitle class="text-body-2">{{ d }}</VListItemTitle>
-            </VListItem>
-          </VList>
+          <h3 class="mb-2 font-bold">المخرجات المتوقّعة</h3>
+          <ul class="mb-3 space-y-1">
+            <li v-for="d in request.deliverables" :key="d" class="flex items-start gap-2 text-sm">
+              <BaseIcon name="mdi-check-circle-outline" :size="18" class="shrink-0" style="color: rgb(var(--v-theme-success))" /> <span>{{ d }}</span>
+            </li>
+          </ul>
 
-          <h3 class="text-subtitle-1 font-weight-bold mb-2">المهارات المطلوبة</h3>
-          <div class="d-flex flex-wrap ga-2">
-            <VChip v-for="s in request.skills" :key="s" color="secondary" variant="tonal" size="small">{{ s }}</VChip>
+          <h3 class="mb-2 font-bold">المهارات المطلوبة</h3>
+          <div class="flex flex-wrap gap-2">
+            <BaseChip v-for="s in request.skills" :key="s" color="emerald">{{ s }}</BaseChip>
           </div>
-        </VCard>
+        </BaseCard>
 
         <!-- AI-generated FAQs -->
-        <VCard class="pa-5 mb-4">
-          <div class="d-flex align-center ga-2 mb-3">
-            <VIcon icon="mdi-robot-happy-outline" color="secondary" />
-            <h3 class="text-subtitle-1 font-weight-bold">أسئلة شائعة (مولّدة بالذكاء الاصطناعي)</h3>
+        <BaseCard class="mb-4">
+          <div class="mb-3 flex items-center gap-2">
+            <BaseIcon name="mdi-robot-happy-outline" :size="22" style="color: rgb(var(--v-theme-secondary))" />
+            <h3 class="font-bold">أسئلة شائعة (مولّدة بالذكاء الاصطناعي)</h3>
           </div>
-          <VExpansionPanels variant="accordion">
-            <VExpansionPanel v-for="(f, i) in faqs" :key="i" :title="f.question">
-              <template #text>
-                <span class="text-body-2 text-medium-emphasis">{{ f.answer }}</span>
-              </template>
-            </VExpansionPanel>
-          </VExpansionPanels>
-        </VCard>
+          <div class="divide-y" style="border-color: rgba(var(--v-theme-on-surface), 0.14)">
+            <details v-for="(f, i) in faqs" :key="i" class="group py-1">
+              <summary class="flex cursor-pointer list-none items-center justify-between py-2 text-sm font-medium">
+                {{ f.question }}
+                <BaseIcon name="mdi-chevron-down" :size="18" class="text-muted transition group-open:rotate-180" />
+              </summary>
+              <p class="pb-2 text-sm text-muted">{{ f.answer }}</p>
+            </details>
+          </div>
+        </BaseCard>
 
         <!-- Similar -->
         <template v-if="similar.length">
-          <h3 class="text-h6 font-weight-bold mb-3">طلبات مشابهة</h3>
-          <VRow>
-            <VCol v-for="r in similar" :key="r.id" cols="12" sm="4">
-              <VCard class="pa-3 cursor-pointer" height="100%" @click="router.push({ name: 'request-details', params: { id: r.id } })">
-                <VChip :color="KIND_META[r.kind].color" size="x-small" label class="mb-2">{{ KIND_META[r.kind].label }}</VChip>
-                <div class="text-subtitle-2 font-weight-bold text-truncate">{{ r.title }}</div>
-                <div class="text-caption text-medium-emphasis">{{ r.org }}</div>
-                <VChip color="success" size="x-small" label class="mt-2">{{ r.matchRate }}% تطابق</VChip>
-              </VCard>
-            </VCol>
-          </VRow>
+          <h3 class="mb-3 text-xl font-bold">طلبات مشابهة</h3>
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <BaseCard
+              v-for="r in similar"
+              :key="r.id"
+              hover
+              class="h-full cursor-pointer"
+              @click="router.push({ name: 'request-details', params: { id: r.id } })"
+            >
+              <BaseChip :color="mapColor(KIND_META[r.kind].color)" class="mb-2">{{ KIND_META[r.kind].label }}</BaseChip>
+              <div class="truncate font-bold">{{ r.title }}</div>
+              <div class="text-xs text-muted">{{ r.org }}</div>
+              <BaseChip color="success" class="mt-2">{{ r.matchRate }}% تطابق</BaseChip>
+            </BaseCard>
+          </div>
         </template>
-      </VCol>
+      </div>
 
       <!-- Sidebar -->
-      <VCol cols="12" md="4">
-        <VCard class="pa-5 mb-4">
-          <div class="text-center mb-3">
-            <VProgressCircular :model-value="request.matchRate" :size="110" :width="10" color="success">
-              <span class="text-h5 font-weight-bold">{{ request.matchRate }}%</span>
-            </VProgressCircular>
-            <div class="text-body-2 text-medium-emphasis mt-2">نسبة تطابقك مع الطلب</div>
+      <div>
+        <BaseCard class="mb-4">
+          <div class="mb-3 text-center">
+            <BaseProgressRing :value="request.matchRate" :size="110" :width="10" color="success" class="mx-auto">
+              <span class="text-2xl font-bold">{{ request.matchRate }}%</span>
+            </BaseProgressRing>
+            <div class="mt-2 text-sm text-muted">نسبة تطابقك مع الطلب</div>
           </div>
 
-          <VBtn
-            color="accent"
-            size="large"
-            block
-            :disabled="applied"
-            :prepend-icon="applied ? 'mdi-check' : 'mdi-send'"
-            @click="applyDialog = true"
-          >
-            {{ applied ? 'تم التقديم' : 'تقدّم الآن' }}
-          </VBtn>
-          <VBtn variant="outlined" color="secondary" block class="mt-2" prepend-icon="mdi-handshake-outline" @click="openNegotiation">
-            تفاوض مدعوم من AI
-          </VBtn>
+          <BaseButton variant="accent" size="lg" block :disabled="applied" @click="applyDialog = true">
+            <BaseIcon :name="applied ? 'mdi-check' : 'mdi-send'" :size="18" /> {{ applied ? 'تم التقديم' : 'تقدّم الآن' }}
+          </BaseButton>
+          <BaseButton variant="outline" block class="mt-2" @click="openNegotiation">
+            <BaseIcon name="mdi-handshake-outline" :size="18" /> تفاوض مدعوم من AI
+          </BaseButton>
 
-          <VAlert type="info" variant="tonal" density="compact" class="mt-3 text-caption">
-            <VIcon icon="mdi-clock-fast" size="16" class="me-1" />{{ forecast }}
-          </VAlert>
-        </VCard>
+          <div
+            class="rounded-ui mt-3 flex items-center gap-1 border-s-4 p-3 text-xs"
+            style="border-color: rgb(var(--v-theme-info)); background: rgba(var(--v-theme-info), 0.1)"
+          >
+            <BaseIcon name="mdi-clock-fast" :size="16" />{{ forecast }}
+          </div>
+        </BaseCard>
 
         <!-- Match analysis -->
-        <VCard class="pa-5">
-          <div class="text-subtitle-1 font-weight-bold mb-3">تحليل التطابق التفصيلي</div>
+        <BaseCard>
+          <div class="mb-3 font-bold">تحليل التطابق التفصيلي</div>
           <div v-for="item in breakdown" :key="item.label" class="mb-3">
-            <div class="d-flex justify-space-between text-body-2 mb-1">
+            <div class="mb-1 flex justify-between text-sm">
               <span>{{ item.label }}</span>
-              <span class="font-weight-bold">{{ item.value }}%</span>
+              <span class="font-bold">{{ item.value }}%</span>
             </div>
-            <VProgressLinear :model-value="item.value" color="primary" height="6" rounded />
+            <BaseProgressBar :value="item.value" color="primary" :height="6" />
           </div>
-          <VAlert color="secondary" variant="tonal" density="compact" class="mt-2" border="start">
-            <template #prepend><VIcon icon="mdi-robot-happy-outline" size="18" /></template>
-            <span class="text-caption">{{ matchNarrative }}</span>
-          </VAlert>
-        </VCard>
-      </VCol>
-    </VRow>
+          <div
+            class="rounded-ui mt-2 flex items-start gap-2 border-s-4 p-3 text-xs"
+            style="border-color: rgb(var(--v-theme-secondary)); background: rgba(var(--v-theme-secondary), 0.1)"
+          >
+            <BaseIcon name="mdi-robot-happy-outline" :size="18" class="shrink-0" />
+            <span>{{ matchNarrative }}</span>
+          </div>
+        </BaseCard>
+      </div>
+    </div>
 
     <!-- Apply dialog -->
-    <VDialog v-model="applyDialog" max-width="520">
-      <VCard class="pa-2">
-        <VCardTitle class="d-flex justify-space-between align-center">
-          <span>التقديم بسيرة ذاتية</span>
-          <VBtn icon="mdi-close" variant="text" size="small" @click="applyDialog = false" />
-        </VCardTitle>
-        <VCardText>
-          <p class="text-body-2 text-medium-emphasis mb-3">اختر السيرة الأنسب لهذا الطلب (الـ AI يوصي بالسيرة النشطة):</p>
-          <VCard
-            v-for="r in resumes"
-            :key="r.id"
-            :variant="selectedResume === r.id ? 'flat' : 'outlined'"
-            :color="selectedResume === r.id ? 'primary' : undefined"
-            class="pa-3 mb-2 cursor-pointer d-flex align-center ga-3"
-            @click="selectedResume = r.id"
-          >
-            <VIcon :icon="selectedResume === r.id ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank'" />
-            <div>
-              <div class="text-body-2 font-weight-bold">{{ r.name }}</div>
-              <div class="text-caption" :class="selectedResume === r.id ? '' : 'text-medium-emphasis'">{{ r.template }} · {{ r.language }}</div>
-            </div>
-          </VCard>
-          <VBtn variant="tonal" color="secondary" block class="mt-2" prepend-icon="mdi-plus" :to="{ name: 'resume-builder' }">
-            إنشاء سيرة جديدة لهذا الطلب
-          </VBtn>
-        </VCardText>
-        <VCardActions class="justify-end">
-          <VBtn variant="text" @click="applyDialog = false">إلغاء</VBtn>
-          <VBtn color="accent" prepend-icon="mdi-send" @click="confirmApply">تأكيد التقديم</VBtn>
-        </VCardActions>
-      </VCard>
-    </VDialog>
+    <BaseModal v-model="applyDialog" title="التقديم بسيرة ذاتية">
+      <p class="mb-3 text-sm text-muted">اختر السيرة الأنسب لهذا الطلب (الـ AI يوصي بالسيرة النشطة):</p>
+      <button
+        v-for="r in resumes"
+        :key="r.id"
+        class="rounded-ui mb-2 flex w-full items-center gap-3 border p-3 text-start transition"
+        :class="selectedResume === r.id ? 'border-transparent' : 'border-ui hover:bg-surfalt'"
+        :style="selectedResume === r.id ? { background: 'rgba(var(--v-theme-primary), 0.12)' } : {}"
+        @click="selectedResume = r.id"
+      >
+        <BaseIcon
+          :name="selectedResume === r.id ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank'"
+          :size="22"
+          :style="selectedResume === r.id ? { color: 'rgb(var(--v-theme-primary))' } : { color: 'rgba(var(--v-theme-on-surface), 0.6)' }"
+        />
+        <div>
+          <div class="text-sm font-bold">{{ r.name }}</div>
+          <div class="text-xs text-muted">{{ r.template }} · {{ r.language }}</div>
+        </div>
+      </button>
+      <BaseButton variant="tonal-emerald" block class="mt-2" :to="{ name: 'resume-builder' }">
+        <BaseIcon name="mdi-plus" :size="18" /> إنشاء سيرة جديدة لهذا الطلب
+      </BaseButton>
+      <template #actions>
+        <BaseButton variant="ghost" @click="applyDialog = false">إلغاء</BaseButton>
+        <BaseButton variant="accent" @click="confirmApply"><BaseIcon name="mdi-send" :size="18" /> تأكيد التقديم</BaseButton>
+      </template>
+    </BaseModal>
 
     <!-- AI negotiation dialog -->
-    <VDialog v-model="negotiationDialog" max-width="560">
-      <VCard class="pa-2">
-        <VCardTitle class="d-flex align-center ga-2">
-          <VIcon icon="mdi-robot-happy-outline" color="secondary" />
-          <span>تفاوض مدعوم من AI</span>
-        </VCardTitle>
-        <VCardText>
-          <p class="text-caption text-medium-emphasis mb-2">صاغ الـ AI رسالة تفاوض احترافية تستند إلى نقاط قوتك المُثبتة:</p>
-          <VSkeletonLoader v-if="negotiationLoading" type="paragraph" />
-          <VTextarea v-else v-model="negotiationText" auto-grow rows="8" variant="outlined" />
-        </VCardText>
-        <VCardActions class="justify-end">
-          <VBtn variant="text" @click="negotiationDialog = false">إغلاق</VBtn>
-          <VBtn color="secondary" :disabled="negotiationLoading" prepend-icon="mdi-send" @click="copyNegotiation">
-            إرسال عبر الرسائل
-          </VBtn>
-        </VCardActions>
-      </VCard>
-    </VDialog>
+    <BaseModal v-model="negotiationDialog" :max-width="560">
+      <template #title>
+        <span class="flex items-center gap-2"><BaseIcon name="mdi-robot-happy-outline" :size="22" style="color: rgb(var(--v-theme-secondary))" /> تفاوض مدعوم من AI</span>
+      </template>
+      <p class="mb-2 text-xs text-muted">صاغ الـ AI رسالة تفاوض احترافية تستند إلى نقاط قوتك المُثبتة:</p>
+      <div v-if="negotiationLoading" class="space-y-2">
+        <div class="h-3 w-full animate-pulse rounded bg-surfalt" />
+        <div class="h-3 w-11/12 animate-pulse rounded bg-surfalt" />
+        <div class="h-3 w-4/5 animate-pulse rounded bg-surfalt" />
+        <div class="h-3 w-full animate-pulse rounded bg-surfalt" />
+      </div>
+      <BaseTextarea v-else v-model="negotiationText" :rows="8" />
+      <template #actions>
+        <BaseButton variant="ghost" @click="negotiationDialog = false">إغلاق</BaseButton>
+        <BaseButton variant="emerald" :disabled="negotiationLoading" @click="copyNegotiation">
+          <BaseIcon name="mdi-send" :size="18" /> إرسال عبر الرسائل
+        </BaseButton>
+      </template>
+    </BaseModal>
 
-    <VSnackbar v-model="appliedSnackbar" color="success" timeout="4000">
+    <BaseSnackbar v-model="appliedSnackbar" color="success" :timeout="4000">
       تم إرسال طلبك بنجاح!
       <template #actions>
-        <VBtn variant="text" @click="router.push({ name: 'my-requests' })">طلباتي</VBtn>
+        <button class="font-bold underline" @click="router.push({ name: 'my-requests' })">طلباتي</button>
       </template>
-    </VSnackbar>
+    </BaseSnackbar>
   </div>
 
-  <VCard v-else class="pa-12 text-center">
-    <VIcon icon="mdi-alert-circle-outline" size="64" color="error" />
-    <div class="text-h6 mt-3">الطلب غير موجود</div>
-    <VBtn color="primary" class="mt-3" :to="{ name: 'requests' }">العودة للسوق</VBtn>
-  </VCard>
+  <BaseCard v-else class="py-12 text-center">
+    <BaseIcon name="mdi-alert-circle-outline" :size="64" style="color: rgb(var(--v-theme-error))" />
+    <div class="mt-3 text-xl font-bold">الطلب غير موجود</div>
+    <BaseButton variant="brand" class="mt-3" :to="{ name: 'requests' }">العودة للسوق</BaseButton>
+  </BaseCard>
 </template>
