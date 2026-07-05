@@ -4,6 +4,19 @@ import PageHeader from '@/components/shared/PageHeader.vue'
 import StatCard from '@/components/shared/StatCard.vue'
 import { useWishesStore } from '@/stores/WishesStore'
 import type { Wish, WishStatus } from '@/stores/WishesStore'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseChip from '@/components/ui/BaseChip.vue'
+import BaseIcon from '@/components/ui/BaseIcon.vue'
+import BaseAvatar from '@/components/ui/BaseAvatar.vue'
+import BaseInput from '@/components/ui/BaseInput.vue'
+import BaseTextarea from '@/components/ui/BaseTextarea.vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
+
+type BaseColor = 'brand' | 'emerald' | 'accent' | 'success' | 'info' | 'warning' | 'error' | 'neutral'
+function mapColor(c: string): BaseColor {
+  return (({ primary: 'brand', secondary: 'emerald', 'medium-emphasis': 'neutral' } as Record<string, BaseColor>)[c] ?? c) as BaseColor
+}
 
 const store = useWishesStore()
 
@@ -46,69 +59,61 @@ function submitNegotiation() {
   <div>
     <PageHeader title="الرغبات الواردة" subtitle="جهات أبدت رغبتها في خدماتك" icon="mdi-hand-heart-outline" />
 
-    <VRow class="mb-2">
-      <VCol v-for="s in stats" :key="s.title" cols="6" md="3">
-        <StatCard v-bind="s" />
-      </VCol>
-    </VRow>
+    <div class="mb-2 grid grid-cols-2 gap-4 md:grid-cols-4">
+      <StatCard v-for="s in stats" :key="s.title" v-bind="s" />
+    </div>
 
-    <VRow>
-      <VCol v-for="wish in store.wishes" :key="wish.id" cols="12" md="6">
-        <VCard class="pa-4" height="100%">
-          <div class="d-flex justify-space-between align-start mb-2">
-            <div class="d-flex align-center ga-3">
-              <VAvatar color="secondary" variant="tonal" rounded="lg">
-                <span class="font-weight-bold">{{ wish.companyInitial }}</span>
-              </VAvatar>
-              <div>
-                <div class="text-subtitle-1 font-weight-bold">{{ wish.company }}</div>
-                <div class="text-caption text-medium-emphasis">{{ wish.role }} · {{ wish.amount }} · {{ wish.duration }}</div>
-              </div>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <BaseCard v-for="wish in store.wishes" :key="wish.id" class="flex h-full flex-col">
+        <div class="mb-2 flex items-start justify-between">
+          <div class="flex items-center gap-3">
+            <BaseAvatar color="emerald" tonal square>
+              <span class="font-bold">{{ wish.companyInitial }}</span>
+            </BaseAvatar>
+            <div>
+              <div class="font-bold text-content">{{ wish.company }}</div>
+              <div class="text-xs text-muted">{{ wish.role }} · {{ wish.amount }} · {{ wish.duration }}</div>
             </div>
-            <VChip :color="statusMeta[wish.status].color" size="small" label>{{ statusMeta[wish.status].label }}</VChip>
           </div>
+          <BaseChip :color="mapColor(statusMeta[wish.status].color)">{{ statusMeta[wish.status].label }}</BaseChip>
+        </div>
 
-          <p class="text-body-2 text-medium-emphasis my-2">{{ wish.reason }}</p>
+        <p class="my-2 text-sm text-muted">{{ wish.reason }}</p>
 
-          <div class="d-flex flex-wrap ga-2 mb-3">
-            <VChip size="x-small" variant="tonal" color="info" prepend-icon="mdi-robot-happy-outline">
-              تطابق {{ wish.matchRate }}%
-            </VChip>
-            <VChip size="x-small" variant="tonal" color="success" prepend-icon="mdi-star-outline">
-              سمعة الجهة: {{ wish.reputation }}
-            </VChip>
-          </div>
+        <div class="mb-3 flex flex-wrap gap-2">
+          <BaseChip color="info"><BaseIcon name="mdi-robot-happy-outline" :size="13" /> تطابق {{ wish.matchRate }}%</BaseChip>
+          <BaseChip color="success"><BaseIcon name="mdi-star-outline" :size="13" /> سمعة الجهة: {{ wish.reputation }}</BaseChip>
+        </div>
 
-          <div v-if="wish.status === 'new' || wish.status === 'pending'" class="d-flex ga-2">
-            <VBtn color="success" size="small" class="flex-grow-1" prepend-icon="mdi-check" @click="store.setStatus(wish.id, 'accepted')">قبول</VBtn>
-            <VBtn color="warning" variant="outlined" size="small" prepend-icon="mdi-swap-horizontal" @click="openNegotiate(wish)">تفاوض</VBtn>
-            <VBtn color="error" variant="outlined" size="small" icon="mdi-close" @click="store.setStatus(wish.id, 'rejected')" />
-          </div>
-          <div v-else class="text-center text-body-2 text-medium-emphasis pt-1">
-            تم {{ statusMeta[wish.status].label }} هذه الرغبة
-            <VBtn variant="text" size="x-small" color="primary" @click="store.setStatus(wish.id, 'new')">تراجع</VBtn>
-          </div>
-        </VCard>
-      </VCol>
-    </VRow>
+        <div v-if="wish.status === 'new' || wish.status === 'pending'" class="mt-auto flex gap-2">
+          <BaseButton variant="emerald" size="sm" class="flex-1" @click="store.setStatus(wish.id, 'accepted')">
+            <BaseIcon name="mdi-check" :size="16" /> قبول
+          </BaseButton>
+          <BaseButton variant="outline" size="sm" @click="openNegotiate(wish)">
+            <BaseIcon name="mdi-swap-horizontal" :size="16" /> تفاوض
+          </BaseButton>
+          <BaseButton variant="outline" size="sm" aria-label="رفض" @click="store.setStatus(wish.id, 'rejected')">
+            <BaseIcon name="mdi-close" :size="16" style="color: rgb(var(--v-theme-error))" />
+          </BaseButton>
+        </div>
+        <div v-else class="mt-auto pt-1 text-center text-sm text-muted">
+          تم {{ statusMeta[wish.status].label }} هذه الرغبة
+          <button class="font-medium text-brand" @click="store.setStatus(wish.id, 'new')">تراجع</button>
+        </div>
+      </BaseCard>
+    </div>
 
     <!-- Negotiation dialog -->
-    <VDialog v-model="negotiateDialog" max-width="480">
-      <VCard class="pa-2">
-        <VCardTitle class="d-flex justify-space-between align-center">
-          <span>التفاوض مع {{ activeWish?.company }}</span>
-          <VBtn icon="mdi-close" variant="text" size="small" @click="negotiateDialog = false" />
-        </VCardTitle>
-        <VCardText>
-          <VTextField v-model="counterAmount" label="المقابل المقترح" placeholder="مثال: 18,000 ريال" class="mb-2" />
-          <VTextField v-model="counterDuration" label="المدة المقترحة" placeholder="مثال: سنة" class="mb-2" />
-          <VTextarea v-model="counterNotes" label="ملاحظات" rows="3" />
-        </VCardText>
-        <VCardActions class="justify-end">
-          <VBtn variant="text" @click="negotiateDialog = false">إلغاء</VBtn>
-          <VBtn color="warning" prepend-icon="mdi-send" @click="submitNegotiation">إرسال العرض المضاد</VBtn>
-        </VCardActions>
-      </VCard>
-    </VDialog>
+    <BaseModal v-model="negotiateDialog" :title="`التفاوض مع ${activeWish?.company ?? ''}`" :max-width="480">
+      <BaseInput v-model="counterAmount" label="المقابل المقترح" placeholder="مثال: 18,000 ريال" class="mb-2" />
+      <BaseInput v-model="counterDuration" label="المدة المقترحة" placeholder="مثال: سنة" class="mb-2" />
+      <BaseTextarea v-model="counterNotes" label="ملاحظات" :rows="3" />
+      <template #actions>
+        <BaseButton variant="ghost" size="sm" @click="negotiateDialog = false">إلغاء</BaseButton>
+        <BaseButton variant="brand" size="sm" @click="submitNegotiation">
+          <BaseIcon name="mdi-send" :size="16" /> إرسال العرض المضاد
+        </BaseButton>
+      </template>
+    </BaseModal>
   </div>
 </template>
