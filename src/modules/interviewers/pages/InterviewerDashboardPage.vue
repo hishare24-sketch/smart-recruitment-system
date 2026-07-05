@@ -11,10 +11,31 @@ import { ai } from '@/services/ai'
 import type { EvalElementSuggestion } from '@/services/ai'
 import { MY_INTERVIEWER_ID, useInterviewerBrandStore } from '@/stores/InterviewerBrandStore'
 import { useReviewsStore } from '@/stores/ReviewsStore'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseChip from '@/components/ui/BaseChip.vue'
+import BaseIcon from '@/components/ui/BaseIcon.vue'
+import BaseAvatar from '@/components/ui/BaseAvatar.vue'
+import BaseInput from '@/components/ui/BaseInput.vue'
+import BaseTextarea from '@/components/ui/BaseTextarea.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
+import BaseSwitch from '@/components/ui/BaseSwitch.vue'
+import BaseSlider from '@/components/ui/BaseSlider.vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
+import BaseRating from '@/components/ui/BaseRating.vue'
+import BaseDropdown from '@/components/ui/BaseDropdown.vue'
 
 const router = useRouter()
 const store = useInterviewersStore()
 const notifications = useNotificationsStore()
+
+type BaseColor = 'brand' | 'emerald' | 'accent' | 'success' | 'info' | 'warning' | 'error' | 'neutral'
+function mapColor(c?: string): BaseColor {
+  return (({ primary: 'brand', secondary: 'emerald', 'medium-emphasis': 'neutral', 'surface-variant': 'neutral', grey: 'neutral', amber: 'warning' } as Record<string, BaseColor>)[c ?? ''] ?? c ?? 'brand') as BaseColor
+}
+function colorVar(c: string) {
+  return `rgb(var(--v-theme-${c === 'amber' ? 'warning' : c}))`
+}
 
 // ===== لوحة التسويق الشخصي (شريك نجاح) =====
 const brand = useInterviewerBrandStore()
@@ -147,6 +168,13 @@ function addSuggestion(s: EvalElementSuggestion) {
   store.addEvalElement({ name: s.name, description: s.description, price: s.price })
   suggestions.value = suggestions.value.filter(x => x.name !== s.name)
 }
+
+const marketingMetrics = computed(() => [
+  { label: 'مشاهدات الملف', value: brand.marketingStats.views, icon: 'mdi-eye-outline', color: 'primary' },
+  { label: 'مرات المشاركة', value: brand.marketingStats.shares, icon: 'mdi-share-variant-outline', color: 'secondary' },
+  { label: 'أضافوني للمفضلة', value: brand.marketingStats.favorites, icon: 'mdi-heart-outline', color: 'error' },
+  { label: 'إحالات ناجحة', value: brand.marketingStats.referrals, icon: 'mdi-account-plus-outline', color: 'accent' },
+])
 </script>
 
 <template>
@@ -157,418 +185,347 @@ function addSuggestion(s: EvalElementSuggestion) {
       icon="mdi-account-tie"
     >
       <template #actions>
-        <VBtn variant="text" color="primary" prepend-icon="mdi-chart-box-outline" :to="{ name: 'interviewer-analytics' }">التحليلات</VBtn>
-        <VBtn variant="tonal" color="secondary" prepend-icon="mdi-tag-outline" @click="openPricing">إدارة الأسعار</VBtn>
+        <BaseButton variant="ghost" size="sm" :to="{ name: 'interviewer-analytics' }"><BaseIcon name="mdi-chart-box-outline" :size="16" />التحليلات</BaseButton>
+        <BaseButton variant="tonal-emerald" size="sm" @click="openPricing"><BaseIcon name="mdi-tag-outline" :size="16" />إدارة الأسعار</BaseButton>
       </template>
     </PageHeader>
 
-    <VRow class="mb-2">
-      <VCol v-for="s in stats" :key="s.title" cols="12" sm="6" lg="3">
-        <StatCard v-bind="s" />
-      </VCol>
-    </VRow>
+    <div class="mb-2 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <StatCard v-for="s in stats" :key="s.title" v-bind="s" />
+    </div>
 
     <!-- AI tip -->
-    <VAlert color="secondary" variant="tonal" class="mb-4" border="start">
-      <template #prepend><VIcon icon="mdi-robot-happy-outline" /></template>
-      <span class="text-body-2">
+    <div class="mb-4 flex items-start gap-2 rounded-ui border-s-4 bg-surfalt p-3" :style="{ borderColor: 'rgb(var(--v-theme-secondary))' }">
+      <BaseIcon name="mdi-robot-happy-outline" :size="20" :style="{ color: 'rgb(var(--v-theme-secondary))' }" />
+      <span class="text-sm text-content">
         لديك {{ store.interviewerStats.pending }} طلب مقابلة جديد يناسب تخصصك — الرد السريع يرفع تقييمك وترتيبك في السوق.
       </span>
-    </VAlert>
+    </div>
 
-    <VRow>
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
       <!-- Requests + upcoming -->
-      <VCol cols="12" lg="7">
-        <h2 class="text-subtitle-1 font-weight-bold mb-3">طلبات مقابلات جديدة ({{ store.agendaRequests.length }})</h2>
-        <VCard v-if="store.agendaRequests.length" class="mb-5">
-          <VList lines="two">
-            <template v-for="(a, i) in store.agendaRequests" :key="a.id">
-              <VListItem>
-                <template #prepend>
-                  <VAvatar color="accent" variant="tonal"><span class="font-weight-bold">{{ a.candidateInitial }}</span></VAvatar>
-                </template>
-                <VListItemTitle class="font-weight-bold">{{ a.candidateName }} · {{ KIND_META[a.kind].label }}</VListItemTitle>
-                <VListItemSubtitle>{{ a.candidateField }} · {{ a.datetime }} · {{ a.price }} ﷼</VListItemSubtitle>
-                <template #append>
-                  <div class="d-flex ga-1">
-                    <VBtn size="small" color="success" variant="tonal" prepend-icon="mdi-check" @click="acceptRequest(a)">قبول</VBtn>
-                    <VBtn icon="mdi-close" size="small" variant="text" color="error" @click="store.declineRequest(a.id)" />
-                  </div>
-                </template>
-              </VListItem>
-              <VDivider v-if="i < store.agendaRequests.length - 1" />
-            </template>
-          </VList>
-        </VCard>
-        <VCard v-else class="pa-6 text-center mb-5">
-          <VIcon icon="mdi-inbox-outline" size="40" color="medium-emphasis" />
-          <div class="text-body-2 text-medium-emphasis mt-1">لا طلبات جديدة حاليًا</div>
-        </VCard>
+      <div class="lg:col-span-7">
+        <h2 class="mb-3 text-base font-bold text-content">طلبات مقابلات جديدة ({{ store.agendaRequests.length }})</h2>
+        <BaseCard v-if="store.agendaRequests.length" :padded="false" class="mb-5 overflow-hidden">
+          <div v-for="(a, i) in store.agendaRequests" :key="a.id" class="flex items-center gap-3 p-3" :class="{ 'border-t border-ui': i > 0 }">
+            <BaseAvatar color="accent" tonal><span class="font-bold">{{ a.candidateInitial }}</span></BaseAvatar>
+            <div class="min-w-0 flex-1">
+              <div class="font-bold text-content">{{ a.candidateName }} · {{ KIND_META[a.kind].label }}</div>
+              <div class="truncate text-xs text-muted">{{ a.candidateField }} · {{ a.datetime }} · {{ a.price }} ﷼</div>
+            </div>
+            <div class="flex items-center gap-1">
+              <BaseButton size="sm" variant="tonal-emerald" @click="acceptRequest(a)"><BaseIcon name="mdi-check" :size="16" />قبول</BaseButton>
+              <button class="icon-btn h-8 w-8" style="color: rgb(var(--v-theme-error))" aria-label="رفض" @click="store.declineRequest(a.id)"><BaseIcon name="mdi-close" :size="18" /></button>
+            </div>
+          </div>
+        </BaseCard>
+        <BaseCard v-else class="mb-5 py-6 text-center">
+          <BaseIcon name="mdi-inbox-outline" :size="40" :style="{ color: colorVar('medium-emphasis') }" />
+          <div class="mt-1 text-sm text-muted">لا طلبات جديدة حاليًا</div>
+        </BaseCard>
 
-        <h2 class="text-subtitle-1 font-weight-bold mb-3">مقابلات قادمة ({{ store.agendaUpcoming.length }})</h2>
-        <VCard v-if="store.agendaUpcoming.length">
-          <VList lines="two">
-            <template v-for="(a, i) in store.agendaUpcoming" :key="a.id">
-              <VListItem>
-                <template #prepend>
-                  <VAvatar color="info" variant="tonal"><span class="font-weight-bold">{{ a.candidateInitial }}</span></VAvatar>
-                </template>
-                <VListItemTitle class="font-weight-bold">{{ a.candidateName }} · {{ KIND_META[a.kind].label }}</VListItemTitle>
-                <VListItemSubtitle>{{ a.datetime }} · {{ a.price }} ﷼</VListItemSubtitle>
-                <template #append>
-                  <VBtn size="small" color="primary" prepend-icon="mdi-video-outline" @click="router.push({ name: 'conduct-interview', params: { id: a.id } })">
-                    بدء المقابلة
-                  </VBtn>
-                </template>
-              </VListItem>
-              <VDivider v-if="i < store.agendaUpcoming.length - 1" />
-            </template>
-          </VList>
-        </VCard>
-        <VCard v-else class="pa-6 text-center">
-          <VIcon icon="mdi-calendar-blank-outline" size="40" color="medium-emphasis" />
-          <div class="text-body-2 text-medium-emphasis mt-1">لا مقابلات مجدولة</div>
-        </VCard>
-      </VCol>
+        <h2 class="mb-3 text-base font-bold text-content">مقابلات قادمة ({{ store.agendaUpcoming.length }})</h2>
+        <BaseCard v-if="store.agendaUpcoming.length" :padded="false" class="overflow-hidden">
+          <div v-for="(a, i) in store.agendaUpcoming" :key="a.id" class="flex items-center gap-3 p-3" :class="{ 'border-t border-ui': i > 0 }">
+            <BaseAvatar color="info" tonal><span class="font-bold">{{ a.candidateInitial }}</span></BaseAvatar>
+            <div class="min-w-0 flex-1">
+              <div class="font-bold text-content">{{ a.candidateName }} · {{ KIND_META[a.kind].label }}</div>
+              <div class="truncate text-xs text-muted">{{ a.datetime }} · {{ a.price }} ﷼</div>
+            </div>
+            <BaseButton size="sm" variant="brand" @click="router.push({ name: 'conduct-interview', params: { id: a.id } })">
+              <BaseIcon name="mdi-video-outline" :size="16" />بدء المقابلة
+            </BaseButton>
+          </div>
+        </BaseCard>
+        <BaseCard v-else class="py-6 text-center">
+          <BaseIcon name="mdi-calendar-blank-outline" :size="40" :style="{ color: colorVar('medium-emphasis') }" />
+          <div class="mt-1 text-sm text-muted">لا مقابلات مجدولة</div>
+        </BaseCard>
+      </div>
 
       <!-- Completed -->
-      <VCol cols="12" lg="5">
-        <h2 class="text-subtitle-1 font-weight-bold mb-3">مقابلات منفّذة ({{ store.agendaCompleted.length }})</h2>
-        <VCard>
-          <VList v-if="store.agendaCompleted.length" lines="two">
-            <template v-for="(a, i) in store.agendaCompleted" :key="a.id">
-              <VListItem>
-                <template #prepend>
-                  <VAvatar color="success" variant="tonal"><span class="font-weight-bold">{{ a.candidateInitial }}</span></VAvatar>
-                </template>
-                <VListItemTitle class="font-weight-bold">{{ a.candidateName }}</VListItemTitle>
-                <VListItemSubtitle>{{ KIND_META[a.kind].label }} · {{ a.datetime }}</VListItemSubtitle>
-                <template #append>
-                  <div class="d-flex align-center ga-2">
-                    <VRating v-if="a.rating" :model-value="a.rating" color="warning" density="compact" size="x-small" readonly />
-                    <VChip v-if="a.report" color="success" size="small" label>{{ a.report.overall }}%</VChip>
-                  </div>
-                </template>
-              </VListItem>
-              <VDivider v-if="i < store.agendaCompleted.length - 1" />
-            </template>
-          </VList>
-          <div v-else class="pa-6 text-center text-medium-emphasis">لا مقابلات منفّذة بعد</div>
-        </VCard>
-      </VCol>
+      <div class="lg:col-span-5">
+        <h2 class="mb-3 text-base font-bold text-content">مقابلات منفّذة ({{ store.agendaCompleted.length }})</h2>
+        <BaseCard :padded="false" class="overflow-hidden">
+          <template v-if="store.agendaCompleted.length">
+            <div v-for="(a, i) in store.agendaCompleted" :key="a.id" class="flex items-center gap-3 p-3" :class="{ 'border-t border-ui': i > 0 }">
+              <BaseAvatar color="success" tonal><span class="font-bold">{{ a.candidateInitial }}</span></BaseAvatar>
+              <div class="min-w-0 flex-1">
+                <div class="font-bold text-content">{{ a.candidateName }}</div>
+                <div class="truncate text-xs text-muted">{{ KIND_META[a.kind].label }} · {{ a.datetime }}</div>
+              </div>
+              <div class="flex items-center gap-2">
+                <BaseRating v-if="a.rating" :model-value="a.rating" color="warning" :size="14" readonly />
+                <BaseChip v-if="a.report" color="success">{{ a.report.overall }}%</BaseChip>
+              </div>
+            </div>
+          </template>
+          <div v-else class="py-6 text-center text-muted">لا مقابلات منفّذة بعد</div>
+        </BaseCard>
+      </div>
 
       <!-- Custom evaluation elements management -->
-      <VCol cols="12">
-        <VCard class="pa-5">
-          <div class="d-flex align-center justify-space-between flex-wrap ga-2 mb-1">
-            <div class="d-flex align-center ga-2">
-              <VIcon icon="mdi-tune-vertical" color="accent" />
-              <h2 class="text-subtitle-1 font-weight-bold">عناصر التقييم المخصّصة</h2>
+      <div class="lg:col-span-12">
+        <BaseCard>
+          <div class="mb-1 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <BaseIcon name="mdi-tune-vertical" :size="22" :style="{ color: 'rgb(var(--v-theme-accent))' }" />
+              <h2 class="text-base font-bold text-content">عناصر التقييم المخصّصة</h2>
             </div>
-            <VBtn size="small" variant="tonal" color="secondary" prepend-icon="mdi-robot-happy-outline" @click="loadSuggestions">اقترح بالذكاء الاصطناعي</VBtn>
+            <BaseButton size="sm" variant="tonal-emerald" @click="loadSuggestions"><BaseIcon name="mdi-robot-happy-outline" :size="16" />اقترح بالذكاء الاصطناعي</BaseButton>
           </div>
-          <p class="text-caption text-medium-emphasis mb-3 d-flex align-center flex-wrap ga-1">
+          <p class="mb-3 flex flex-wrap items-center gap-1 text-xs text-muted">
             أضِف عناصر تقييم إضافية بسعر مستقل تظهر للمرشّحين عند الحجز.
-            <VMenu :close-on-content-click="false" location="top">
-              <template #activator="{ props }">
-                <span v-bind="props" class="cursor-pointer d-inline-flex align-center text-secondary"><VIcon icon="mdi-information-outline" size="14" class="me-1" />العمولة</span>
+            <BaseDropdown align="start" :close-on-content="false">
+              <template #trigger="{ toggle }">
+                <span class="inline-flex cursor-pointer items-center gap-1" style="color: rgb(var(--v-theme-secondary))" @click="toggle"><BaseIcon name="mdi-information-outline" :size="14" />العمولة</span>
               </template>
-              <VCard max-width="320" class="pa-3 text-caption">{{ commissionNote }}</VCard>
-            </VMenu>
+              <div class="max-w-[320px] p-3 text-xs text-content">{{ commissionNote }}</div>
+            </BaseDropdown>
           </p>
 
-          <div v-if="suggestions.length" class="mb-3 d-flex flex-wrap ga-2">
-            <VChip v-for="s in suggestions" :key="s.name" color="secondary" variant="tonal" size="small" @click="addSuggestion(s)">
-              <VIcon icon="mdi-plus" start size="14" />{{ s.name }} (+{{ s.price }})
-            </VChip>
+          <div v-if="suggestions.length" class="mb-3 flex flex-wrap gap-2">
+            <button v-for="s in suggestions" :key="s.name" type="button" class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-sm font-medium" style="background: rgba(var(--v-theme-secondary), 0.16); color: rgb(var(--v-theme-secondary))" @click="addSuggestion(s)">
+              <BaseIcon name="mdi-plus" :size="14" />{{ s.name }} (+{{ s.price }})
+            </button>
           </div>
 
-          <div v-if="store.myEvalElements.length" class="d-flex flex-column ga-2 mb-4">
-            <div v-for="el in store.myEvalElements" :key="el.id" class="element-row pa-2 d-flex align-center ga-2">
-              <div class="flex-grow-1">
-                <div class="text-body-2 font-weight-bold">{{ el.name }}</div>
-                <div class="text-caption text-medium-emphasis">{{ el.description }}</div>
+          <div v-if="store.myEvalElements.length" class="mb-4 flex flex-col gap-2">
+            <div v-for="el in store.myEvalElements" :key="el.id" class="element-row flex items-center gap-2 p-2">
+              <div class="flex-1">
+                <div class="text-sm font-bold text-content">{{ el.name }}</div>
+                <div class="text-xs text-muted">{{ el.description }}</div>
               </div>
-              <span class="font-weight-bold">+{{ el.price }} ﷼</span>
-              <VBtn icon="mdi-delete-outline" variant="text" size="x-small" color="error" @click="store.removeEvalElement(el.id)" />
+              <span class="font-bold text-content">+{{ el.price }} ﷼</span>
+              <button class="icon-btn h-8 w-8" style="color: rgb(var(--v-theme-error))" aria-label="حذف" @click="store.removeEvalElement(el.id)"><BaseIcon name="mdi-delete-outline" :size="16" /></button>
             </div>
           </div>
-          <div v-else class="text-caption text-medium-emphasis mb-3">لا عناصر مخصّصة بعد.</div>
+          <div v-else class="mb-3 text-xs text-muted">لا عناصر مخصّصة بعد.</div>
 
-          <VRow dense align="center">
-            <VCol cols="12" sm="4"><VTextField v-model="newElement.name" label="اسم العنصر" density="compact" hide-details /></VCol>
-            <VCol cols="12" sm="5"><VTextField v-model="newElement.description" label="الوصف" density="compact" hide-details /></VCol>
-            <VCol cols="8" sm="2"><VTextField v-model.number="newElement.price" type="number" label="السعر" suffix="﷼" density="compact" hide-details /></VCol>
-            <VCol cols="4" sm="1"><VBtn color="accent" block height="40" :disabled="!newElement.name.trim()" @click="addElement"><VIcon icon="mdi-plus" /></VBtn></VCol>
-          </VRow>
-        </VCard>
-      </VCol>
+          <div class="grid grid-cols-1 items-end gap-3 sm:grid-cols-12">
+            <BaseInput v-model="newElement.name" label="اسم العنصر" class="sm:col-span-4" />
+            <BaseInput v-model="newElement.description" label="الوصف" class="sm:col-span-5" />
+            <BaseInput v-model.number="newElement.price" type="number" label="السعر" class="sm:col-span-2">
+              <template #suffix><span class="text-xs text-muted">﷼</span></template>
+            </BaseInput>
+            <BaseButton variant="accent" block :disabled="!newElement.name.trim()" class="sm:col-span-1" @click="addElement"><BaseIcon name="mdi-plus" :size="18" /></BaseButton>
+          </div>
+        </BaseCard>
+      </div>
 
       <!-- Personal marketing & growth panel (شريك نجاح) -->
-      <VCol cols="12">
-        <VCard class="pa-5">
-          <div class="d-flex align-center justify-space-between flex-wrap ga-2 mb-1">
-            <div class="d-flex align-center ga-2">
-              <VIcon icon="mdi-bullhorn-outline" color="accent" />
-              <h2 class="text-subtitle-1 font-weight-bold">التسويق الشخصي</h2>
-              <VChip v-if="brand.isAmbassador" size="x-small" color="accent" label prepend-icon="mdi-shield-star-outline">سفير المنصة</VChip>
+      <div class="lg:col-span-12">
+        <BaseCard>
+          <div class="mb-1 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <BaseIcon name="mdi-bullhorn-outline" :size="22" :style="{ color: 'rgb(var(--v-theme-accent))' }" />
+              <h2 class="text-base font-bold text-content">التسويق الشخصي</h2>
+              <BaseChip v-if="brand.isAmbassador" color="accent"><BaseIcon name="mdi-shield-star-outline" :size="12" />سفير المنصة</BaseChip>
             </div>
-            <div class="d-flex ga-2">
-              <VBtn size="small" color="primary" variant="tonal" prepend-icon="mdi-open-in-new" :to="`/${brand.publicPath}`" target="_blank">
-                ملفي العام
-              </VBtn>
-              <VBtn size="small" color="secondary" variant="tonal" :prepend-icon="linkCopied ? 'mdi-check' : 'mdi-link-variant'" @click="copyPublicLink">
-                {{ linkCopied ? 'نُسخ الرابط' : 'مشاركة الملف' }}
-              </VBtn>
-              <VBtn size="small" color="info" variant="tonal" prepend-icon="mdi-linkedin" @click="brand.shareOnLinkedIn()">
-                LinkedIn
-              </VBtn>
+            <div class="flex flex-wrap gap-2">
+              <BaseButton size="sm" variant="tonal-brand" :to="`/${brand.publicPath}`"><BaseIcon name="mdi-open-in-new" :size="16" />ملفي العام</BaseButton>
+              <BaseButton size="sm" variant="tonal-emerald" @click="copyPublicLink"><BaseIcon :name="linkCopied ? 'mdi-check' : 'mdi-link-variant'" :size="16" />{{ linkCopied ? 'نُسخ الرابط' : 'مشاركة الملف' }}</BaseButton>
+              <BaseButton size="sm" variant="ghost" @click="brand.shareOnLinkedIn()"><BaseIcon name="mdi-linkedin" :size="16" :style="{ color: 'rgb(var(--v-theme-info))' }" /><span :style="{ color: 'rgb(var(--v-theme-info))' }">LinkedIn</span></BaseButton>
             </div>
           </div>
-          <p class="text-caption text-medium-emphasis mb-3">ملفك العام بطاقة تسويقية — شاركه على LinkedIn ووسائل التواصل لجذب حجوزات جديدة.</p>
+          <p class="mb-3 text-xs text-muted">ملفك العام بطاقة تسويقية — شاركه على LinkedIn ووسائل التواصل لجذب حجوزات جديدة.</p>
 
           <!-- مؤشرات الوصول -->
-          <VRow dense class="mb-2">
-            <VCol v-for="m in [
-              { label: 'مشاهدات الملف', value: brand.marketingStats.views, icon: 'mdi-eye-outline', color: 'primary' },
-              { label: 'مرات المشاركة', value: brand.marketingStats.shares, icon: 'mdi-share-variant-outline', color: 'secondary' },
-              { label: 'أضافوني للمفضلة', value: brand.marketingStats.favorites, icon: 'mdi-heart-outline', color: 'error' },
-              { label: 'إحالات ناجحة', value: brand.marketingStats.referrals, icon: 'mdi-account-plus-outline', color: 'accent' },
-            ]" :key="m.label" cols="6" md="3">
-              <div class="text-center pa-3 rounded-lg growth-tile">
-                <VIcon :icon="m.icon" :color="m.color" size="20" class="mb-1" />
-                <div class="text-h6 font-weight-bold">{{ m.value }}</div>
-                <div class="text-caption text-medium-emphasis">{{ m.label }}</div>
-              </div>
-            </VCol>
-          </VRow>
+          <div class="mb-2 grid grid-cols-2 gap-3 md:grid-cols-4">
+            <div v-for="m in marketingMetrics" :key="m.label" class="growth-tile rounded-ui p-3 text-center">
+              <BaseIcon :name="m.icon" :size="20" class="mb-1" :style="{ color: colorVar(m.color) }" />
+              <div class="text-lg font-bold text-content">{{ m.value }}</div>
+              <div class="text-xs text-muted">{{ m.label }}</div>
+            </div>
+          </div>
 
-          <VRow>
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
             <!-- رابط الدعوة -->
-            <VCol cols="12" md="6">
-              <div class="text-body-2 font-weight-bold mb-1"><VIcon icon="mdi-account-multiple-plus-outline" size="16" /> رابط الدعوة (شريك نمو)</div>
-              <p class="text-caption text-medium-emphasis mb-2">كل مرشح يسجّل عبر رابطك = +50 نقطة في محفظتك.</p>
-              <VTextField :model-value="brand.referralLink" readonly density="compact" hide-details dir="ltr">
-                <template #append-inner>
-                  <VBtn :icon="refCopied ? 'mdi-check' : 'mdi-content-copy'" variant="text" size="small" :color="refCopied ? 'success' : undefined" @click="copyReferral" />
+            <div>
+              <div class="mb-1 flex items-center gap-1 text-sm font-bold text-content"><BaseIcon name="mdi-account-multiple-plus-outline" :size="16" /> رابط الدعوة (شريك نمو)</div>
+              <p class="mb-2 text-xs text-muted">كل مرشح يسجّل عبر رابطك = +50 نقطة في محفظتك.</p>
+              <BaseInput :model-value="brand.referralLink" readonly dir="ltr">
+                <template #suffix>
+                  <button class="icon-btn h-8 w-8" :style="refCopied ? { color: 'rgb(var(--v-theme-success))' } : {}" aria-label="نسخ" @click="copyReferral"><BaseIcon :name="refCopied ? 'mdi-check' : 'mdi-content-copy'" :size="18" /></button>
                 </template>
-              </VTextField>
-            </VCol>
+              </BaseInput>
+            </div>
 
             <!-- العروض الترويجية -->
-            <VCol cols="12" md="6">
-              <div class="d-flex align-center justify-space-between mb-1">
-                <div class="text-body-2 font-weight-bold"><VIcon icon="mdi-tag-heart-outline" size="16" /> عروضي الترويجية</div>
-                <VBtn size="x-small" variant="tonal" color="accent" prepend-icon="mdi-plus" @click="promoDialog = true">عرض جديد</VBtn>
+            <div>
+              <div class="mb-1 flex items-center justify-between">
+                <div class="flex items-center gap-1 text-sm font-bold text-content"><BaseIcon name="mdi-tag-heart-outline" :size="16" /> عروضي الترويجية</div>
+                <BaseButton size="sm" variant="tonal-accent" @click="promoDialog = true"><BaseIcon name="mdi-plus" :size="14" />عرض جديد</BaseButton>
               </div>
-              <div v-for="p in brand.state.promos" :key="p.id" class="d-flex align-center ga-2 py-1">
-                <VSwitch :model-value="p.active" color="accent" hide-details density="compact" @update:model-value="brand.togglePromo(p.id)" />
-                <span class="text-caption flex-grow-1" :class="{ 'text-medium-emphasis': !p.active }">{{ p.title }}<b v-if="p.pct"> ({{ p.pct }}%)</b></span>
-                <VBtn icon="mdi-delete-outline" size="x-small" variant="text" color="error" @click="brand.removePromo(p.id)" />
+              <div v-for="p in brand.state.promos" :key="p.id" class="flex items-center gap-2 py-1">
+                <BaseSwitch :model-value="p.active" @update:model-value="brand.togglePromo(p.id)" />
+                <span class="flex-1 text-xs" :class="p.active ? 'text-content' : 'text-muted'">{{ p.title }}<b v-if="p.pct"> ({{ p.pct }}%)</b></span>
+                <button class="icon-btn h-8 w-8" style="color: rgb(var(--v-theme-error))" aria-label="حذف" @click="brand.removePromo(p.id)"><BaseIcon name="mdi-delete-outline" :size="16" /></button>
               </div>
-              <p v-if="!brand.state.promos.length" class="text-caption text-medium-emphasis">أنشئ عرضًا (خصم أو جلسة تعارف مجانية) لجذب مرشحين جدد.</p>
-            </VCol>
-          </VRow>
+              <p v-if="!brand.state.promos.length" class="text-xs text-muted">أنشئ عرضًا (خصم أو جلسة تعارف مجانية) لجذب مرشحين جدد.</p>
+            </div>
+          </div>
 
-          <VDivider class="my-3" />
+          <hr class="my-3 border-ui">
 
-          <VRow>
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
             <!-- توصيات AI للنمو -->
-            <VCol cols="12" md="6">
-              <div class="text-body-2 font-weight-bold mb-2"><VIcon icon="mdi-robot-happy-outline" size="16" color="secondary" /> مستشار النمو الذكي</div>
-              <VAlert color="success" variant="tonal" density="compact" border="start" class="mb-2 text-caption">{{ growth.praise }}</VAlert>
-              <VAlert color="warning" variant="tonal" density="compact" border="start" class="mb-2 text-caption">{{ growth.focus }}</VAlert>
-              <VAlert color="info" variant="tonal" density="compact" border="start" class="text-caption">{{ growth.vsField }}</VAlert>
-            </VCol>
+            <div>
+              <div class="mb-2 flex items-center gap-1 text-sm font-bold text-content"><BaseIcon name="mdi-robot-happy-outline" :size="16" :style="{ color: 'rgb(var(--v-theme-secondary))' }" /> مستشار النمو الذكي</div>
+              <div class="mb-2 rounded-ui border-s-4 p-2 text-xs text-content" style="background: rgba(var(--v-theme-success), 0.14); border-color: rgb(var(--v-theme-success))">{{ growth.praise }}</div>
+              <div class="mb-2 rounded-ui border-s-4 p-2 text-xs text-content" style="background: rgba(var(--v-theme-warning), 0.14); border-color: rgb(var(--v-theme-warning))">{{ growth.focus }}</div>
+              <div class="rounded-ui border-s-4 p-2 text-xs text-content" style="background: rgba(var(--v-theme-info), 0.14); border-color: rgb(var(--v-theme-info))">{{ growth.vsField }}</div>
+            </div>
 
             <!-- مقالاتي -->
-            <VCol cols="12" md="6">
-              <div class="d-flex align-center justify-space-between mb-1">
-                <div class="text-body-2 font-weight-bold"><VIcon icon="mdi-post-outline" size="16" /> مقالاتي المهنية</div>
-                <VBtn size="x-small" variant="tonal" color="secondary" prepend-icon="mdi-pencil-plus-outline" @click="articleDialog = true">مقال جديد</VBtn>
+            <div>
+              <div class="mb-1 flex items-center justify-between">
+                <div class="flex items-center gap-1 text-sm font-bold text-content"><BaseIcon name="mdi-post-outline" :size="16" /> مقالاتي المهنية</div>
+                <BaseButton size="sm" variant="tonal-emerald" @click="articleDialog = true"><BaseIcon name="mdi-pencil-plus-outline" :size="14" />مقال جديد</BaseButton>
               </div>
-              <div v-for="a in brand.state.articles" :key="a.id" class="d-flex align-center ga-2 py-1">
-                <VChip size="x-small" :color="a.status === 'published' ? 'success' : 'warning'" label>
-                  {{ a.status === 'published' ? 'منشور' : 'قيد المراجعة' }}
-                </VChip>
-                <span class="text-caption flex-grow-1">{{ a.title }}</span>
+              <div v-for="a in brand.state.articles" :key="a.id" class="flex items-center gap-2 py-1">
+                <BaseChip :color="a.status === 'published' ? 'success' : 'warning'">{{ a.status === 'published' ? 'منشور' : 'قيد المراجعة' }}</BaseChip>
+                <span class="flex-1 text-xs text-content">{{ a.title }}</span>
               </div>
-              <p class="text-caption text-medium-emphasis mt-1">المقالات تُعرض في ملفك العام بعد مراجعة المنصة — تبني سلطتك المهنية.</p>
-            </VCol>
-          </VRow>
+              <p class="mt-1 text-xs text-muted">المقالات تُعرض في ملفك العام بعد مراجعة المنصة — تبني سلطتك المهنية.</p>
+            </div>
+          </div>
 
-          <VDivider class="my-3" />
+          <hr class="my-3 border-ui">
 
-          <VRow>
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
             <!-- توصيات الزملاء المتبادلة -->
-            <VCol cols="12" md="6">
-              <div class="d-flex align-center justify-space-between mb-1">
-                <div class="text-body-2 font-weight-bold"><VIcon icon="mdi-account-heart-outline" size="16" color="secondary" /> توصيات زملاء المهنة</div>
-                <VBtn size="x-small" variant="tonal" color="secondary" prepend-icon="mdi-plus" @click="peerDialog = true">اطلب توصية</VBtn>
+            <div>
+              <div class="mb-1 flex items-center justify-between">
+                <div class="flex items-center gap-1 text-sm font-bold text-content"><BaseIcon name="mdi-account-heart-outline" :size="16" :style="{ color: 'rgb(var(--v-theme-secondary))' }" /> توصيات زملاء المهنة</div>
+                <BaseButton size="sm" variant="tonal-emerald" @click="peerDialog = true"><BaseIcon name="mdi-plus" :size="14" />اطلب توصية</BaseButton>
               </div>
-              <div v-for="e in brand.state.peerEndorsements" :key="e.id" class="d-flex align-center ga-2 py-1">
-                <VChip size="x-small" :color="e.status === 'received' ? 'success' : 'warning'" label>
-                  {{ e.status === 'received' ? 'مستلمة' : 'بانتظار الرد' }}
-                </VChip>
-                <span class="text-caption flex-grow-1">{{ e.peerName }}</span>
-                <VChip v-if="e.reciprocated" size="x-small" color="secondary" variant="tonal" label prepend-icon="mdi-swap-horizontal">متبادلة</VChip>
-                <VBtn v-else-if="e.status === 'received'" size="x-small" variant="text" color="secondary" prepend-icon="mdi-swap-horizontal" @click="brand.reciprocatePeerEndorsement(e.id)">
-                  ردّ التوصية
-                </VBtn>
+              <div v-for="e in brand.state.peerEndorsements" :key="e.id" class="flex items-center gap-2 py-1">
+                <BaseChip :color="e.status === 'received' ? 'success' : 'warning'">{{ e.status === 'received' ? 'مستلمة' : 'بانتظار الرد' }}</BaseChip>
+                <span class="flex-1 text-xs text-content">{{ e.peerName }}</span>
+                <BaseChip v-if="e.reciprocated" color="emerald"><BaseIcon name="mdi-swap-horizontal" :size="12" />متبادلة</BaseChip>
+                <BaseButton v-else-if="e.status === 'received'" size="sm" variant="ghost" @click="brand.reciprocatePeerEndorsement(e.id)">
+                  <BaseIcon name="mdi-swap-horizontal" :size="14" :style="{ color: 'rgb(var(--v-theme-secondary))' }" /><span :style="{ color: 'rgb(var(--v-theme-secondary))' }">ردّ التوصية</span>
+                </BaseButton>
               </div>
-              <p class="text-caption text-medium-emphasis mt-1">التوصيات المتبادلة بين المقيّمين ترفع مصداقية الطرفين وتظهر في الملف العام بشارة «متبادلة».</p>
-            </VCol>
+              <p class="mt-1 text-xs text-muted">التوصيات المتبادلة بين المقيّمين ترفع مصداقية الطرفين وتظهر في الملف العام بشارة «متبادلة».</p>
+            </div>
 
             <!-- قصص النجاح (بموافقة أصحابها) -->
-            <VCol cols="12" md="6">
-              <div class="d-flex align-center justify-space-between mb-1">
-                <div class="text-body-2 font-weight-bold"><VIcon icon="mdi-trophy-variant-outline" size="16" color="success" /> قصص نجاح مرشحيّ</div>
-                <VBtn size="x-small" variant="tonal" color="success" prepend-icon="mdi-plus" @click="storyDialog = true">قصة جديدة</VBtn>
+            <div>
+              <div class="mb-1 flex items-center justify-between">
+                <div class="flex items-center gap-1 text-sm font-bold text-content"><BaseIcon name="mdi-trophy-variant-outline" :size="16" :style="{ color: 'rgb(var(--v-theme-success))' }" /> قصص نجاح مرشحيّ</div>
+                <BaseButton size="sm" variant="tonal-emerald" @click="storyDialog = true"><BaseIcon name="mdi-plus" :size="14" />قصة جديدة</BaseButton>
               </div>
-              <div v-for="s in brand.state.successStories" :key="s.id" class="d-flex align-center ga-2 py-1">
-                <VChip size="x-small" :color="STORY_STATUS_META[s.status].color" label>{{ STORY_STATUS_META[s.status].label }}</VChip>
-                <span class="text-caption flex-grow-1">{{ s.headline }}</span>
-                <VBtn icon="mdi-delete-outline" size="x-small" variant="text" color="error" @click="brand.removeSuccessStory(s.id)" />
+              <div v-for="s in brand.state.successStories" :key="s.id" class="flex items-center gap-2 py-1">
+                <BaseChip :color="mapColor(STORY_STATUS_META[s.status].color)">{{ STORY_STATUS_META[s.status].label }}</BaseChip>
+                <span class="flex-1 text-xs text-content">{{ s.headline }}</span>
+                <button class="icon-btn h-8 w-8" style="color: rgb(var(--v-theme-error))" aria-label="حذف" @click="brand.removeSuccessStory(s.id)"><BaseIcon name="mdi-delete-outline" :size="16" /></button>
               </div>
-              <p class="text-caption text-medium-emphasis mt-1">لا تُنشر أي قصة في ملفك العام قبل موافقة صاحبها الصريحة — الخصوصية أولًا.</p>
-            </VCol>
-          </VRow>
+              <p class="mt-1 text-xs text-muted">لا تُنشر أي قصة في ملفك العام قبل موافقة صاحبها الصريحة — الخصوصية أولًا.</p>
+            </div>
+          </div>
 
-          <VDivider class="my-3" />
+          <hr class="my-3 border-ui">
 
           <!-- شهاداتي القابلة للمشاركة -->
-          <div class="text-body-2 font-weight-bold mb-2"><VIcon icon="mdi-certificate-outline" size="16" color="primary" /> شهاداتي وإنجازاتي — شاركها على LinkedIn</div>
-          <div class="d-flex flex-wrap ga-2">
-            <VChip
+          <div class="mb-2 flex items-center gap-1 text-sm font-bold text-content"><BaseIcon name="mdi-certificate-outline" :size="16" :style="{ color: 'rgb(var(--v-theme-primary))' }" /> شهاداتي وإنجازاتي — شاركها على LinkedIn</div>
+          <div class="flex flex-wrap gap-2">
+            <button
               v-for="a in brand.achievements.filter(x => x.earned)"
               :key="a.id"
-              color="primary"
-              variant="tonal"
-              label
+              type="button"
+              class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-sm font-medium"
+              style="background: rgba(var(--v-theme-primary), 0.14); color: rgb(var(--v-theme-primary))"
               @click="brand.shareOnLinkedIn()"
             >
-              <VIcon :icon="a.icon" start size="16" />{{ a.label }}
-              <VIcon icon="mdi-linkedin" end size="16" color="info" />
-            </VChip>
+              <BaseIcon :name="a.icon" :size="16" />{{ a.label }}
+              <BaseIcon name="mdi-linkedin" :size="16" :style="{ color: 'rgb(var(--v-theme-info))' }" />
+            </button>
           </div>
-          <p class="text-caption text-medium-emphasis mt-2 mb-0">النقر على الشهادة يفتح مشاركة LinkedIn لملفك العام الموثّق — كل شهادة مشتقة من أداء حقيقي على المنصة.</p>
-        </VCard>
-      </VCol>
+          <p class="mb-0 mt-2 text-xs text-muted">النقر على الشهادة يفتح مشاركة LinkedIn لملفك العام الموثّق — كل شهادة مشتقة من أداء حقيقي على المنصة.</p>
+        </BaseCard>
+      </div>
 
       <!-- Candidate reviews of me (doc §3.3-ب) -->
-      <VCol cols="12">
-        <VCard class="pa-5">
-          <div class="d-flex align-center ga-2 mb-1">
-            <VIcon icon="mdi-star-check-outline" color="amber" />
-            <h2 class="text-subtitle-1 font-weight-bold">تقييمات المرشحين لي</h2>
+      <div class="lg:col-span-12">
+        <BaseCard>
+          <div class="mb-1 flex items-center gap-2">
+            <BaseIcon name="mdi-star-check-outline" :size="22" :style="{ color: colorVar('amber') }" />
+            <h2 class="text-base font-bold text-content">تقييمات المرشحين لي</h2>
           </div>
-          <p class="text-caption text-medium-emphasis mb-3">آخر التقييمات العلنية من مرشحيك — يمكنك الرد مرة واحدة على كل تقييم.</p>
+          <p class="mb-3 text-xs text-muted">آخر التقييمات العلنية من مرشحيك — يمكنك الرد مرة واحدة على كل تقييم.</p>
           <ReviewsPanel direction="toInterviewer" subject-id="1" can-reply :limit="3" />
-        </VCard>
-      </VCol>
-    </VRow>
+        </BaseCard>
+      </div>
+    </div>
 
     <!-- New promo dialog -->
-    <VDialog v-model="promoDialog" max-width="440">
-      <VCard class="pa-2">
-        <VCardTitle>عرض ترويجي جديد</VCardTitle>
-        <VCardText>
-          <VTextField v-model="newPromo.title" label="عنوان العرض" placeholder="خصم على الحزمة الشاملة" class="mb-3" />
-          <VBtnToggle v-model="newPromo.kind" mandatory color="accent" variant="outlined" divided class="mb-3 w-100">
-            <VBtn value="discount" class="flex-grow-1" prepend-icon="mdi-percent-outline">خصم %</VBtn>
-            <VBtn value="free_intro" class="flex-grow-1" prepend-icon="mdi-gift-outline">جلسة مجانية</VBtn>
-          </VBtnToggle>
-          <VSlider v-if="newPromo.kind === 'discount'" v-model="newPromo.pct" :min="5" :max="50" :step="5" color="accent" thumb-label="always" label="نسبة الخصم" />
-        </VCardText>
-        <VCardActions>
-          <VSpacer />
-          <VBtn variant="text" @click="promoDialog = false">إلغاء</VBtn>
-          <VBtn color="accent" variant="flat" :disabled="!newPromo.title.trim()" @click="savePromo">تفعيل العرض</VBtn>
-        </VCardActions>
-      </VCard>
-    </VDialog>
+    <BaseModal v-model="promoDialog" title="عرض ترويجي جديد" :max-width="440">
+      <BaseInput v-model="newPromo.title" label="عنوان العرض" placeholder="خصم على الحزمة الشاملة" class="mb-3" />
+      <div class="seg mb-3 w-full">
+        <button type="button" class="seg-btn flex flex-1 items-center justify-center gap-1" :class="{ 'is-active': newPromo.kind === 'discount' }" @click="newPromo.kind = 'discount'"><BaseIcon name="mdi-percent-outline" :size="16" />خصم %</button>
+        <button type="button" class="seg-btn flex flex-1 items-center justify-center gap-1" :class="{ 'is-active': newPromo.kind === 'free_intro' }" @click="newPromo.kind = 'free_intro'"><BaseIcon name="mdi-gift-outline" :size="16" />جلسة مجانية</button>
+      </div>
+      <div v-if="newPromo.kind === 'discount'">
+        <div class="mb-1 flex justify-between text-sm text-content"><span>نسبة الخصم</span><span class="font-bold">{{ newPromo.pct }}%</span></div>
+        <BaseSlider v-model="newPromo.pct" :min="5" :max="50" :step="5" color="accent" />
+      </div>
+      <template #actions>
+        <BaseButton variant="ghost" @click="promoDialog = false">إلغاء</BaseButton>
+        <BaseButton variant="accent" :disabled="!newPromo.title.trim()" @click="savePromo">تفعيل العرض</BaseButton>
+      </template>
+    </BaseModal>
 
     <!-- Peer endorsement request dialog -->
-    <VDialog v-model="peerDialog" max-width="440">
-      <VCard class="pa-2">
-        <VCardTitle>طلب توصية من زميل مقيّم</VCardTitle>
-        <VCardText>
-          <VSelect
-            v-model="selectedPeerId"
-            :items="colleagues.map(c => ({ title: `${c.name} — ${c.title}`, value: c.id }))"
-            label="اختر الزميل"
-            density="comfortable"
-          />
-          <p class="text-caption text-medium-emphasis mb-0">تصلك التوصية فور ردّ الزميل وتظهر في ملفك العام — ويمكنك ردّها لتصبح «متبادلة».</p>
-        </VCardText>
-        <VCardActions>
-          <VSpacer />
-          <VBtn variant="text" @click="peerDialog = false">إلغاء</VBtn>
-          <VBtn color="secondary" variant="flat" :disabled="!selectedPeerId" prepend-icon="mdi-send" @click="requestEndorsement">إرسال الطلب</VBtn>
-        </VCardActions>
-      </VCard>
-    </VDialog>
+    <BaseModal v-model="peerDialog" title="طلب توصية من زميل مقيّم" :max-width="440">
+      <label class="mb-1 block text-sm font-medium text-muted">اختر الزميل</label>
+      <BaseSelect v-model="selectedPeerId" :items="colleagues.map(c => ({ title: `${c.name} — ${c.title}`, value: c.id }))" placeholder="—" />
+      <p class="mb-0 mt-2 text-xs text-muted">تصلك التوصية فور ردّ الزميل وتظهر في ملفك العام — ويمكنك ردّها لتصبح «متبادلة».</p>
+      <template #actions>
+        <BaseButton variant="ghost" @click="peerDialog = false">إلغاء</BaseButton>
+        <BaseButton variant="tonal-emerald" :disabled="!selectedPeerId" @click="requestEndorsement"><BaseIcon name="mdi-send" :size="16" />إرسال الطلب</BaseButton>
+      </template>
+    </BaseModal>
 
     <!-- New success story dialog -->
-    <VDialog v-model="storyDialog" max-width="560">
-      <VCard class="pa-2">
-        <VCardTitle>قصة نجاح جديدة</VCardTitle>
-        <VCardText>
-          <VTextField v-model="newStory.candidateName" label="اسم المرشح صاحب القصة" class="mb-3" />
-          <VTextField v-model="newStory.headline" label="عنوان القصة" placeholder="من رفض متكرر إلى عرض عمل" class="mb-3" />
-          <VTextarea v-model="newStory.story" label="القصة" rows="4" auto-grow counter="500" />
-          <VAlert color="warning" variant="tonal" density="compact" border="start" class="text-caption">
-            تُرسل القصة أولًا لصاحبها للموافقة — ولا تظهر في ملفك العام إلا بعد موافقته الصريحة.
-          </VAlert>
-        </VCardText>
-        <VCardActions>
-          <VSpacer />
-          <VBtn variant="text" @click="storyDialog = false">إلغاء</VBtn>
-          <VBtn color="success" variant="flat" :disabled="!storyValid" prepend-icon="mdi-email-fast-outline" @click="saveStory">طلب موافقة صاحبها</VBtn>
-        </VCardActions>
-      </VCard>
-    </VDialog>
+    <BaseModal v-model="storyDialog" title="قصة نجاح جديدة" :max-width="560">
+      <BaseInput v-model="newStory.candidateName" label="اسم المرشح صاحب القصة" class="mb-3" />
+      <BaseInput v-model="newStory.headline" label="عنوان القصة" placeholder="من رفض متكرر إلى عرض عمل" class="mb-3" />
+      <BaseTextarea v-model="newStory.story" label="القصة" :rows="4" />
+      <div class="mt-2 rounded-ui border-s-4 p-2 text-xs text-content" style="background: rgba(var(--v-theme-warning), 0.14); border-color: rgb(var(--v-theme-warning))">
+        تُرسل القصة أولًا لصاحبها للموافقة — ولا تظهر في ملفك العام إلا بعد موافقته الصريحة.
+      </div>
+      <template #actions>
+        <BaseButton variant="ghost" @click="storyDialog = false">إلغاء</BaseButton>
+        <BaseButton variant="tonal-emerald" :disabled="!storyValid" @click="saveStory"><BaseIcon name="mdi-email-fast-outline" :size="16" />طلب موافقة صاحبها</BaseButton>
+      </template>
+    </BaseModal>
 
     <!-- New article dialog -->
-    <VDialog v-model="articleDialog" max-width="560">
-      <VCard class="pa-2">
-        <VCardTitle>مقال مهني جديد</VCardTitle>
-        <VCardText>
-          <VTextField v-model="newArticle.title" label="عنوان المقال" class="mb-3" />
-          <VTextarea v-model="newArticle.body" label="المحتوى" rows="5" auto-grow counter="600" />
-          <p class="text-caption text-medium-emphasis">يُراجَع المقال من المنصة قبل النشر في ملفك العام.</p>
-        </VCardText>
-        <VCardActions>
-          <VSpacer />
-          <VBtn variant="text" @click="articleDialog = false">إلغاء</VBtn>
-          <VBtn color="secondary" variant="flat" :disabled="!newArticle.title.trim() || !newArticle.body.trim()" prepend-icon="mdi-send" @click="saveArticle">إرسال للمراجعة</VBtn>
-        </VCardActions>
-      </VCard>
-    </VDialog>
+    <BaseModal v-model="articleDialog" title="مقال مهني جديد" :max-width="560">
+      <BaseInput v-model="newArticle.title" label="عنوان المقال" class="mb-3" />
+      <BaseTextarea v-model="newArticle.body" label="المحتوى" :rows="5" />
+      <p class="mt-2 text-xs text-muted">يُراجَع المقال من المنصة قبل النشر في ملفك العام.</p>
+      <template #actions>
+        <BaseButton variant="ghost" @click="articleDialog = false">إلغاء</BaseButton>
+        <BaseButton variant="tonal-emerald" :disabled="!newArticle.title.trim() || !newArticle.body.trim()" @click="saveArticle"><BaseIcon name="mdi-send" :size="16" />إرسال للمراجعة</BaseButton>
+      </template>
+    </BaseModal>
 
     <!-- Pricing dialog -->
-    <VDialog v-model="priceDialog" max-width="460">
-      <VCard class="pa-2">
-        <VCardTitle>إدارة أسعار المقابلات</VCardTitle>
-        <VCardText>
-          <div v-for="k in kinds" :key="k" class="d-flex align-center ga-3 mb-2">
-            <span class="text-body-2 flex-grow-1">{{ KIND_META[k].label }}</span>
-            <VTextField
-              v-model.number="draftPricing[k]"
-              type="number"
-              density="compact"
-              hide-details
-              suffix="﷼"
-              style="max-width: 130px"
-            />
-          </div>
-        </VCardText>
-        <VCardActions class="justify-end">
-          <VBtn variant="text" @click="priceDialog = false">إلغاء</VBtn>
-          <VBtn color="accent" prepend-icon="mdi-content-save" @click="savePricing">حفظ الأسعار</VBtn>
-        </VCardActions>
-      </VCard>
-    </VDialog>
+    <BaseModal v-model="priceDialog" title="إدارة أسعار المقابلات" :max-width="460">
+      <div v-for="k in kinds" :key="k" class="mb-2 flex items-center gap-3">
+        <span class="flex-1 text-sm text-content">{{ KIND_META[k].label }}</span>
+        <BaseInput v-model.number="draftPricing[k]" type="number" class="max-w-[130px]">
+          <template #suffix><span class="text-xs text-muted">﷼</span></template>
+        </BaseInput>
+      </div>
+      <template #actions>
+        <BaseButton variant="ghost" @click="priceDialog = false">إلغاء</BaseButton>
+        <BaseButton variant="accent" @click="savePricing"><BaseIcon name="mdi-content-save" :size="16" />حفظ الأسعار</BaseButton>
+      </template>
+    </BaseModal>
   </div>
 </template>
 
