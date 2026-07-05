@@ -2,6 +2,8 @@
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/AuthStore'
+import { usePersonaStore } from '@/stores/PersonaStore'
+import { SEEKER_PERSONA_META } from '@/services/personas'
 import { PROOF_META, skillConfidence, skillLevelLabel, useProfileStore } from '@/stores/ProfileStore'
 import type { ProofType, Skill } from '@/stores/ProfileStore'
 import { useResumesStore } from '@/stores/ResumesStore'
@@ -240,6 +242,8 @@ const privacyOptions = [
 
 const initials = computed(() => user.value?.name?.charAt(0).toUpperCase() ?? '?')
 const roleLabel = computed(() => (authStore.role ? t(`roles.${authStore.role}`) : ''))
+const personaStore = usePersonaStore()
+const personaMeta = computed(() => SEEKER_PERSONA_META[personaStore.state.seekerPersona])
 const profileCompletion = computed(() => {
   let score = 40
   if (profile.skills.length >= 3)
@@ -295,6 +299,7 @@ const heroStats = computed(() => [
           <div class="text-body-2 text-medium-emphasis mt-1">{{ profile.headline }}</div>
           <div class="d-flex align-center ga-2 mt-2 flex-wrap">
             <VChip size="small" color="primary" variant="tonal" prepend-icon="mdi-shield-account-outline" label>{{ roleLabel }}</VChip>
+            <VChip size="small" color="secondary" variant="tonal" :prepend-icon="personaMeta.icon" label>{{ personaMeta.label }}</VChip>
             <VChip size="small" :color="trust.level.color" variant="tonal" prepend-icon="mdi-star-check-outline" label>
               ثقة {{ trust.score }}% · {{ trust.level.label }}
             </VChip>
