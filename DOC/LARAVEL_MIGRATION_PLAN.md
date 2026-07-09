@@ -111,10 +111,10 @@
 لكل مورد: Entities → Migrations (+index) → Requests (Api/Admin) → Resources → Services → Controller رفيع → Feature Test.
 - [x] **Profile** — كيان بأعمدة JSON (skills/experiences/certificates/prefs/proof_requests، user_id فريد) + `GET/PATCH /profile` (وثيقة PrivateProfile) + skills add(201)/remove(204) + skill proofs + proof-requests get/resolve. **مُتحقَّق حيًّا (curl) + 6 Feature tests خضراء.** أُرسيت أداة الاختبار: MySQL `testing` (Sail) + RefreshDatabase + Sanctum::actingAs + `AssertsApiJson`. **قرار:** Profile وثيقة مملوكة لمستخدم (JSON) لا تطبيع — يطابق NestJS + الواجهة.
 - [x] **PublicProfile** — كيان (doc/stats/testimonials/comments/inbox، slug مشتقّ) + `GET/PATCH /me` (auth) + `GET /{slug}` عام + view/follow/rate/comment/contact/schedule/testimonial/proof-request (بلا مصادقة). `present()` = doc مسطّح + slug/stats/تفاعلات. **التفاعل العابر:** طلب إثبات الزائر يصل ملف المالك عبر `ProfileService::pushProofRequest` (تبعيّة PublicProfile→Profile). **مُتحقَّق حيًّا (curl) + 7 Feature tests خضراء.** (الحزمة كلها: 15 اختبارًا)
-- [ ] **Account** — `/account/plan` + `/wallet` (رصيد ترحيبيّ + خصم الترقية → 402)
-- [ ] **Survey** — استبيانات + ردود + حدّ الباقة (free/pro/elite → 403) + صرف نقاط
-- [ ] **Marketplace** — فرص + طلبات + تقديم + طلباتي (فلترة `q/category/type`)
-- [ ] **Interviewer + Interview** — حجوزات + PATCH قبول/رفض/إكمال بتقرير
+- [x] **Account** — كيان `Wallet` (رصيد ترحيبيّ 100 + سجلّ عمليّات) + `GET /wallet` + `GET/PUT /account/plan` (tier على users؛ أسعار free=0/pro=50/elite=150؛ الترقية تخصم الفرق من المحفظة، **402** عند نقص الرصيد، التخفيض مجّانيّ). **6 Feature tests خضراء** (الحزمة: 21 اختبارًا).
+- [x] **Survey** — كيان (6 حالات + points_pool + targeting/questions/responses، user_id مفهرس) + `GET/POST /surveys` (حدّ الباقة free=1/pro=10/elite=∞ → **403**) + `POST /surveys/{id}/responses` (يصرف نقطة من المجمّع). **5 Feature tests خضراء.**
+- [x] **Marketplace** — 3 كيانات (Opportunity/MarketRequest/Application، فهارس category/type/state + unique(user,opp)) + `GET/POST /opportunities` (فلترة q/category) + `apply` (مثاليّ→ firstOrCreate) + `GET /requests` (فلترة type) + `/requests/mine`. بذور كسولة (3+3). **7 Feature tests خضراء.**
+- [x] **Interviewer + Interview** — Interviewer (سوق مرتّب بالتقييم + Booking: حجز pending + `PATCH /bookings/{id}` قبول/رفض/إكمال بتقرير، تفويض owner/interviewer وإلا **403**) + Interview (`GET/POST /interviews`: مقابلاتي + بدء بمسار). بذور 3 مقيّمين. **7 Feature tests خضراء.**
 - [ ] **Notification** — إشعار ترحيبيّ + تعليم الكل مقروءًا + `push()` داخليّ
 - [ ] **Ai** — `/ai/{contract}` (بيانات مشتركة)
 - [ ] الروابط بين الموديولات → **Observers** (ع1)، لا نداءات مضمّنة بعد `save()`
