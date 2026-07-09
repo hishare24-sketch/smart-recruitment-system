@@ -1,0 +1,27 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Traits\ApiResponder;
+use Illuminate\Foundation\Bus\DispatchesJobs;
+use Illuminate\Routing\Controller as BaseController;
+
+class Controller extends BaseController
+{
+    use ApiResponder, DispatchesJobs;
+
+    /** فحص صلاحية أدمن المنصّة (guard admin) — Spatie. */
+    public function checkAuthorize(string $permission): bool
+    {
+        $user = current_user();
+
+        return $user !== null && $user->hasPermissionTo($permission, 'admin');
+    }
+
+    /** يُجهض 403 عند غياب الصلاحية (نمط hi-share). */
+    public function authorize($ability, $arguments = [])
+    {
+        return $this->checkAuthorize($ability)
+            ?: abort(403, __('You are not authorized to perform this action'));
+    }
+}
