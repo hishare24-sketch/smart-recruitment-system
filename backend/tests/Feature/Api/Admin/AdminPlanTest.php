@@ -65,4 +65,50 @@ class AdminPlanTest extends TestCase
         Sanctum::actingAs(User::create(['name' => 'U', 'email' => 'pl'.uniqid().'@rec.test', 'password' => 'secret123']));
         $this->getJson('/api/admin/plans')->assertStatus(403);
     }
+
+    public function test_admin_can_create_plan(): void
+    {
+        $this->admin();
+
+        $this->postJson('/api/admin/plans', [
+            'key' => 'team',
+            'name' => 'الفريق',
+            'price' => 300,
+            'survey_limit' => 50,
+            'features' => ['ميزة'],
+            'active' => true,
+        ])
+            ->assertStatus(201)
+            ->assertJsonPath('data.key', 'team')
+            ->assertJsonPath('data.price', 300);
+
+        $this->assertDatabaseHas('plans', ['key' => 'team', 'price' => 300]);
+
+        // key مكرّر → 422
+        $this->postJson('/api/admin/plans', ['key' => 'team', 'name' => 'x', 'price' => 1])->assertStatus(422);
+    }
+
+    public function test_admin_can_delete_empty_plan_but_not_one_with_subscribers(): void
+    {
+        $this->admin();
+        $empty = \Modules\Account\Entities\Plan::create(['key' => 'ghost', 'name' => 'شبح', 'price' => 10, 'sort' => 9]);
+
+        // free له مشترك (المستخدم الأدمن نفسه tier=free) → 405
+        $free = \Modules\Account\Entities\Plan::where('key', 'free')->first();
+        $this->deleteJson("/api/admin/plans/{$free->id}")->assertStatus(405);
+
+        // ghost بلا مشتركين → يُحذف
+        $this->deleteJson("/api/admin/plans/{$empty->id}")->assertOk();
+        $this->assertDatabaseMissing('plans', ['id' => $empty->id]);
+    }
+
+    public function test_plans_stats_shape(): void
+    {
+        $this->admin();
+
+        $this->getJson('/api/admin/plans/stats')
+            ->assertOk()
+            ->assertJsonStructure(['data' => ['totalPlans', 'activePlans', 'subscribers', 'mrr', 'distribution']])
+            ->assertJsonPath('data.totalPlans', 3);
+    }
 }

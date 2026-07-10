@@ -36,7 +36,13 @@ class PermissionEnum
             'view_broadcast', 'create_broadcast',
 
             // الباقات والمحفظة
-            'view_plans', 'update_plans', 'view_wallets', 'adjust_wallets',
+            'view_plans', 'create_plans', 'update_plans', 'delete_plans', 'view_wallets', 'adjust_wallets',
+
+            // خزينة المنصّة (حسابات بنكيّة/دفتر إيرادات)
+            'view_platform_accounts', 'manage_platform_accounts',
+
+            // نماذج الاستبيانات
+            'view_survey_templates', 'manage_survey_templates',
 
             // التحليلات
             'view_analytics',

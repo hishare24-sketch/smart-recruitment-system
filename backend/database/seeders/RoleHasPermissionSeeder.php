@@ -22,8 +22,10 @@ class RoleHasPermissionSeeder extends Seeder
             'view_requests', 'update_requests', 'delete_requests',
             'view_interviewers', 'update_interviewers', 'approve_interviewers', 'reject_interviewers', 'view_interviews',
             'view_surveys', 'update_surveys', 'delete_surveys', 'close_surveys',
+            'view_survey_templates', 'manage_survey_templates',
             'view_profiles', 'view_broadcast', 'create_broadcast',
-            'view_plans', 'update_plans', 'view_wallets', 'adjust_wallets',
+            'view_plans', 'create_plans', 'update_plans', 'delete_plans', 'view_wallets', 'adjust_wallets',
+            'view_platform_accounts', 'manage_platform_accounts',
             'view_analytics',
         ]);
 

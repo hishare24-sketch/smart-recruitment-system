@@ -9,5 +9,8 @@ use Modules\Account\Http\Controllers\Admin\AdminWalletController;
 Route::get('wallets', [AdminWalletController::class, 'index']);
 Route::post('wallets/{wallet}/adjust', [AdminWalletController::class, 'adjust']);
 
+Route::get('plans/stats', [AdminPlanController::class, 'stats']);
 Route::get('plans', [AdminPlanController::class, 'index']);
+Route::post('plans', [AdminPlanController::class, 'store']);
 Route::put('plans/{plan}', [AdminPlanController::class, 'update']);
+Route::delete('plans/{plan}', [AdminPlanController::class, 'destroy']);

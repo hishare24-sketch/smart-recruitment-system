@@ -572,7 +572,20 @@
       "fieldActive": "Plan active",
       "unlimitedSurveys": "Unlimited surveys",
       "featuresHint": "One feature per line",
-      "save": "Save"
+      "save": "Save",
+      "statTotal": "Plans",
+      "statActive": "Active",
+      "statSubscribers": "Subscribers",
+      "statMrr": "Est. monthly revenue",
+      "subscribersByPlan": "Subscribers by plan",
+      "noSubscribers": "No subscribers yet",
+      "newPlan": "New plan",
+      "create": "Create",
+      "created": "Plan created",
+      "delete": "Delete",
+      "fieldKey": "Key (unique, latin)",
+      "confirmDeleteTitle": "Delete plan?",
+      "confirmDeleteMsg": "\"{name}\" will be permanently removed (blocked if it has subscribers)."
     }
   }
 }

@@ -131,6 +131,7 @@ export const API_PATHS = {
     interviewerApprove: (id: number) => `/admin/interviewers/${id}/approve`,
     interviewerReject: (id: number) => `/admin/interviewers/${id}/reject`,
     plans: '/admin/plans',
+    plansStats: '/admin/plans/stats',
     plan: (id: number) => `/admin/plans/${id}`,
   },
   /** وسيط Claude — المفتاح يبقى في الخادم، والعقد يطابق أسماء src/services/ai/types.ts */
@@ -244,6 +245,8 @@ export interface AdminWallet { id: number, userId: number, userName: string | nu
 export interface AdminInterviewer { id: number, name: string, specialty: string, status: string, rating: number, price_from: number, account: string | null, createdAt?: string }
 export interface AdminPlan { id: number, key: string, name: string, price: number, survey_limit: number | null, features: string[], active: boolean, sort: number, subscribers: number }
 export interface AdminPlanPatch { name?: string, price?: number, survey_limit?: number | null, features?: string[], active?: boolean }
+export interface AdminPlanCreate { key: string, name: string, price: number, survey_limit?: number | null, features?: string[], active?: boolean }
+export interface AdminPlansStats { totalPlans: number, activePlans: number, subscribers: number, mrr: number, distribution: { label: string, value: number }[] }
 
 export const api = {
   auth: {
@@ -344,7 +347,10 @@ export const api = {
     rejectInterviewer: (id: number) => post<AdminInterviewer>(API_PATHS.admin.interviewerReject(id)),
     deleteInterviewer: (id: number) => del(API_PATHS.admin.interviewer(id)),
     plans: (params?: AdminMarketQuery) => getPage<AdminPlan>(API_PATHS.admin.plans, params as Record<string, unknown>),
+    plansStats: () => get<AdminPlansStats>(API_PATHS.admin.plansStats),
+    createPlan: (body: AdminPlanCreate) => post<AdminPlan>(API_PATHS.admin.plans, body),
     updatePlan: (id: number, body: AdminPlanPatch) => put<AdminPlan>(API_PATHS.admin.plan(id), body),
+    deletePlan: (id: number) => del(API_PATHS.admin.plan(id)),
   },
   /** تنفيذ عقد AI عبر وسيط الخادم — بديل claudeAi المباشر (يحمي المفتاح) */
   ai: <T>(contract: string, payload: Record<string, unknown>) => post<T>(API_PATHS.ai(contract), payload),

@@ -572,7 +572,20 @@
       "fieldActive": "الباقة مفعّلة",
       "unlimitedSurveys": "استبيانات بلا حدّ",
       "featuresHint": "ميزة واحدة في كل سطر",
-      "save": "حفظ"
+      "save": "حفظ",
+      "statTotal": "الباقات",
+      "statActive": "المفعّلة",
+      "statSubscribers": "المشتركون",
+      "statMrr": "الإيراد الشهريّ التقديريّ",
+      "subscribersByPlan": "المشتركون حسب الباقة",
+      "noSubscribers": "لا مشتركين بعد",
+      "newPlan": "باقة جديدة",
+      "create": "إنشاء",
+      "created": "أُنشئت الباقة",
+      "delete": "حذف",
+      "fieldKey": "المفتاح (إنجليزيّ فريد)",
+      "confirmDeleteTitle": "حذف الباقة؟",
+      "confirmDeleteMsg": "سيُزال «{name}» نهائيًّا (يُمنع إن كان لها مشتركون)."
     }
   }
 }

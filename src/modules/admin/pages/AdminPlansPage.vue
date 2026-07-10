@@ -1,22 +1,33 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/shared/PageHeader.vue'
+import StatCard from '@/components/shared/StatCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseChip from '@/components/ui/BaseChip.vue'
 import BaseIcon from '@/components/ui/BaseIcon.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import BaseSnackbar from '@/components/ui/BaseSnackbar.vue'
+import BaseSwitch from '@/components/ui/BaseSwitch.vue'
 import BaseTooltip from '@/components/ui/BaseTooltip.vue'
+import DonutChart from '@/components/charts/DonutChart.vue'
 import ResourceScaffold from '@/modules/admin/components/ResourceScaffold.vue'
 import type { TableColumn } from '@/components/ui/BaseTable.vue'
 import { useAdminResource } from '@/modules/admin/composables/useAdminResource'
-import { type AdminPlan, api } from '@/services/api'
+import { confirm } from '@/components/ui/confirm'
+import { type AdminPlan, type AdminPlansStats, api } from '@/services/api'
 
 const { t } = useI18n()
 const r = useAdminResource<AdminPlan>({ fetcher: params => api.admin.plans(params), initialSort: 'sort' })
 const { items, meta, loading, sortKey, search } = r
+
+// ——— الإحصاءات ———
+const stats = ref<AdminPlansStats | null>(null)
+async function loadStats() { try { stats.value = await api.admin.plansStats() } catch { /* تجاهل */ } }
+onMounted(loadStats)
+function refreshAll() { r.refresh(); loadStats() }
 
 const columns: TableColumn[] = [
   { key: 'name', label: t('admin.plans.colName'), sortable: true },
@@ -32,15 +43,24 @@ const snack = ref({ show: false, text: '', color: 'success' })
 function toast(text: string, color = 'success') { snack.value = { show: true, text, color } }
 function fail(e: unknown) { toast((e as { message?: string })?.message ?? t('admin.toast.failed'), 'error') }
 
-// ——— تحرير الباقة ———
-const editOpen = ref(false)
+// ——— نموذج إنشاء/تحرير ———
+const modalOpen = ref(false)
+const mode = ref<'create' | 'edit'>('edit')
 const target = ref<AdminPlan | null>(null)
-const form = ref({ name: '', price: 0 as number, surveyLimit: null as number | null, unlimited: false, featuresText: '', active: true })
+const form = ref({ key: '', name: '', price: 0 as number, surveyLimit: null as number | null, unlimited: false, featuresText: '', active: true })
 const saving = ref(false)
 
+function openCreate() {
+  mode.value = 'create'
+  target.value = null
+  form.value = { key: '', name: '', price: 0, surveyLimit: null, unlimited: false, featuresText: '', active: true }
+  modalOpen.value = true
+}
 function openEdit(p: AdminPlan) {
+  mode.value = 'edit'
   target.value = p
   form.value = {
+    key: p.key,
     name: p.name,
     price: p.price,
     surveyLimit: p.survey_limit,
@@ -48,32 +68,67 @@ function openEdit(p: AdminPlan) {
     featuresText: p.features.join('\n'),
     active: p.active,
   }
-  editOpen.value = true
+  modalOpen.value = true
 }
 async function save() {
-  if (!target.value)
-    return
   saving.value = true
+  const payload = {
+    name: form.value.name.trim(),
+    price: Number(form.value.price) || 0,
+    survey_limit: form.value.unlimited ? null : (Number(form.value.surveyLimit) || 0),
+    features: form.value.featuresText.split('\n').map(s => s.trim()).filter(Boolean),
+    active: form.value.active,
+  }
   try {
-    await api.admin.updatePlan(target.value.id, {
-      name: form.value.name.trim(),
-      price: Number(form.value.price) || 0,
-      survey_limit: form.value.unlimited ? null : (Number(form.value.surveyLimit) || 0),
-      features: form.value.featuresText.split('\n').map(s => s.trim()).filter(Boolean),
-      active: form.value.active,
-    })
-    toast(t('admin.toast.updated'))
-    editOpen.value = false
-    r.refresh()
+    if (mode.value === 'create')
+      await api.admin.createPlan({ key: form.value.key.trim(), ...payload })
+    else if (target.value)
+      await api.admin.updatePlan(target.value.id, payload)
+    toast(mode.value === 'create' ? t('admin.plans.created') : t('admin.toast.updated'))
+    modalOpen.value = false
+    refreshAll()
   }
   catch (e) { fail(e) }
   finally { saving.value = false }
 }
+async function remove(p: AdminPlan) {
+  const ok = await confirm({
+    title: t('admin.plans.confirmDeleteTitle'),
+    message: t('admin.plans.confirmDeleteMsg', { name: p.name }),
+    confirmText: t('admin.plans.delete'),
+    tone: 'danger',
+    icon: 'mdi-delete-outline',
+  })
+  if (!ok)
+    return
+  try { await api.admin.deletePlan(p.id); toast(t('admin.toast.updated')); refreshAll() }
+  catch (e) { fail(e) }
+}
+
+const canSave = () => form.value.name.trim() && (mode.value === 'edit' || /^[\w-]+$/.test(form.value.key.trim()))
 </script>
 
 <template>
   <div>
     <PageHeader :title="t('admin.plans.title')" :subtitle="t('admin.plans.subtitle')" icon="mdi-tag-multiple-outline" />
+
+    <!-- شريط الإحصاءات -->
+    <div class="mb-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div class="grid grid-cols-2 gap-3 lg:col-span-2">
+        <StatCard icon="mdi-tag-multiple-outline" :value="stats?.totalPlans ?? 0" :title="t('admin.plans.statTotal')" color="primary" />
+        <StatCard icon="mdi-check-decagram-outline" :value="stats?.activePlans ?? 0" :title="t('admin.plans.statActive')" color="success" />
+        <StatCard icon="mdi-account-group-outline" :value="stats?.subscribers ?? 0" :title="t('admin.plans.statSubscribers')" color="info" />
+        <StatCard icon="mdi-cash-multiple" :value="`${(stats?.mrr ?? 0).toLocaleString()} ر.س`" :title="t('admin.plans.statMrr')" color="accent" />
+      </div>
+      <BaseCard>
+        <div class="mb-3 flex items-center gap-2">
+          <BaseIcon name="mdi-chart-donut" :size="20" class="text-brand" />
+          <h2 class="text-base font-bold text-content">{{ t('admin.plans.subscribersByPlan') }}</h2>
+        </div>
+        <DonutChart v-if="stats?.distribution?.length" :data="stats.distribution" :size="170" :center-label="t('admin.plans.statSubscribers')" />
+        <p v-else class="py-8 text-center text-xs text-muted">{{ t('admin.plans.noSubscribers') }}</p>
+      </BaseCard>
+    </div>
 
     <ResourceScaffold
       :columns="columns"
@@ -89,6 +144,12 @@ async function save() {
       @update:page="r.setPage"
       @update:per-page="r.setPerPage"
     >
+      <template #toolbar>
+        <BaseButton variant="brand" size="sm" @click="openCreate">
+          <BaseIcon name="mdi-plus" :size="18" />{{ t('admin.plans.newPlan') }}
+        </BaseButton>
+      </template>
+
       <template #cell-price="{ row }">
         <span class="font-bold text-content">{{ row.price.toLocaleString() }} <span class="text-xs text-muted">ر.س</span></span>
       </template>
@@ -106,26 +167,33 @@ async function save() {
       </template>
 
       <template #actions="{ row }">
-        <BaseTooltip :text="t('admin.plans.edit')">
-          <button class="row-act text-brand" :aria-label="t('admin.plans.edit')" @click="openEdit(row)">
-            <BaseIcon name="mdi-pencil-outline" :size="18" />
-          </button>
-        </BaseTooltip>
+        <div class="flex items-center justify-end gap-1">
+          <BaseTooltip :text="t('admin.plans.edit')">
+            <button class="row-act text-brand" :aria-label="t('admin.plans.edit')" @click="openEdit(row)">
+              <BaseIcon name="mdi-pencil-outline" :size="18" />
+            </button>
+          </BaseTooltip>
+          <BaseTooltip :text="t('admin.plans.delete')">
+            <button class="row-act" style="color: rgb(var(--v-theme-error))" :aria-label="t('admin.plans.delete')" @click="remove(row)">
+              <BaseIcon name="mdi-delete-outline" :size="18" />
+            </button>
+          </BaseTooltip>
+        </div>
       </template>
     </ResourceScaffold>
 
-    <!-- تحرير الباقة -->
-    <BaseModal v-model="editOpen" :title="target ? t('admin.plans.editTitle', { name: target.name }) : ''" :max-width="520">
-      <div v-if="target" class="space-y-3">
-        <BaseInput v-model="form.name" :label="t('admin.plans.fieldName')" />
+    <!-- إنشاء/تحرير باقة -->
+    <BaseModal v-model="modalOpen" :title="mode === 'create' ? t('admin.plans.newPlan') : (target ? t('admin.plans.editTitle', { name: target.name }) : '')" :max-width="520">
+      <div class="space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <BaseInput v-model="form.name" :label="t('admin.plans.fieldName')" />
+          <BaseInput v-model="form.key" :label="t('admin.plans.fieldKey')" :disabled="mode === 'edit'" placeholder="team" />
+        </div>
         <div class="grid grid-cols-2 gap-3">
           <BaseInput v-model.number="form.price" :label="t('admin.plans.fieldPrice')" type="number" />
           <BaseInput v-model.number="form.surveyLimit" :label="t('admin.plans.fieldSurveyLimit')" type="number" :disabled="form.unlimited" />
         </div>
-        <label class="flex items-center gap-2 text-sm text-content">
-          <input v-model="form.unlimited" type="checkbox" class="accent-current">
-          {{ t('admin.plans.unlimitedSurveys') }}
-        </label>
+        <BaseSwitch v-model="form.unlimited" :label="t('admin.plans.unlimitedSurveys')" />
 
         <div>
           <label class="mb-1 block text-sm text-muted">{{ t('admin.plans.fieldFeatures') }}</label>
@@ -137,16 +205,13 @@ async function save() {
           />
         </div>
 
-        <label class="flex items-center gap-2 text-sm text-content">
-          <input v-model="form.active" type="checkbox" class="accent-current">
-          {{ t('admin.plans.fieldActive') }}
-        </label>
+        <BaseSwitch v-model="form.active" :label="t('admin.plans.fieldActive')" />
       </div>
 
       <template #actions>
-        <BaseButton variant="ghost" @click="editOpen = false">{{ t('admin.users.cancel') }}</BaseButton>
-        <BaseButton variant="brand" :disabled="saving || !form.name.trim()" @click="save">
-          <BaseIcon name="mdi-check" :size="18" />{{ t('admin.plans.save') }}
+        <BaseButton variant="ghost" @click="modalOpen = false">{{ t('admin.users.cancel') }}</BaseButton>
+        <BaseButton variant="brand" :disabled="saving || !canSave()" @click="save">
+          <BaseIcon name="mdi-check" :size="18" />{{ mode === 'create' ? t('admin.plans.create') : t('admin.plans.save') }}
         </BaseButton>
       </template>
     </BaseModal>
