@@ -16,8 +16,20 @@
     "postDate": "Post date",
     "cancel": "Cancel",
     "searchBtn": "Search",
-    "scopes": { "all": "All", "requests": "Requests", "opportunities": "Opportunities", "interviewers": "Interviewers", "users": "Users", "companies": "Companies" },
-    "dates": { "day": "Last day", "week": "Last week", "month": "Last month", "year": "Last year" }
+    "scopes": {
+      "all": "All",
+      "requests": "Requests",
+      "opportunities": "Opportunities",
+      "interviewers": "Interviewers",
+      "users": "Users",
+      "companies": "Companies"
+    },
+    "dates": {
+      "day": "Last day",
+      "week": "Last week",
+      "month": "Last month",
+      "year": "Last year"
+    }
   },
   "app": {
     "name": "Smart Recruitment System",
@@ -351,7 +363,9 @@
       "opportunities": "Opportunities",
       "requests": "Requests",
       "surveys": "Surveys",
-      "wallets": "Wallets"
+      "wallets": "Wallets",
+      "groupQuality": "Quality & Accreditation",
+      "interviewers": "Interviewers"
     },
     "groups": {
       "users": "Users & Roles",
@@ -508,7 +522,31 @@
       "activated": "Account activated",
       "roleUpdated": "Role updated",
       "closed": "Survey closed",
-      "adjusted": "Balance adjusted"
+      "adjusted": "Balance adjusted",
+      "approved": "Interviewer approved",
+      "rejected": "Interviewer rejected"
+    },
+    "interviewers": {
+      "title": "Interviewers",
+      "subtitle": "Accreditation governance — approve or reject interviewer applications",
+      "searchPlaceholder": "Search by name or specialty...",
+      "colName": "Name",
+      "colSpecialty": "Specialty",
+      "colAccount": "Account",
+      "colStatus": "Status",
+      "colRating": "Rating",
+      "colPrice": "Price from",
+      "filterStatus": "Status",
+      "statusPending": "Pending",
+      "statusApproved": "Approved",
+      "statusRejected": "Rejected",
+      "approve": "Approve",
+      "reject": "Reject",
+      "delete": "Delete",
+      "confirmRejectTitle": "Reject interviewer?",
+      "confirmRejectMsg": "\"{name}\" will be hidden from the public marketplace.",
+      "confirmDeleteTitle": "Delete interviewer?",
+      "confirmDeleteMsg": "\"{name}\" will be permanently removed."
     }
   }
 }

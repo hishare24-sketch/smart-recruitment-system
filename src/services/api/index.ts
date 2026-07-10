@@ -126,6 +126,10 @@ export const API_PATHS = {
     surveyClose: (id: number) => `/admin/surveys/${id}/close`,
     wallets: '/admin/wallets',
     walletAdjust: (id: number) => `/admin/wallets/${id}/adjust`,
+    interviewers: '/admin/interviewers',
+    interviewer: (id: number) => `/admin/interviewers/${id}`,
+    interviewerApprove: (id: number) => `/admin/interviewers/${id}/approve`,
+    interviewerReject: (id: number) => `/admin/interviewers/${id}/reject`,
   },
   /** وسيط Claude — المفتاح يبقى في الخادم، والعقد يطابق أسماء src/services/ai/types.ts */
   ai: (contract: string) => `/v1/ai/${contract}`,
@@ -232,9 +236,10 @@ export type AdminUserPatch = Partial<Pick<AdminUser, 'name' | 'email' | 'role' |
 export interface AdminUserDetail extends AdminUser { wallet: number, stats: { opportunities: number, applications: number, surveys: number } }
 export interface AdminOpportunity { id: number, title: string, company: string, location: string, salary: string, category: string, skills: string[], createdAt?: string }
 export interface AdminMarketRequest { id: number, type: string, title: string, org: string, state: string, compensation: string, remote: boolean, createdAt?: string }
-export interface AdminMarketQuery { page?: number, perPage?: number, sort?: string, q?: string, category?: string, type?: string, state?: string }
+export interface AdminMarketQuery { page?: number, perPage?: number, sort?: string, q?: string, category?: string, type?: string, state?: string, status?: string, specialty?: string }
 export interface AdminSurvey { id: number, title: string, state: string, points_pool: number, responses: number, owner: string | null, createdAt?: string }
 export interface AdminWallet { id: number, userId: number, userName: string | null, userEmail: string | null, balance: number, transactions: number, updatedAt?: string }
+export interface AdminInterviewer { id: number, name: string, specialty: string, status: string, rating: number, price_from: number, account: string | null, createdAt?: string }
 
 export const api = {
   auth: {
@@ -330,6 +335,10 @@ export const api = {
     deleteSurvey: (id: number) => del(API_PATHS.admin.survey(id)),
     wallets: (params?: AdminMarketQuery) => getPage<AdminWallet>(API_PATHS.admin.wallets, params as Record<string, unknown>),
     adjustWallet: (id: number, amount: number, note?: string) => post<AdminWallet>(API_PATHS.admin.walletAdjust(id), { amount, note }),
+    interviewers: (params?: AdminMarketQuery) => getPage<AdminInterviewer>(API_PATHS.admin.interviewers, params as Record<string, unknown>),
+    approveInterviewer: (id: number) => post<AdminInterviewer>(API_PATHS.admin.interviewerApprove(id)),
+    rejectInterviewer: (id: number) => post<AdminInterviewer>(API_PATHS.admin.interviewerReject(id)),
+    deleteInterviewer: (id: number) => del(API_PATHS.admin.interviewer(id)),
   },
   /** تنفيذ عقد AI عبر وسيط الخادم — بديل claudeAi المباشر (يحمي المفتاح) */
   ai: <T>(contract: string, payload: Record<string, unknown>) => post<T>(API_PATHS.ai(contract), payload),

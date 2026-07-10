@@ -334,6 +334,12 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/modules/admin/pages/AdminWalletsPage.vue'),
     meta: { layout: 'admin', roles: ['admin'], permission: 'view_wallets', title: 'admin.nav.wallets' },
   },
+  {
+    path: '/admin/interviewers',
+    name: 'admin-interviewers',
+    component: () => import('@/modules/admin/pages/AdminInterviewersPage.vue'),
+    meta: { layout: 'admin', roles: ['admin'], permission: 'view_interviewers', title: 'admin.nav.interviewers' },
+  },
 
   // ===== Ecosystem expert roles (coach / trainer / consultant) =====
   {

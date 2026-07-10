@@ -12,7 +12,8 @@ class InterviewerService
     {
         $this->seedIfEmpty();
 
-        return Interviewer::orderByDesc('rating')->get();
+        // القائمة العامّة تعرض المقيّمين المعتمدين فقط (حوكمة الاعتماد الإداريّ).
+        return Interviewer::where('status', 'approved')->orderByDesc('rating')->get();
     }
 
     public function book(int $userId, int $interviewerId, array $data): Booking
@@ -61,9 +62,11 @@ class InterviewerService
         }
 
         Interviewer::insert([
-            ['name' => 'خالد العتيبي', 'specialty' => 'tech', 'rating' => 4.8, 'price_from' => 200, 'availability' => json_encode(['الأحد', 'الثلاثاء']), 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'ريم الدوسري', 'specialty' => 'management', 'rating' => 4.6, 'price_from' => 300, 'availability' => json_encode(['الاثنين', 'الأربعاء']), 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'سلمان الحربي', 'specialty' => 'data', 'rating' => 4.9, 'price_from' => 250, 'availability' => json_encode(['الخميس']), 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'خالد العتيبي', 'specialty' => 'tech', 'status' => 'approved', 'rating' => 4.8, 'price_from' => 200, 'availability' => json_encode(['الأحد', 'الثلاثاء']), 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'ريم الدوسري', 'specialty' => 'management', 'status' => 'approved', 'rating' => 4.6, 'price_from' => 300, 'availability' => json_encode(['الاثنين', 'الأربعاء']), 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'سلمان الحربي', 'specialty' => 'data', 'status' => 'approved', 'rating' => 4.9, 'price_from' => 250, 'availability' => json_encode(['الخميس']), 'created_at' => now(), 'updated_at' => now()],
+            // طلب اعتماد معلّق — للأدمن ليقبله/يرفضه (لا يظهر في القائمة العامّة).
+            ['name' => 'منى القحطاني', 'specialty' => 'tech', 'status' => 'pending', 'rating' => 4.5, 'price_from' => 220, 'availability' => json_encode(['الثلاثاء', 'الخميس']), 'created_at' => now(), 'updated_at' => now()],
         ]);
     }
 }

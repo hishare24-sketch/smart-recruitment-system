@@ -44,4 +44,11 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { title: 'admin.nav.wallets', icon: 'mdi-wallet-outline', to: 'admin-wallets', permission: 'view_wallets' },
     ],
   },
+  {
+    key: 'quality',
+    titleKey: 'admin.nav.groupQuality',
+    items: [
+      { title: 'admin.nav.interviewers', icon: 'mdi-account-tie-outline', to: 'admin-interviewers', permission: 'view_interviewers' },
+    ],
+  },
 ]

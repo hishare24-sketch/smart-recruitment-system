@@ -16,8 +16,20 @@
     "postDate": "تاريخ النشر",
     "cancel": "إلغاء",
     "searchBtn": "بحث",
-    "scopes": { "all": "الكل", "requests": "الطلبات", "opportunities": "الفرص", "interviewers": "المقيّمون", "users": "المستخدمون", "companies": "الشركات" },
-    "dates": { "day": "آخر يوم", "week": "آخر أسبوع", "month": "آخر شهر", "year": "آخر سنة" }
+    "scopes": {
+      "all": "الكل",
+      "requests": "الطلبات",
+      "opportunities": "الفرص",
+      "interviewers": "المقيّمون",
+      "users": "المستخدمون",
+      "companies": "الشركات"
+    },
+    "dates": {
+      "day": "آخر يوم",
+      "week": "آخر أسبوع",
+      "month": "آخر شهر",
+      "year": "آخر سنة"
+    }
   },
   "app": {
     "name": "منظومة التوظيف الذكية",
@@ -351,7 +363,9 @@
       "opportunities": "الفرص",
       "requests": "الطلبات",
       "surveys": "الاستبيانات",
-      "wallets": "المحافظ"
+      "wallets": "المحافظ",
+      "groupQuality": "الجودة والاعتماد",
+      "interviewers": "المقيّمون"
     },
     "groups": {
       "users": "المستخدمون والأدوار",
@@ -508,7 +522,31 @@
       "activated": "فُعّل الحساب",
       "roleUpdated": "حُدّث الدور",
       "closed": "أُغلق الاستبيان",
-      "adjusted": "عُدّل الرصيد"
+      "adjusted": "عُدّل الرصيد",
+      "approved": "اعتُمد المقيّم",
+      "rejected": "رُفض المقيّم"
+    },
+    "interviewers": {
+      "title": "المقيّمون",
+      "subtitle": "حوكمة اعتماد المقيّمين — قبول ورفض طلبات الانضمام",
+      "searchPlaceholder": "بحث بالاسم أو التخصّص...",
+      "colName": "الاسم",
+      "colSpecialty": "التخصّص",
+      "colAccount": "الحساب",
+      "colStatus": "الحالة",
+      "colRating": "التقييم",
+      "colPrice": "السعر من",
+      "filterStatus": "الحالة",
+      "statusPending": "معلّق",
+      "statusApproved": "معتمد",
+      "statusRejected": "مرفوض",
+      "approve": "اعتماد",
+      "reject": "رفض",
+      "delete": "حذف",
+      "confirmRejectTitle": "رفض المقيّم؟",
+      "confirmRejectMsg": "لن يظهر «{name}» في السوق العامّ.",
+      "confirmDeleteTitle": "حذف المقيّم؟",
+      "confirmDeleteMsg": "سيُزال «{name}» نهائيًّا."
     }
   }
 }
