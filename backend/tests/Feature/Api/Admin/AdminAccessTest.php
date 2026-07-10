@@ -138,4 +138,22 @@ class AdminAccessTest extends TestCase
             ->assertOk()
             ->assertJsonStructure(['data' => ['roles' => [['name', 'usersCount', 'permissions']], 'permissions']]);
     }
+
+    public function test_admin_can_create_user_and_read_user_stats(): void
+    {
+        $this->superAdmin();
+
+        $this->postJson('/api/admin/users', ['name' => 'مدعوّ', 'email' => 'invited@rec.test', 'password' => 'secret123', 'tier' => 'pro'])
+            ->assertStatus(201)
+            ->assertJsonPath('data.email', 'invited@rec.test')
+            ->assertJsonPath('data.tier', 'pro');
+        $this->assertDatabaseHas('users', ['email' => 'invited@rec.test']);
+
+        // بريد مكرّر → 422
+        $this->postJson('/api/admin/users', ['name' => 'x', 'email' => 'invited@rec.test', 'password' => 'secret123'])->assertStatus(422);
+
+        $this->getJson('/api/admin/users/stats')
+            ->assertOk()
+            ->assertJsonStructure(['data' => ['total', 'suspended', 'admins', 'byRole', 'byTier', 'series']]);
+    }
 }

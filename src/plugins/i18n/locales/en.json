@@ -439,7 +439,17 @@
       "statOpportunities": "Opportunities",
       "statApplications": "Applications",
       "statSurveys": "Surveys",
-      "viewProfile": "View public profile"
+      "viewProfile": "View public profile",
+      "newUser": "New user",
+      "create": "Create",
+      "created": "User created",
+      "password": "Password",
+      "statTotal": "Users",
+      "statSuspended": "Suspended",
+      "statOrgs": "Organizations",
+      "statAdmins": "Admins",
+      "signups": "Signups (14d)",
+      "byRole": "By role"
     },
     "roles": {
       "title": "Roles & Permissions",
@@ -576,7 +586,15 @@
       "confirmRejectTitle": "Reject interviewer?",
       "confirmRejectMsg": "\"{name}\" will be hidden from the public marketplace.",
       "confirmDeleteTitle": "Delete interviewer?",
-      "confirmDeleteMsg": "\"{name}\" will be permanently removed."
+      "confirmDeleteMsg": "\"{name}\" will be permanently removed.",
+      "newInterviewer": "New interviewer",
+      "create": "Create",
+      "created": "Interviewer created",
+      "statTotal": "Interviewers",
+      "statApproved": "Approved",
+      "statPending": "Pending",
+      "statRating": "Avg rating",
+      "byStatus": "By status"
     },
     "plans": {
       "title": "Plans",

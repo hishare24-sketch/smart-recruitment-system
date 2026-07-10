@@ -56,6 +56,21 @@ class AdminInterviewerTest extends TestCase
         $this->assertDatabaseMissing('interviewers', ['id' => $interviewer->id]);
     }
 
+    public function test_admin_can_create_interviewer_and_read_stats(): void
+    {
+        $this->admin();
+
+        $this->postJson('/api/admin/interviewers', ['name' => 'مقيّم جديد', 'specialty' => 'tech', 'rating' => 4.7, 'price_from' => 200])
+            ->assertStatus(201)
+            ->assertJsonPath('data.name', 'مقيّم جديد')
+            ->assertJsonPath('data.status', 'approved');
+
+        $this->getJson('/api/admin/interviewers/stats')
+            ->assertOk()
+            ->assertJsonStructure(['data' => ['total', 'approved', 'pending', 'avgRating', 'byStatus', 'bySpecialty']])
+            ->assertJsonPath('data.total', 1);
+    }
+
     public function test_non_admin_cannot_list_interviewers(): void
     {
         Sanctum::actingAs(User::create(['name' => 'U', 'email' => 'iv'.uniqid().'@rec.test', 'password' => 'secret123']));

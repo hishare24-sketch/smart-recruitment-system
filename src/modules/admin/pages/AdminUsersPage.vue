@@ -1,30 +1,42 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/shared/PageHeader.vue'
+import StatCard from '@/components/shared/StatCard.vue'
+import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseChip from '@/components/ui/BaseChip.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseIcon from '@/components/ui/BaseIcon.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
 import BaseDrawer from '@/components/ui/BaseDrawer.vue'
 import BaseAvatar from '@/components/ui/BaseAvatar.vue'
 import BaseSnackbar from '@/components/ui/BaseSnackbar.vue'
 import BaseTooltip from '@/components/ui/BaseTooltip.vue'
+import LineChart from '@/components/charts/LineChart.vue'
+import DonutChart from '@/components/charts/DonutChart.vue'
 import ResourceScaffold from '@/modules/admin/components/ResourceScaffold.vue'
 import type { FilterDef } from '@/modules/admin/components/ResourceScaffold.vue'
 import type { TableColumn } from '@/components/ui/BaseTable.vue'
 import { useAdminResource } from '@/modules/admin/composables/useAdminResource'
 import { confirm } from '@/components/ui/confirm'
-import { type AdminUser, type AdminUserDetail, type AdminUserPatch, api } from '@/services/api'
+import { type AdminUser, type AdminUserDetail, type AdminUserPatch, type AdminUsersStats, api } from '@/services/api'
 import { useAuthStore } from '@/stores/AuthStore'
 import type { UserRole } from '@/interfaces/Auth'
 
 const { t } = useI18n()
 const auth = useAuthStore()
+const canCreate = computed(() => auth.hasPermission('create_users'))
 
 const r = useAdminResource<AdminUser>({ fetcher: params => api.admin.users(params), initialSort: '-id' })
 const { items, meta, loading, sortKey, selected, search, filters } = r
+
+const stats = ref<AdminUsersStats | null>(null)
+async function loadStats() { try { stats.value = await api.admin.usersStats() } catch { /* تجاهل */ } }
+onMounted(loadStats)
+const signupData = computed(() => (stats.value?.series ?? []).map(s => ({ label: s.date.slice(5), value: s.value })))
+const roleDist = computed(() => (stats.value?.byRole ?? []).map(x => ({ label: t(`roles.${x.label}`), value: x.value })))
 
 const columns: TableColumn[] = [
   { key: 'name', label: t('admin.users.colName'), sortable: true },
@@ -133,11 +145,67 @@ async function saveEdit() {
   }
   catch (e) { fail(e) }
 }
+
+// ——— إنشاء مستخدم ———
+const createOpen = ref(false)
+const creating = ref(false)
+const cform = ref({ name: '', email: '', password: '', role: 'seeker', tier: 'free', kind: 'individual' })
+function openCreate() {
+  cform.value = { name: '', email: '', password: '', role: 'seeker', tier: 'free', kind: 'individual' }
+  createOpen.value = true
+}
+async function createUser() {
+  if (!cform.value.name.trim() || !cform.value.email.trim() || cform.value.password.length < 6)
+    return
+  creating.value = true
+  try {
+    await api.admin.createUser({ ...cform.value })
+    toast(t('admin.users.created'))
+    createOpen.value = false
+    r.refresh(); loadStats()
+  }
+  catch (e) { fail(e) }
+  finally { creating.value = false }
+}
 </script>
 
 <template>
   <div>
-    <PageHeader :title="t('admin.users.title')" :subtitle="t('admin.users.subtitle')" icon="mdi-account-multiple-outline" />
+    <PageHeader :title="t('admin.users.title')" :subtitle="t('admin.users.subtitle')" icon="mdi-account-multiple-outline">
+      <template #actions>
+        <BaseButton v-if="canCreate" variant="brand" size="sm" @click="openCreate">
+          <BaseIcon name="mdi-account-plus-outline" :size="18" />{{ t('admin.users.newUser') }}
+        </BaseButton>
+      </template>
+    </PageHeader>
+
+    <!-- شريط الإحصاءات -->
+    <div class="mb-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div class="grid grid-cols-2 gap-3">
+        <StatCard icon="mdi-account-multiple" :value="stats?.total ?? 0" :title="t('admin.users.statTotal')" color="primary" />
+        <StatCard icon="mdi-account-cancel-outline" :value="stats?.suspended ?? 0" :title="t('admin.users.statSuspended')" color="error" />
+        <StatCard icon="mdi-office-building-outline" :value="stats?.organizations ?? 0" :title="t('admin.users.statOrgs')" color="info" />
+        <StatCard icon="mdi-shield-account-outline" :value="stats?.admins ?? 0" :title="t('admin.users.statAdmins')" color="accent" />
+      </div>
+      <BaseCard class="lg:col-span-2">
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <div class="mb-2 flex items-center gap-2">
+              <BaseIcon name="mdi-chart-line" :size="18" class="text-brand" />
+              <h2 class="text-sm font-bold text-content">{{ t('admin.users.signups') }}</h2>
+            </div>
+            <LineChart v-if="signupData.length" :data="signupData" color="primary" :height="150" />
+          </div>
+          <div>
+            <div class="mb-2 flex items-center gap-2">
+              <BaseIcon name="mdi-chart-donut" :size="18" class="text-brand" />
+              <h2 class="text-sm font-bold text-content">{{ t('admin.users.byRole') }}</h2>
+            </div>
+            <DonutChart v-if="roleDist.length" :data="roleDist" :size="140" :center-label="t('admin.users.statTotal')" />
+          </div>
+        </div>
+      </BaseCard>
+    </div>
 
     <ResourceScaffold
       :columns="columns"
@@ -336,6 +404,26 @@ async function saveEdit() {
         </div>
       </div>
     </BaseDrawer>
+
+    <!-- ===== إنشاء مستخدم ===== -->
+    <BaseModal v-model="createOpen" :title="t('admin.users.newUser')" :max-width="480">
+      <div class="space-y-3">
+        <BaseInput v-model="cform.name" :label="t('admin.users.colName')" />
+        <BaseInput v-model="cform.email" :label="t('admin.users.colEmail')" type="email" dir="ltr" />
+        <BaseInput v-model="cform.password" :label="t('admin.users.password')" type="password" dir="ltr" />
+        <div class="grid grid-cols-3 gap-3">
+          <BaseSelect v-model="cform.role" :label="t('admin.users.colRole')" :items="ROLE_OPTIONS.map(ro => ({ value: ro, title: t(`roles.${ro}`) }))" />
+          <BaseSelect v-model="cform.tier" :label="t('admin.users.colTier')" :items="[{ value: 'free', title: 'Free' }, { value: 'pro', title: 'Pro' }, { value: 'elite', title: 'Elite' }]" />
+          <BaseSelect v-model="cform.kind" :label="t('admin.users.filterKind')" :items="[{ value: 'individual', title: t('admin.users.individual') }, { value: 'organization', title: t('admin.users.organization') }]" />
+        </div>
+      </div>
+      <template #actions>
+        <BaseButton variant="ghost" @click="createOpen = false">{{ t('admin.users.cancel') }}</BaseButton>
+        <BaseButton variant="brand" :disabled="creating || !cform.name.trim() || !cform.email.trim() || cform.password.length < 6" @click="createUser">
+          <BaseIcon name="mdi-check" :size="18" />{{ t('admin.users.create') }}
+        </BaseButton>
+      </template>
+    </BaseModal>
 
     <BaseSnackbar v-model="snack.show" :color="snack.color">{{ snack.text }}</BaseSnackbar>
   </div>

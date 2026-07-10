@@ -111,6 +111,7 @@ export const API_PATHS = {
   admin: {
     stats: '/admin/stats',
     users: '/admin/users',
+    usersStats: '/admin/users/stats',
     user: (id: number) => `/admin/users/${id}`,
     suspend: (id: number) => `/admin/users/${id}/suspend`,
     activate: (id: number) => `/admin/users/${id}/activate`,
@@ -142,6 +143,7 @@ export const API_PATHS = {
     platformAccountTxns: (id: number) => `/admin/platform-accounts/${id}/transactions`,
     platformAccountAdjust: (id: number) => `/admin/platform-accounts/${id}/adjust`,
     interviewers: '/admin/interviewers',
+    interviewersStats: '/admin/interviewers/stats',
     interviewer: (id: number) => `/admin/interviewers/${id}`,
     interviewerApprove: (id: number) => `/admin/interviewers/${id}/approve`,
     interviewerReject: (id: number) => `/admin/interviewers/${id}/reject`,
@@ -256,6 +258,10 @@ export interface AdminUserQuery { page?: number, perPage?: number, sort?: string
 export type AdminUserPatch = Partial<Pick<AdminUser, 'name' | 'email' | 'role' | 'tier' | 'kind'>> & { phone?: string | null }
 /** تفصيل مستخدم مُثرًى للاستعراض العميق */
 export interface AdminUserDetail extends AdminUser { wallet: number, stats: { opportunities: number, applications: number, surveys: number } }
+export interface AdminUserCreate { name: string, email: string, password: string, role?: string, tier?: string, kind?: string, phone?: string }
+export interface AdminUsersStats { total: number, suspended: number, organizations: number, admins: number, byRole: { label: string, value: number }[], byTier: { label: string, value: number }[], series: { date: string, value: number }[] }
+export interface AdminInterviewersStats { total: number, approved: number, pending: number, avgRating: number, byStatus: { label: string, value: number }[], bySpecialty: { label: string, value: number }[] }
+export interface AdminInterviewerCreate { name: string, specialty: string, status?: string, rating?: number, price_from?: number }
 export interface AdminOpportunity { id: number, title: string, company: string, location: string, salary: string, category: string, skills: string[], createdAt?: string }
 export interface AdminMarketRequest { id: number, type: string, title: string, org: string, state: string, compensation: string, remote: boolean, createdAt?: string }
 export interface AdminMarketQuery { page?: number, perPage?: number, sort?: string, q?: string, category?: string, type?: string, state?: string, status?: string, specialty?: string, action?: string, resource?: string, method?: string }
@@ -355,6 +361,8 @@ export const api = {
   admin: {
     stats: () => get<AdminStats>(API_PATHS.admin.stats),
     users: (params?: AdminUserQuery) => getPage<AdminUser>(API_PATHS.admin.users, params as Record<string, unknown>),
+    usersStats: () => get<AdminUsersStats>(API_PATHS.admin.usersStats),
+    createUser: (body: AdminUserCreate) => post<AdminUser>(API_PATHS.admin.users, body),
     user: (id: number) => get<AdminUserDetail>(API_PATHS.admin.user(id)),
     updateUser: (id: number, body: AdminUserPatch) => patch<AdminUser>(API_PATHS.admin.user(id), body),
     suspendUser: (id: number) => post<AdminUser>(API_PATHS.admin.suspend(id)),
@@ -393,6 +401,8 @@ export const api = {
     platformAccountTxns: (id: number, params?: AdminMarketQuery) => getPage<AdminPlatformTxn>(API_PATHS.admin.platformAccountTxns(id), params as Record<string, unknown>),
     adjustPlatformAccount: (id: number, amount: number, type?: string, note?: string) => post<AdminPlatformAccount>(API_PATHS.admin.platformAccountAdjust(id), { amount, type, note }),
     interviewers: (params?: AdminMarketQuery) => getPage<AdminInterviewer>(API_PATHS.admin.interviewers, params as Record<string, unknown>),
+    interviewersStats: () => get<AdminInterviewersStats>(API_PATHS.admin.interviewersStats),
+    createInterviewer: (body: AdminInterviewerCreate) => post<AdminInterviewer>(API_PATHS.admin.interviewers, body),
     approveInterviewer: (id: number) => post<AdminInterviewer>(API_PATHS.admin.interviewerApprove(id)),
     rejectInterviewer: (id: number) => post<AdminInterviewer>(API_PATHS.admin.interviewerReject(id)),
     deleteInterviewer: (id: number) => del(API_PATHS.admin.interviewer(id)),

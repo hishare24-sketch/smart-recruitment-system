@@ -12,7 +12,9 @@ use Modules\Admin\Http\Controllers\Admin\StatsController;
 Route::get('stats', [StatsController::class, 'index']);
 
 // المستخدمون
+Route::get('users/stats', [AdminUserController::class, 'stats']);
 Route::get('users', [AdminUserController::class, 'index']);
+Route::post('users', [AdminUserController::class, 'store']);
 Route::get('users/{user}', [AdminUserController::class, 'show']);
 Route::patch('users/{user}', [AdminUserController::class, 'update']);
 Route::post('users/{user}/suspend', [AdminUserController::class, 'suspend']);

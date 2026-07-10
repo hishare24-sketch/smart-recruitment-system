@@ -41,6 +41,47 @@ class AdminInterviewerController extends Controller
         return $this->dashboardResponse($items);
     }
 
+    /** إحصاءات المقيّمين — عدّادات الحالة + التخصّص + متوسّط التقييم. */
+    public function stats()
+    {
+        $this->authorize('view_interviewers');
+
+        $all = Interviewer::all();
+        $byStatus = collect(['pending', 'approved', 'rejected'])
+            ->map(fn ($s) => ['label' => $s, 'value' => (int) $all->where('status', $s)->count()])
+            ->filter(fn ($d) => $d['value'] > 0)->values();
+        $bySpecialty = $all->groupBy('specialty')->map->count()
+            ->map(fn ($c, $x) => ['label' => $x, 'value' => (int) $c])->values();
+
+        return $this->dataResponse([
+            'total' => $all->count(),
+            'approved' => (int) $all->where('status', 'approved')->count(),
+            'pending' => (int) $all->where('status', 'pending')->count(),
+            'avgRating' => $all->count() > 0 ? round((float) $all->avg('rating'), 2) : 0,
+            'byStatus' => $byStatus,
+            'bySpecialty' => $bySpecialty,
+        ]);
+    }
+
+    /** إنشاء مقيّم (تسجيل يدويّ من الأدمن). */
+    public function store(Request $request)
+    {
+        $this->authorize('update_interviewers');
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'specialty' => ['required', 'string', 'max:60'],
+            'status' => ['nullable', 'in:pending,approved,rejected'],
+            'rating' => ['nullable', 'numeric', 'min:0', 'max:5'],
+            'price_from' => ['nullable', 'numeric', 'min:0'],
+        ]);
+        $data['status'] ??= 'approved';
+
+        $interviewer = Interviewer::create($data);
+
+        return $this->createdResponse((new AdminInterviewerResource($interviewer))->resolve());
+    }
+
     /** اعتماد مقيّم (يظهر في السوق العامّ). */
     public function approve(Interviewer $interviewer)
     {

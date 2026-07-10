@@ -439,7 +439,17 @@
       "statOpportunities": "فرص منشورة",
       "statApplications": "تقديمات",
       "statSurveys": "استبيانات",
-      "viewProfile": "عرض الصفحة العامة"
+      "viewProfile": "عرض الصفحة العامة",
+      "newUser": "مستخدم جديد",
+      "create": "إنشاء",
+      "created": "أُنشئ المستخدم",
+      "password": "كلمة المرور",
+      "statTotal": "المستخدمون",
+      "statSuspended": "المعلّقون",
+      "statOrgs": "المنشآت",
+      "statAdmins": "الأدمن",
+      "signups": "التسجيلات (14 يومًا)",
+      "byRole": "التوزيع حسب الدور"
     },
     "roles": {
       "title": "الأدوار والصلاحيّات",
@@ -576,7 +586,15 @@
       "confirmRejectTitle": "رفض المقيّم؟",
       "confirmRejectMsg": "لن يظهر «{name}» في السوق العامّ.",
       "confirmDeleteTitle": "حذف المقيّم؟",
-      "confirmDeleteMsg": "سيُزال «{name}» نهائيًّا."
+      "confirmDeleteMsg": "سيُزال «{name}» نهائيًّا.",
+      "newInterviewer": "مقيّم جديد",
+      "create": "إنشاء",
+      "created": "أُنشئ المقيّم",
+      "statTotal": "المقيّمون",
+      "statApproved": "المعتمدون",
+      "statPending": "المعلّقون",
+      "statRating": "متوسّط التقييم",
+      "byStatus": "التوزيع حسب الحالة"
     },
     "plans": {
       "title": "الباقات",

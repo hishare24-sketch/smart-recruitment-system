@@ -13,7 +13,7 @@ class PermissionEnum
     {
         return [
             // المستخدمون والأدوار
-            'view_users', 'update_users', 'delete_users',
+            'view_users', 'create_users', 'update_users', 'delete_users',
             'view_roles', 'create_roles', 'update_roles', 'delete_roles',
 
             // الفرص والطلبات (السوق)

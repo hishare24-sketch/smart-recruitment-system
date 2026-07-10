@@ -3,7 +3,7 @@
 // ولعرض مصفوفة الصلاحيّات في صفحة الأدوار. المصدر الملزم الخلفيّ: Modules/Admin/Enums/PermissionEnum.
 
 export const ADMIN_PERMISSIONS = [
-  'view_users', 'update_users', 'delete_users',
+  'view_users', 'create_users', 'update_users', 'delete_users',
   'view_roles', 'create_roles', 'update_roles', 'delete_roles',
   'view_opportunities', 'create_opportunities', 'update_opportunities', 'delete_opportunities',
   'view_requests', 'update_requests', 'delete_requests',
@@ -23,7 +23,7 @@ export type AdminPermission = typeof ADMIN_PERMISSIONS[number]
 export interface PermissionGroup { key: string, labelKey: string, permissions: AdminPermission[] }
 
 export const PERMISSION_GROUPS: PermissionGroup[] = [
-  { key: 'users', labelKey: 'admin.groups.users', permissions: ['view_users', 'update_users', 'delete_users', 'view_roles', 'create_roles', 'update_roles', 'delete_roles'] },
+  { key: 'users', labelKey: 'admin.groups.users', permissions: ['view_users', 'create_users', 'update_users', 'delete_users', 'view_roles', 'create_roles', 'update_roles', 'delete_roles'] },
   { key: 'marketplace', labelKey: 'admin.groups.marketplace', permissions: ['view_opportunities', 'create_opportunities', 'update_opportunities', 'delete_opportunities', 'view_requests', 'update_requests', 'delete_requests'] },
   { key: 'interviews', labelKey: 'admin.groups.interviews', permissions: ['view_interviewers', 'update_interviewers', 'approve_interviewers', 'reject_interviewers', 'view_interviews'] },
   { key: 'surveys', labelKey: 'admin.groups.surveys', permissions: ['view_surveys', 'update_surveys', 'delete_surveys', 'close_surveys', 'view_survey_templates', 'manage_survey_templates'] },

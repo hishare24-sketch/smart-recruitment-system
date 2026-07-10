@@ -17,7 +17,7 @@ class RoleHasPermissionSeeder extends Seeder
         // admin: صلاحيّات تشغيليّة واسعة عدا إدارة الأدوار الكتابيّة والحذف الصلب للمستخدمين
         $admin = Role::where(['name' => 'admin', 'guard_name' => 'admin'])->first();
         $admin?->syncPermissions([
-            'view_users', 'update_users', 'view_roles',
+            'view_users', 'create_users', 'update_users', 'view_roles',
             'view_opportunities', 'create_opportunities', 'update_opportunities', 'delete_opportunities',
             'view_requests', 'update_requests', 'delete_requests',
             'view_interviewers', 'update_interviewers', 'approve_interviewers', 'reject_interviewers', 'view_interviews',
