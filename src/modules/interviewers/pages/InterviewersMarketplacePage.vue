@@ -13,6 +13,7 @@ import { useSectorContext } from '@/composables/useSectorContext'
 import { sectorFacet, sectorFromFieldAndSkills } from '@/composables/sectorFacet'
 import FacetedList from '@/components/shared/FacetedList.vue'
 import MatchBadge from '@/components/shared/MatchBadge.vue'
+import InterviewerCard from '../components/InterviewerCard.vue'
 import type { FacetSpec, SortSpec } from '@/composables/useFacetedList'
 import { ai } from '@/services/ai'
 import type { DayPeriod, TimeSuggestion } from '@/services/ai'
@@ -246,49 +247,7 @@ function chipStyle(vColor: string, active: boolean) {
       </template>
 
       <template #item="{ item }">
-        <template v-for="iv in [item as Interviewer]" :key="iv.id">
-          <BaseCard
-            hover class="flex cursor-pointer flex-col" role="button" tabindex="0"
-            @click="open(iv.id)"
-            @keydown.enter="open(iv.id)"
-            @keydown.space.prevent="open(iv.id)"
-          >
-            <div class="mb-2 flex items-start gap-3">
-              <BaseAvatar :color="mapColor(INTERVIEWER_TYPE_META[iv.type].color)" :size="52">
-                <span class="text-lg font-bold">{{ iv.initial }}</span>
-              </BaseAvatar>
-              <div class="flex-1">
-                <div class="flex items-center gap-1">
-                  <span class="font-bold text-content">{{ iv.name }}</span>
-                  <BaseIcon v-if="iv.verified" name="mdi-check-decagram" :size="16" style="color: rgb(var(--v-theme-primary))" />
-                </div>
-                <div class="text-xs text-muted">{{ iv.title }}</div>
-              </div>
-              <MatchBadge :value="matchOf(iv.id)" variant="chip" />
-            </div>
-
-            <div class="mb-2 flex flex-wrap items-center gap-2">
-              <BaseChip :color="mapColor(INTERVIEWER_TYPE_META[iv.type].color)">
-                <BaseIcon :name="INTERVIEWER_TYPE_META[iv.type].icon" :size="12" /> {{ INTERVIEWER_TYPE_META[iv.type].label }}
-              </BaseChip>
-              <BaseChip :color="mapColor(INTERVIEWER_TIER_META[interviewerTier(iv)].color)">
-                <BaseIcon :name="INTERVIEWER_TIER_META[interviewerTier(iv)].icon" :size="12" /> {{ INTERVIEWER_TIER_META[interviewerTier(iv)].label }}
-              </BaseChip>
-              <div class="flex items-center gap-1 text-xs text-muted">
-                <BaseIcon name="mdi-star" :size="14" style="color: rgb(var(--v-theme-warning))" />{{ iv.rating }} ({{ iv.reviewsCount }})
-              </div>
-            </div>
-
-            <div class="mb-3 flex flex-1 flex-wrap gap-1">
-              <BaseChip v-for="s in iv.specialties.slice(0, 3)" :key="s" color="neutral">{{ s }}</BaseChip>
-            </div>
-
-            <div class="flex items-center justify-between">
-              <span class="text-xs text-muted">{{ t('discovery.interviewers.sessions', { count: iv.sessionsCount }) }}</span>
-              <span class="font-bold text-content">{{ iv.priceMin }}–{{ iv.priceMax }} {{ t('common.currency') }}</span>
-            </div>
-          </BaseCard>
-        </template>
+        <InterviewerCard :interviewer="(item as Interviewer)" :match="matchOf((item as Interviewer).id)" @select="open((item as Interviewer).id)" />
       </template>
     </FacetedList>
 

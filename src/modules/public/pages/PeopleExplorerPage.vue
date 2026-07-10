@@ -11,7 +11,7 @@ import { sectorFacet } from '@/composables/sectorFacet'
 import type { FacetSpec, SortSpec } from '@/composables/useFacetedList'
 import FacetedList from '@/components/shared/FacetedList.vue'
 import { uniq } from '@/utils/array'
-import BaseCard from '@/components/ui/BaseCard.vue'
+import PersonCard, { type Person } from '../components/PersonCard.vue'
 import BaseChip from '@/components/ui/BaseChip.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseAvatar from '@/components/ui/BaseAvatar.vue'
@@ -29,23 +29,8 @@ function personSector(skills: string[]): string | undefined {
   return getSector(dominantSector(skills))?.id
 }
 
-interface PersonCard {
-  slug: string
-  name: string
-  initial: string
-  headline: string
-  location: string
-  roles: string[]
-  skills: string[]
-  credibility: number
-  followers: number
-  rating: number
-  /** صاحب الملف الحي في هذا العرض التجريبي */
-  live?: boolean
-}
-
 /** دليل تجريبي — مع الربط الخلفي يصبح فهرس الصفحات العامة الحقيقي */
-const people = computed<PersonCard[]>(() => [
+const people = computed<Person[]>(() => [
   {
     slug: pub.state.slug,
     name: pub.displayName,
@@ -69,7 +54,7 @@ const people = computed<PersonCard[]>(() => [
 ])
 
 // —— العقد الموحّد: القطاع (مشتقّ) + الدور + المدينة فاسِتات ——
-const facets = computed<FacetSpec<PersonCard>[]>(() => [
+const facets = computed<FacetSpec<Person>[]>(() => [
   sectorFacet(p => personSector(p.skills), () => people.value),
   {
     key: 'role', label: t('discovery.people.facetRole'), kind: 'multi', value: p => p.roles,
@@ -80,17 +65,17 @@ const facets = computed<FacetSpec<PersonCard>[]>(() => [
     options: () => uniq(people.value.map(p => p.location)).map(c => ({ value: c, label: c })),
   },
 ])
-const sorts = computed<SortSpec<PersonCard>[]>(() => [
+const sorts = computed<SortSpec<Person>[]>(() => [
   { key: 'followers', label: t('discovery.people.sortFollowers'), cmp: (a, b) => { const d = b.followers - a.followers; return d !== 0 ? d : sector.boost(personSector(b.skills)) - sector.boost(personSector(a.skills)) } },
   { key: 'credibility', label: t('discovery.people.sortCredibility'), cmp: (a, b) => b.credibility - a.credibility },
   { key: 'rating', label: t('discovery.sortRatingHigh'), cmp: (a, b) => b.rating - a.rating },
 ])
 const primaryPreset = sector.mySectorsPreset
-const personText = (p: PersonCard) => `${p.name} ${p.headline} ${p.skills.join(' ')}`
+const personText = (p: Person) => `${p.name} ${p.headline} ${p.skills.join(' ')}`
 
 // —— فتح الملف: الحيّ يفتح صفحته، والتجريبي بطاقة معاينة ——
-const previewPerson = ref<PersonCard | null>(null)
-function open(p: PersonCard) {
+const previewPerson = ref<Person | null>(null)
+function open(p: Person) {
   if (p.live)
     router.push(`/u/${p.slug}`)
   else
@@ -111,49 +96,14 @@ function open(p: PersonCard) {
       :facets="facets"
       :sorts="sorts"
       :text="personText"
-      :item-key="(p: PersonCard) => p.slug"
+      :item-key="(p: Person) => p.slug"
       view="grid"
       :primary-preset="primaryPreset"
       :noun="t('discovery.people.noun')"
       :search-placeholder="t('discovery.people.search')"
     >
       <template #item="{ item }">
-        <template v-for="p in [item as PersonCard]" :key="p.slug">
-          <BaseCard
-            hover class="flex h-full cursor-pointer flex-col" role="button" tabindex="0"
-            @click="open(p)"
-            @keydown.enter="open(p)"
-            @keydown.space.prevent="open(p)"
-          >
-            <div class="mb-2 flex items-center gap-3">
-              <BaseAvatar color="brand" :size="48" tonal>
-                <span class="text-lg font-bold">{{ p.initial }}</span>
-              </BaseAvatar>
-              <div class="flex-1">
-                <div class="flex items-center gap-1">
-                  <span class="font-bold text-content">{{ p.name }}</span>
-                  <BaseChip v-if="p.live" color="success">{{ t('discovery.people.live') }}</BaseChip>
-                </div>
-                <div class="text-xs text-muted">{{ p.headline }}</div>
-                <div class="text-xs text-muted"><BaseIcon name="mdi-map-marker-outline" :size="12" /> {{ p.location }}</div>
-              </div>
-            </div>
-
-            <div class="mb-2 flex flex-wrap gap-1">
-              <BaseChip v-for="r in p.roles" :key="r" color="emerald">{{ r }}</BaseChip>
-            </div>
-            <div class="mb-3 flex flex-wrap gap-1">
-              <BaseChip v-for="sk in p.skills.slice(0, 3)" :key="sk" color="neutral">{{ sk }}</BaseChip>
-            </div>
-
-            <div class="mt-auto flex items-center gap-3 text-xs text-muted">
-              <span :title="t('discovery.people.credibility')"><BaseIcon name="mdi-shield-check-outline" :size="14" style="color: rgb(var(--v-theme-primary))" /> {{ p.credibility }}%</span>
-              <span :title="t('discovery.people.followers')"><BaseIcon name="mdi-account-group-outline" :size="14" style="color: rgb(var(--v-theme-accent))" /> {{ p.followers }}</span>
-              <span :title="t('discovery.people.rating')"><BaseIcon name="mdi-star" :size="14" style="color: rgb(var(--v-theme-warning))" /> {{ p.rating }}</span>
-              <BaseIcon name="mdi-arrow-left-circle-outline" :size="18" class="ms-auto" style="color: rgb(var(--v-theme-primary))" />
-            </div>
-          </BaseCard>
-        </template>
+        <PersonCard :person="(item as Person)" @select="open" />
       </template>
     </FacetedList>
 
