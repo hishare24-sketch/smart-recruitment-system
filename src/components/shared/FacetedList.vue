@@ -103,7 +103,7 @@ function pickSort(key: string) {
     </div>
 
     <!-- ② شريط القطاعات المحوريّ -->
-    <div v-if="primaryFacet" class="mb-3 flex gap-2 overflow-x-auto pb-1" style="scrollbar-width: none">
+    <div v-if="primaryFacet" class="hbar mb-3 flex gap-2.5 overflow-x-auto pb-1">
       <button
         v-if="primaryPreset && primaryPreset.values.length"
         type="button"
@@ -128,7 +128,7 @@ function pickSort(key: string) {
     </div>
 
     <!-- ③ رقائق الفاسِت السريعة + كل الفلاتر + فرز -->
-    <div class="mb-3 flex items-center gap-2 overflow-x-auto pb-1" style="scrollbar-width: none">
+    <div class="hbar mb-3 flex items-center gap-2.5 overflow-x-auto pb-1">
       <button type="button" class="btn-bar" @click="filterOpen = true">
         <BaseIcon name="mdi-tune-variant" :size="16" /> كل الفلاتر
         <span v-if="api.hasActiveFacets.value" class="ms-1 rounded-full bg-brand px-1.5 text-xs text-on-brand">{{ api.appliedChips.value.length }}</span>
@@ -151,24 +151,26 @@ function pickSort(key: string) {
     </div>
 
     <!-- ④ العدّاد + الرقائق المطبّقة -->
-    <div class="mb-2 flex flex-wrap items-center gap-2">
+    <div class="mb-3 flex flex-wrap items-center gap-2">
       <span class="text-sm font-bold text-content">{{ api.results.value.length }} {{ noun }}</span>
-      <button
-        v-for="chip in api.appliedChips.value"
-        :key="chip.key"
-        type="button"
-        class="inline-flex items-center gap-1 rounded-full border-ui bg-surfalt px-2.5 py-0.5 text-xs text-content"
-        @click="chip.remove()"
-      >
-        {{ chip.label }} <BaseIcon name="mdi-close" :size="13" />
-      </button>
+      <TransitionGroup tag="span" name="pop" class="inline-flex flex-wrap items-center gap-2">
+        <button
+          v-for="chip in api.appliedChips.value"
+          :key="chip.key"
+          type="button"
+          class="inline-flex items-center gap-1 rounded-full border-ui bg-surfalt px-2.5 py-1 text-xs text-content transition active:scale-95"
+          @click="chip.remove()"
+        >
+          {{ chip.label }} <BaseIcon name="mdi-close" :size="13" />
+        </button>
+      </TransitionGroup>
       <button v-if="api.appliedChips.value.length" type="button" class="text-xs text-brand hover:underline" @click="api.clearAll()">
         امسح الكل
       </button>
     </div>
 
     <!-- ⑤ العروض المحفوظة -->
-    <div v-if="savedViews && savedViews.length" class="mb-3 flex items-center gap-2 overflow-x-auto pb-1" style="scrollbar-width: none">
+    <div v-if="savedViews && savedViews.length" class="hbar mb-3 flex items-center gap-2.5 overflow-x-auto pb-1">
       <span class="whitespace-nowrap text-xs text-muted">عروضك:</span>
       <button
         v-for="(v, i) in savedViews"
@@ -199,6 +201,7 @@ function pickSort(key: string) {
     <!-- شيت «كل الفلاتر» -->
     <BaseDrawer v-model="filterOpen" side="bottom">
       <div class="p-4">
+        <div class="handle" />
         <div class="mb-1 flex items-center">
           <span class="flex-1 text-base font-bold text-content">كل الفلاتر</span>
           <button class="icon-btn h-8 w-8" aria-label="إغلاق" @click="filterOpen = false"><BaseIcon name="mdi-close" :size="20" /></button>
@@ -228,7 +231,6 @@ function pickSort(key: string) {
                 </span>
                 <BaseIcon v-if="opt.icon" :name="opt.icon" :size="17" class="text-muted" />
                 <span class="flex-1 text-sm">{{ opt.label }}</span>
-                <BaseIcon name="mdi-chevron-left" :size="16" class="text-muted" />
               </button>
             </div>
             <!-- قائمة قصيرة: رقائق -->
@@ -283,6 +285,7 @@ function pickSort(key: string) {
     <!-- شيت الفرز -->
     <BaseDrawer v-model="sortOpen" side="bottom">
       <div class="p-4">
+        <div class="handle" />
         <div class="mb-2 text-base font-bold text-content">ترتيب حسب</div>
         <button
           v-for="s in sorts"
@@ -300,20 +303,26 @@ function pickSort(key: string) {
 </template>
 
 <style scoped>
+/* شريط أفقيّ بلا شريط تمرير مرئيّ (تنعيم عبر المتصفّحات) */
+.hbar { scrollbar-width: none; -ms-overflow-style: none; }
+.hbar::-webkit-scrollbar { display: none; }
+
 .chip {
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   border-radius: 999px;
   border: 1px solid rgba(var(--v-theme-on-surface), 0.16);
-  padding: 6px 12px;
-  font-size: 13px;
+  padding: 7px 13px;
+  font-size: 13.5px;
+  line-height: 1.2;
   color: rgb(var(--v-theme-on-surface));
-  transition: background 0.15s;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.1s ease;
   white-space: nowrap;
 }
 .chip:hover { background: rgba(var(--v-theme-on-surface), 0.05); }
+.chip:active { transform: scale(0.96); }
 .chip-on {
   background: rgb(var(--v-theme-primary));
   border-color: rgb(var(--v-theme-primary));
@@ -325,11 +334,24 @@ function pickSort(key: string) {
   flex: 0 0 auto;
   align-items: center;
   gap: 6px;
-  border-radius: var(--radius-ui, 8px);
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.24);
-  padding: 6px 11px;
-  font-size: 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.22);
+  padding: 7px 13px;
+  font-size: 13.5px;
+  line-height: 1.2;
   color: rgb(var(--v-theme-on-surface));
+  transition: background 0.18s ease, transform 0.1s ease;
 }
 .btn-bar:hover { background: rgba(var(--v-theme-on-surface), 0.05); }
+.btn-bar:active { transform: scale(0.96); }
+
+/* انتقال ظهور/إزالة الرقائق المطبّقة */
+.pop-enter-active, .pop-leave-active { transition: opacity 0.18s ease, transform 0.18s ease; }
+.pop-enter-from, .pop-leave-to { opacity: 0; transform: scale(0.8); }
+
+/* مقبض السحب أعلى الشيت */
+.handle {
+  width: 40px; height: 5px; border-radius: 999px; margin: 2px auto 12px;
+  background: rgba(var(--v-theme-on-surface), 0.22);
+}
 </style>

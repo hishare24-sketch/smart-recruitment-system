@@ -24,8 +24,12 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
 
 <template>
   <Teleport to="body">
-    <!-- backdrop (v-if فوري بلا Transition تفاديًا لتعلّق الإزالة) -->
-    <div v-if="modelValue" class="fixed inset-0 z-[90] bg-black/50" @click="close" />
+    <!-- backdrop: حاضر دائمًا مع خفوت (opacity) — تنعيم بلا v-if يتعلّق -->
+    <div
+      class="fixed inset-0 z-[90] bg-black/50 transition-opacity duration-200"
+      :class="modelValue ? 'opacity-100' : 'pointer-events-none opacity-0'"
+      @click="close"
+    />
     <!-- panel: سفليّ (شيت) أو جانبيّ (درج) -->
     <div
       v-if="side === 'bottom'"
