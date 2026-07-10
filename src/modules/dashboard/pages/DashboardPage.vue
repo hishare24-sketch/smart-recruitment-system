@@ -22,6 +22,10 @@ import BaseProgressRing from '@/components/ui/BaseProgressRing.vue'
 import { mockOpportunities } from '@/modules/opportunities/services/mockOpportunities'
 import { LEVEL_META } from '@/stores/InterviewsStore'
 import { ai } from '@/services/ai'
+import { matchScore } from '@/services/matching'
+import { opportunityMatchProfile, seekerMatchProfile } from '@/services/matchProfile'
+import { sectorForField } from '@/services/sectors'
+import { useSectorContext } from '@/composables/useSectorContext'
 
 // تحويل رمز لون Vuetify إلى نغمة BaseChip
 type ChipColor = 'brand' | 'emerald' | 'accent' | 'success' | 'info' | 'warning' | 'error' | 'neutral'
@@ -38,11 +42,30 @@ const candidatesStore = useCandidatesStore()
 const postedStore = usePostedOpportunitiesStore()
 const trustStore = useTrustStore()
 const profileStore = useProfileStore()
+const sector = useSectorContext()
 
 const userName = computed(() => authStore.authUser?.name ?? '')
 const isCompany = computed(() => authStore.role === 'company')
 
-const recommended = computed(() => [...mockOpportunities].sort((a, b) => b.matchRate - a.matchRate).slice(0, 5))
+// «موصى به لك»: تطابق حيّ (قطاع من سياق المستخدم عبر matchInput) بدل matchRate الثابت،
+// وترجيح boost كاسر تعادل يرفع قطاعات المستخدم — متّسق مع فرز الأسواق.
+const seekerProfile = computed(() => seekerMatchProfile({
+  skills: profileStore.skills.map(s => s.name),
+  city: profileStore.prefs.location,
+  opportunityType: profileStore.prefs.preferred_employment_types[0],
+  ...sector.matchInput(),
+}))
+function recoMatch(o: typeof mockOpportunities[number]): number {
+  return matchScore(seekerProfile.value, opportunityMatchProfile(o)).score
+}
+const recommended = computed(() => [...mockOpportunities].sort((a, b) => {
+  const d = recoMatch(b) - recoMatch(a)
+  if (d !== 0)
+    return d
+  const boostDiff = sector.boost(sectorForField(b.department)?.id) - sector.boost(sectorForField(a.department)?.id)
+  // كاسر تعادل أخير: ترتيب matchRate المنسّق (يحفظ سلوك التوصية لملف فارغ بلا سياق)
+  return boostDiff !== 0 ? boostDiff : b.matchRate - a.matchRate
+}).slice(0, 5))
 const topCandidates = computed(() => [...candidatesStore.candidates].sort((a, b) => b.matchRate - a.matchRate).slice(0, 5))
 
 // — Seeker AI widgets —

@@ -9,6 +9,7 @@ import { useResumesStore } from '@/stores/ResumesStore'
 import { useProfileStore } from '@/stores/ProfileStore'
 import { matchScore } from '@/services/matching'
 import { opportunityMatchProfile, seekerMatchProfile } from '@/services/matchProfile'
+import { useSectorContext } from '@/composables/useSectorContext'
 import type { Opportunity } from '../interfaces/Opportunity'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -38,10 +39,12 @@ const isSaved = computed(() => (opportunity.value ? savedStore.isSaved(opportuni
 
 // نسبة التطابق الحيّة (نفس محرّك بطاقة الفرصة)
 const profile = useProfileStore()
+const sector = useSectorContext()
 const seeker = computed(() => seekerMatchProfile({
   skills: profile.skills.map(s => s.name),
   city: profile.prefs.location,
   opportunityType: profile.prefs.preferred_employment_types[0],
+  ...sector.matchInput(),
 }))
 function liveMatch(o: Opportunity): number {
   return matchScore(seeker.value, opportunityMatchProfile(o)).score

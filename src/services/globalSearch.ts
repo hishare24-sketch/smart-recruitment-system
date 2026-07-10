@@ -3,6 +3,8 @@ import { useInterviewersStore } from '@/stores/InterviewersStore'
 import { useCandidatesStore } from '@/stores/CandidatesStore'
 import { mockOpportunities } from '@/modules/opportunities/services/mockOpportunities'
 import { ALL_SKILLS, categorizeSkill, getCategory } from '@/services/taxonomy'
+import { sectorForField } from '@/services/sectors'
+import { useSectorContext } from '@/composables/useSectorContext'
 import type { SearchScope } from '@/services/ai/types'
 
 export interface SearchResultItem {
@@ -40,16 +42,29 @@ export function useGlobalSearch() {
   const requestsStore = useRequestsStore()
   const interviewersStore = useInterviewersStore()
   const candidatesStore = useCandidatesStore()
+  const sector = useSectorContext()
 
-  function search(query: string, scope: SearchScope = 'all', category?: string): SearchCategory[] {
+  /**
+   * ترتيب واعٍ بالقطاع: يرفع عناصر قطاعات المستخدم للأعلى (غير هادم)، ومع `onlyMine`
+   * يقيّدها على اتّحاد قطاعات المستخدم. القسم بلا سياق → سلوك اليوم (rankSearch محايد).
+   */
+  function applySector<T>(list: T[], getSec: (t: T) => string | undefined, onlyMine: boolean): T[] {
+    const scoped = onlyMine && sector.has.value ? list.filter(t => sector.inEffective(getSec(t))) : list
+    return sector.rankSearch(scoped, getSec)
+  }
+
+  /** `onlyMine`: شريحة «ضمن قطاعاتي» — يقيّد الأقسام القطاعيّة على قطاعات المستخدم */
+  function search(query: string, scope: SearchScope = 'all', category?: string, opts?: { onlyMine?: boolean }): SearchCategory[] {
     const q = query.trim()
+    const onlyMine = opts?.onlyMine ?? false
     const want = (s: SearchScope) => scope === 'all' || scope === s
 
     const cats: SearchCategory[] = []
 
     if (want('requests')) {
-      const items = requestsStore.requests
+      const filtered = requestsStore.requests
         .filter(r => match(q, r.title, r.org, r.field, r.skills.join(' ')) && inCategory(category, r.skills))
+      const items = applySector(filtered, r => sectorForField(r.field)?.id, onlyMine)
         .map<SearchResultItem>(r => ({
           id: r.id, title: r.title, subtitle: `${r.org} · ${r.field} · ${r.budget}`,
           icon: 'mdi-storefront-outline', color: 'primary', route: { name: 'request-details', params: { id: r.id } },
@@ -58,8 +73,9 @@ export function useGlobalSearch() {
     }
 
     if (want('opportunities')) {
-      const items = mockOpportunities
+      const filtered = mockOpportunities
         .filter(o => match(q, o.title, o.company, o.city, o.skills.join(' ')) && inCategory(category, o.skills))
+      const items = applySector(filtered, o => sectorForField(o.department)?.id, onlyMine)
         .map<SearchResultItem>(o => ({
           id: o.id, title: o.title, subtitle: `${o.company} · ${o.city}`,
           icon: 'mdi-briefcase-search-outline', color: 'accent', route: { name: 'opportunity-details', params: { id: o.id } },
@@ -68,8 +84,9 @@ export function useGlobalSearch() {
     }
 
     if (want('interviewers')) {
-      const items = interviewersStore.interviewers
+      const filtered = interviewersStore.interviewers
         .filter(iv => match(q, iv.name, iv.title, iv.field, iv.specialties.join(' ')) && inCategory(category, iv.specialties))
+      const items = applySector(filtered, iv => sectorForField(iv.field)?.id, onlyMine)
         .map<SearchResultItem>(iv => ({
           id: iv.id, title: iv.name, subtitle: `${iv.title} · ${iv.rating}★`,
           icon: 'mdi-account-supervisor-circle-outline', color: 'secondary', route: { name: 'interviewer-profile', params: { id: iv.id } },

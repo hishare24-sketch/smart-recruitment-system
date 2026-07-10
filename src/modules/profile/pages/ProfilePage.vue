@@ -17,7 +17,8 @@ import { LEVEL_META, TYPE_META, useInterviewsStore } from '@/stores/InterviewsSt
 import { KIND_META, useInterviewersStore } from '@/stores/InterviewersStore'
 import type { Booking } from '@/stores/InterviewersStore'
 import { COMPANY_SIZES } from '@/interfaces/RoleProfiles'
-import { OPPORTUNITY_TYPES } from '@/services/sectors'
+import { OPPORTUNITY_TYPES, getSector } from '@/services/sectors'
+import { useSectorContext } from '@/composables/useSectorContext'
 import { useRoleProfilesStore } from '@/stores/RoleProfilesStore'
 import type { UserRole } from '@/interfaces/Auth'
 import BaseCard from '@/components/ui/BaseCard.vue'
@@ -296,6 +297,19 @@ const initials = computed(() => user.value?.name?.charAt(0).toUpperCase() ?? '?'
 const roleLabel = computed(() => (authStore.role ? t(`roles.${authStore.role}`) : ''))
 const personaStore = usePersonaStore()
 const personaMeta = computed(() => SEEKER_PERSONA_META[personaStore.state.seekerPersona])
+
+// بذر «المجالات المفضّلة» من سياق القطاع — اقتراح غير هادم: تسميات قطاعات المستخدم
+// غير المضافة بعد، تُلحق بنقرة (يغلق حلقة interestedSectors → تفضيلات الباحث).
+const sector = useSectorContext()
+const sectorFieldSuggestions = computed(() =>
+  sector.effective.value
+    .map(id => getSector(id)?.label)
+    .filter((l): l is string => !!l && !profile.prefs.preferred_fields.includes(l)),
+)
+function addPreferredField(label: string) {
+  if (!profile.prefs.preferred_fields.includes(label))
+    profile.prefs.preferred_fields = [...profile.prefs.preferred_fields, label]
+}
 const orgTypeItems = ORG_TYPES.map(t => ({ value: t, title: ORG_TYPE_META[t].label }))
 const profileCompletion = computed(() => {
   let score = 40
@@ -658,6 +672,18 @@ const heroStats = computed(() => [
             </div>
           </div>
           <BaseTagInput v-model="profile.prefs.preferred_fields" label="المجالات المفضّلة" placeholder="اكتب مجالًا واضغط Enter" />
+          <div v-if="sectorFieldSuggestions.length" class="-mt-1 flex flex-wrap items-center gap-1.5">
+            <span class="text-xs text-muted">أضف من قطاعاتك:</span>
+            <button
+              v-for="label in sectorFieldSuggestions"
+              :key="label"
+              type="button"
+              class="btn-tonal-emerald inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium"
+              @click="addPreferredField(label)"
+            >
+              <BaseIcon name="mdi-plus" :size="13" /> {{ label }}
+            </button>
+          </div>
           <BaseTagInput v-model="profile.prefs.preferred_locations" label="المواقع المفضّلة" placeholder="اكتب موقعًا واضغط Enter" />
         </div>
         <hr class="my-3 border-ui">

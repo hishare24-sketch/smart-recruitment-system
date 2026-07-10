@@ -12,6 +12,7 @@ import { sectorForField } from '@/services/sectors'
 import { useProfileStore } from '@/stores/ProfileStore'
 import { matchScore } from '@/services/matching'
 import { requestMatchProfile, seekerMatchProfile } from '@/services/matchProfile'
+import { useSectorContext } from '@/composables/useSectorContext'
 import type { MarketRequest } from '@/stores/RequestsStore'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -34,6 +35,14 @@ function mapColor(c: string): BaseColor {
 const router = useRouter()
 const store = useRequestsStore()
 const profile = useProfileStore()
+const sector = useSectorContext()
+
+// نطاق القطاع: «قطاعاتي» (اتّحاد قطاعات المستخدم) ⟷ «الكل» — بذر افتراضيّ لا قفل
+const sectorScope = ref<'mine' | 'all'>(sector.hasExplicit.value ? 'mine' : 'all')
+/** قطاع الطلب (slug) من حقل المجال عبر resolver الترحيل */
+function reqSector(r: MarketRequest): string | undefined {
+  return sectorForField(r.field)?.id
+}
 
 // AI smart quick-filters
 const smartChips = computed(() => ai.smartFilterChips({ section: 'requests', skills: profile.skills.map(s => s.name) }))
@@ -50,6 +59,7 @@ const seekerProfile = computed(() => seekerMatchProfile({
   skills: userSkills.value,
   city: profile.prefs.location,
   opportunityType: profile.prefs.preferred_employment_types[0],
+  ...sector.matchInput(),
 }))
 function liveMatch(r: MarketRequest): number {
   return matchScore(seekerProfile.value, requestMatchProfile({ field: r.field, skills: r.skills, city: r.city, remote: r.remote })).score
@@ -98,6 +108,7 @@ function resetFilters() {
   maxWeeks.value = 20
   minBudget.value = 0
   treeSel.value = {}
+  sectorScope.value = sector.hasExplicit.value ? 'mine' : 'all'
 }
 
 function toggleKind(k: RequestKind) {
@@ -126,6 +137,9 @@ const filtered = computed(() => {
       return false
     if (treeSel.value.sub && !`${r.title} ${r.field} ${r.skills.join(' ')}`.includes(treeSel.value.sub))
       return false
+    // نطاق «قطاعاتي» — يقيّد على اتّحاد قطاعات المستخدم (قابل للتجاوز بـ«الكل»)
+    if (sectorScope.value === 'mine' && sector.has.value && !sector.inEffective(reqSector(r)))
+      return false
     // AI smart quick-filters
     if (activeChips.value.has('newToday') && r.state !== 'new')
       return false
@@ -144,7 +158,11 @@ const filtered = computed(() => {
     case 'rating': sorted.sort((a, b) => b.orgRating - a.orgRating); break
     case 'price': sorted.sort((a, b) => a.budgetValue - b.budgetValue); break
     case 'applicants': sorted.sort((a, b) => b.applicants - a.applicants); break
-    default: sorted.sort((a, b) => liveMatch(b) - liveMatch(a))
+    default: sorted.sort((a, b) => {
+      const d = liveMatch(b) - liveMatch(a)
+      // عند تعادل التطابق: ترفع قطاعات المستخدم (الأبرز ثم الصريح ثم المشتقّ)
+      return d !== 0 ? d : sector.boost(reqSector(b)) - sector.boost(reqSector(a))
+    })
   }
   return sorted
 })
@@ -317,6 +335,16 @@ function open(id: number) {
         <div class="mb-4 flex items-center justify-between">
           <span class="flex items-center gap-1 font-bold"><BaseIcon name="mdi-filter-variant" :size="20" /> فلترة الطلبات</span>
           <button class="icon-btn h-8 w-8" aria-label="إغلاق" @click="filterDrawer = false"><BaseIcon name="mdi-close" :size="20" /></button>
+        </div>
+
+        <div v-if="sector.has.value" class="mb-4">
+          <div class="mb-1 text-xs font-bold">نطاق القطاع</div>
+          <div class="seg w-full" role="group" aria-label="نطاق القطاع">
+            <button type="button" class="seg-btn flex-1" :class="{ 'is-active': sectorScope === 'mine' }" @click="sectorScope = 'mine'">
+              <BaseIcon name="mdi-shape-outline" :size="15" /> قطاعاتي
+            </button>
+            <button type="button" class="seg-btn flex-1" :class="{ 'is-active': sectorScope === 'all' }" @click="sectorScope = 'all'">الكل</button>
+          </div>
         </div>
 
         <TaxonomyTree v-model="treeSel" :items="treeItems" class="mb-4" />

@@ -7,6 +7,7 @@ import { useProfileStore } from '@/stores/ProfileStore'
 import { useResumesStore } from '@/stores/ResumesStore'
 import { matchScore } from '@/services/matching'
 import { requestMatchProfile, seekerMatchProfile } from '@/services/matchProfile'
+import { useSectorContext } from '@/composables/useSectorContext'
 import { ai } from '@/services/ai'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -30,6 +31,7 @@ const router = useRouter()
 const store = useRequestsStore()
 const profile = useProfileStore()
 const resumesStore = useResumesStore()
+const sector = useSectorContext()
 
 const request = computed(() => store.getById(Number(route.params.id)))
 const similar = computed(() => store.similar(Number(route.params.id)))
@@ -40,6 +42,7 @@ const seeker = computed(() => seekerMatchProfile({
   skills: profile.skills.map(s => s.name),
   city: profile.prefs.location,
   opportunityType: profile.prefs.preferred_employment_types[0],
+  ...sector.matchInput(),
 }))
 function liveMatch(r: MarketRequest): number {
   return matchScore(seeker.value, requestMatchProfile({ field: r.field, skills: r.skills, city: r.city, remote: r.remote })).score

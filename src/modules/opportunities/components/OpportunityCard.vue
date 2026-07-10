@@ -8,6 +8,7 @@ import { useApplicationsStore } from '@/stores/ApplicationsStore'
 import { useProfileStore } from '@/stores/ProfileStore'
 import { matchScore } from '@/services/matching'
 import { opportunityMatchProfile, seekerMatchProfile } from '@/services/matchProfile'
+import { useSectorContext } from '@/composables/useSectorContext'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseChip from '@/components/ui/BaseChip.vue'
@@ -20,16 +21,19 @@ const router = useRouter()
 const savedStore = useSavedStore()
 const applicationsStore = useApplicationsStore()
 const profile = useProfileStore()
+const sector = useSectorContext()
 
 const isSaved = computed(() => savedStore.isSaved(props.opportunity.id))
 const isApplied = computed(() => applicationsStore.hasApplied(props.opportunity.id))
 
-// نسبة التطابق الحيّة — يحسبها محرّك المطابقة من ملف الباحث الحقيقي (لا رقم مبذور)
+// نسبة التطابق الحيّة — يحسبها محرّك المطابقة من ملف الباحث الحقيقي (لا رقم مبذور).
+// القطاع من سياق المستخدم (matchInput) إن صرّح، وإلا يُشتقّ من المهارات احتياطًا.
 const matchRate = computed(() => matchScore(
   seekerMatchProfile({
     skills: profile.skills.map(s => s.name),
     city: profile.prefs.location,
     opportunityType: profile.prefs.preferred_employment_types[0],
+    ...sector.matchInput(),
   }),
   opportunityMatchProfile(props.opportunity),
 ).score)

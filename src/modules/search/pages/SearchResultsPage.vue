@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useGlobalSearch } from '@/services/globalSearch'
+import { useSectorContext } from '@/composables/useSectorContext'
 import { ai } from '@/services/ai'
 import type { SearchScope } from '@/services/ai/types'
 import EmptyState from '@/components/shared/EmptyState.vue'
@@ -16,6 +17,11 @@ const route = useRoute()
 const router = useRouter()
 const { search } = useGlobalSearch()
 const prefs = useSearchPrefsStore()
+const sector = useSectorContext()
+
+// «ضمن قطاعاتي» — تقييد اختياريّ (لا افتراضيّ: البحث عريض بطبعه). الترتيب الواعي
+// بالقطاع يعمل دائمًا (يرفع نتائج قطاعاتي)، والشريحة تقيّد عند الطلب.
+const onlyMine = ref(false)
 
 type BaseColor = 'brand' | 'emerald' | 'accent' | 'success' | 'info' | 'warning' | 'error' | 'neutral'
 function mapColor(c?: string): BaseColor {
@@ -58,7 +64,7 @@ function runSaved(s: { q: string, scope: SearchScope }) {
   router.push({ name: 'search', query: { q: s.q, scope: s.scope } })
 }
 
-const categories = computed(() => search(query.value, 'all', category.value))
+const categories = computed(() => search(query.value, 'all', category.value, { onlyMine: onlyMine.value }))
 const totalCount = computed(() => categories.value.reduce((s, c) => s + c.items.length, 0))
 const intent = computed(() => ai.searchIntent(query.value))
 const alternatives = computed(() => ai.keywordAlternatives(query.value))
@@ -126,7 +132,7 @@ function searchAlt(alt: string) {
     </div>
 
     <!-- Scope tabs with counts -->
-    <div class="mb-3 flex flex-wrap gap-2">
+    <div class="mb-3 flex flex-wrap items-center gap-2">
       <button
         v-for="t in scopeTabs"
         :key="t.key"
@@ -137,6 +143,17 @@ function searchAlt(alt: string) {
       >
         <BaseIcon :name="t.icon" :size="14" />{{ t.label }}
         <span class="rounded-full px-1.5 text-xs" :style="activeScope === t.key ? { background: 'rgba(255,255,255,0.25)' } : { background: 'rgba(var(--v-theme-on-surface), 0.1)' }">{{ t.count }}</span>
+      </button>
+
+      <!-- ضمن قطاعاتي — تقييد اختياريّ (النتائج مرتّبة بقطاعاتي دائمًا) -->
+      <button
+        v-if="sector.has.value"
+        type="button"
+        class="ms-auto inline-flex items-center gap-1 rounded-full border px-3 py-1 text-sm font-medium transition"
+        :style="toggleStyle(onlyMine, 'secondary')"
+        @click="onlyMine = !onlyMine"
+      >
+        <BaseIcon name="mdi-shape-outline" :size="14" /> ضمن قطاعاتي
       </button>
     </div>
 

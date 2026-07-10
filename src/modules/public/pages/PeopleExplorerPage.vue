@@ -3,10 +3,19 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import PageHeader from '@/components/shared/PageHeader.vue'
 import { usePublicProfileStore } from '@/stores/PublicProfileStore'
+import { useSectorContext } from '@/composables/useSectorContext'
+import { dominantSector } from '@/services/matchProfile'
 
 // ===== استكشاف الأشخاص — دليل الصفحات التعريفية العامة: بوابة هوية أهل المنصة =====
 const router = useRouter()
 const pub = usePublicProfileStore()
+const sector = useSectorContext()
+
+// قطاع الشخص يُشتقّ من مهاراته (لا حقل قطاع صريح على البطاقة) — للترتيب والتقييد
+const sectorScope = ref<'mine' | 'all'>(sector.hasExplicit.value ? 'mine' : 'all')
+function personSector(skills: string[]): string | undefined {
+  return dominantSector(skills)
+}
 
 interface PersonCard {
   slug: string
@@ -59,7 +68,13 @@ const visible = computed(() => {
   const list = people.value
     .filter(p => !q || p.name.includes(q) || p.headline.includes(q) || p.skills.some(s => s.includes(q)))
     .filter(p => !roleFilter.value.length || p.roles.some(r => roleFilter.value.includes(r)))
-  return [...list].sort((a, b) => b[sortBy.value] - a[sortBy.value])
+    // نطاق «قطاعاتي» — يقيّد على اتّحاد قطاعات المستخدم (قابل للتجاوز بـ«الكل»)
+    .filter(p => sectorScope.value === 'all' || !sector.has.value || sector.inEffective(personSector(p.skills)))
+  return [...list].sort((a, b) => {
+    const d = b[sortBy.value] - a[sortBy.value]
+    // عند تعادل الفرز: ترفع أشخاص قطاعاتي (الأبرز ثم الصريح ثم المشتقّ)
+    return d !== 0 ? d : sector.boost(personSector(b.skills)) - sector.boost(personSector(a.skills))
+  })
 })
 
 // —— فتح الملف: الحيّ يفتح صفحته، والتجريبي بطاقة معاينة ——
@@ -102,6 +117,13 @@ function open(p: PersonCard) {
         />
       </VCol>
     </VRow>
+
+    <div v-if="sector.has.value" class="seg mb-3" role="group" aria-label="نطاق القطاع">
+      <button type="button" class="seg-btn" :class="{ 'is-active': sectorScope === 'mine' }" @click="sectorScope = 'mine'">
+        <VIcon icon="mdi-shape-outline" size="15" /> قطاعاتي
+      </button>
+      <button type="button" class="seg-btn" :class="{ 'is-active': sectorScope === 'all' }" @click="sectorScope = 'all'">الكل</button>
+    </div>
 
     <VRow>
       <VCol v-for="p in visible" :key="p.slug" cols="12" sm="6" lg="4">

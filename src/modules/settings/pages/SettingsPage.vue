@@ -13,8 +13,10 @@ import PageHeader from '@/components/shared/PageHeader.vue'
 import ThemeCustomizer from '@/components/shared/ThemeCustomizer.vue'
 import AccountPlanPage from '@/modules/account/pages/AccountPlanPage.vue'
 import PublicProfileManagePage from '@/modules/profile/pages/PublicProfileManagePage.vue'
+import { SECTORS, visibleSectors } from '@/services/sectors'
 import { ACCOUNT_TIER_META, useAccountPlanStore } from '@/stores/AccountPlanStore'
 import { useAuthStore } from '@/stores/AuthStore'
+import { usePersonaStore } from '@/stores/PersonaStore'
 import { usePublicProfileStore } from '@/stores/PublicProfileStore'
 
 // ===== مركز الإعدادات — كل تحكم الحساب من مكان واحد، ديناميكي وقابل للبحث =====
@@ -24,6 +26,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 const plan = useAccountPlanStore()
 const pub = usePublicProfileStore()
+const personaStore = usePersonaStore()
 
 // —— التبويب مربوط بالرابط: /settings?tab=… (روابط عميقة قابلة للمشاركة) ——
 type SettingsTab = 'general' | 'publicProfile' | 'plan' | 'preferences' | 'notifications' | 'privacy' | 'integrations'
@@ -39,6 +42,7 @@ watch(tab, v => router.replace({ query: { ...route.query, tab: v } }))
 interface SettingEntry { label: string, tab: SettingsTab, icon: string }
 const SETTINGS_INDEX: SettingEntry[] = [
   { label: 'الاسم والبريد وكلمة المرور', tab: 'general', icon: 'mdi-account-outline' },
+  { label: 'قطاعات اهتمامي (تخصيص الفرص والبحث والتوصيات)', tab: 'general', icon: 'mdi-shape-outline' },
   { label: 'قصتي المهنية والمسمى التسويقي', tab: 'publicProfile', icon: 'mdi-card-account-details-star-outline' },
   { label: 'روابط LinkedIn وGitHub والشبكات', tab: 'publicProfile', icon: 'mdi-link-variant' },
   { label: 'ثيم صفحتي وألوانها وشكل صورتي', tab: 'publicProfile', icon: 'mdi-palette-swatch-outline' },
@@ -91,6 +95,17 @@ function tabBadge(t: SettingsTab): string | null {
 const name = ref(authStore.authUser?.name ?? '')
 const email = ref(authStore.authUser?.email ?? '')
 const phone = ref(authStore.authUser?.phone ?? '')
+
+// —— قطاعات اهتمامي — السياق القطاعيّ العابر: يُخصّص العرض/الوصول/البحث/التوصية ——
+// (يخرج من حبس onboarding؛ التحرير هنا يُزامَن فورًا مع PersonaStore ← Laravel)
+const showAllSectors = ref(false)
+const sectorList = computed(() => (showAllSectors.value ? SECTORS : visibleSectors()))
+// مشتقّ مباشرةً من المتجر (لا نسخة محليّة تتيبّس) — يبقى متّسقًا مع مزامنة Laravel
+const interestedSectors = computed(() => personaStore.state.interestedSectors)
+function toggleSector(id: string) {
+  const cur = interestedSectors.value
+  personaStore.setInterestedSectors(cur.includes(id) ? cur.filter(s => s !== id) : [...cur, id])
+}
 
 // Preferences
 const fontSize = ref('medium')
@@ -198,26 +213,64 @@ function toggleLocale(val: string) {
 
       <div>
         <!-- General -->
-        <BaseCard v-if="tab === 'general'">
-          <h3 class="mb-4 font-bold text-content">معلومات الحساب</h3>
-          <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <BaseInput v-model="name" label="الاسم" />
-            <BaseInput v-model="email" label="البريد الإلكتروني" type="email" />
-            <BaseInput v-model="phone" label="رقم الجوال" />
-          </div>
-          <div class="my-4 border-t border-ui" />
-          <h3 class="mb-3 font-bold text-content">كلمة المرور</h3>
-          <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <BaseInput label="كلمة المرور الحالية" type="password" />
-            <BaseInput label="كلمة المرور الجديدة" type="password" />
-          </div>
-          <div class="mt-4 flex justify-end">
-            <BaseButton variant="accent">
-              <BaseIcon name="mdi-content-save" :size="18" />
-              حفظ التغييرات
-            </BaseButton>
-          </div>
-        </BaseCard>
+        <template v-if="tab === 'general'">
+          <BaseCard>
+            <h3 class="mb-4 font-bold text-content">معلومات الحساب</h3>
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <BaseInput v-model="name" label="الاسم" />
+              <BaseInput v-model="email" label="البريد الإلكتروني" type="email" />
+              <BaseInput v-model="phone" label="رقم الجوال" />
+            </div>
+            <div class="my-4 border-t border-ui" />
+            <h3 class="mb-3 font-bold text-content">كلمة المرور</h3>
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <BaseInput label="كلمة المرور الحالية" type="password" />
+              <BaseInput label="كلمة المرور الجديدة" type="password" />
+            </div>
+            <div class="mt-4 flex justify-end">
+              <BaseButton variant="accent">
+                <BaseIcon name="mdi-content-save" :size="18" />
+                حفظ التغييرات
+              </BaseButton>
+            </div>
+          </BaseCard>
+
+          <!-- قطاعات اهتمامي — السياق القطاعيّ العابر -->
+          <BaseCard class="mt-4">
+            <div class="mb-1 flex items-center gap-2">
+              <BaseIcon name="mdi-shape-outline" :size="20" class="text-brand" />
+              <h3 class="font-bold text-content">قطاعات اهتمامي</h3>
+              <BaseChip v-if="interestedSectors.length" color="brand" class="ms-auto">
+                {{ interestedSectors.length }}
+              </BaseChip>
+            </div>
+            <p class="mb-4 text-sm text-muted">
+              اختر القطاعات التي تهمّك — نخصّص لك الفرص والبحث والتوصيات بناءً عليها. يمكنك التعديل في أي وقت.
+            </p>
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="s in sectorList"
+                :key="s.id"
+                type="button"
+                class="flex items-center gap-2 rounded-ui border px-3 py-2 text-sm transition"
+                :class="interestedSectors.includes(s.id) ? 'border-transparent text-brand' : 'border-ui text-content hover:bg-surfalt'"
+                :style="interestedSectors.includes(s.id) ? { background: 'rgba(var(--v-theme-primary), 0.12)' } : {}"
+                @click="toggleSector(s.id)"
+              >
+                <BaseIcon :name="s.icon" :size="18" />
+                <span>{{ s.label }}</span>
+                <BaseIcon v-if="interestedSectors.includes(s.id)" name="mdi-check" :size="16" />
+              </button>
+            </div>
+            <button
+              type="button"
+              class="mt-3 text-sm text-brand hover:underline"
+              @click="showAllSectors = !showAllSectors"
+            >
+              {{ showAllSectors ? 'عرض أهمّ القطاعات فقط' : 'عرض كل القطاعات' }}
+            </button>
+          </BaseCard>
+        </template>
 
         <!-- صفحتي التعريفية (الإدارة الكاملة داخل الإعدادات) -->
         <PublicProfileManagePage v-else-if="tab === 'publicProfile'" embedded />

@@ -10,6 +10,7 @@ import AttachmentsDialog from '@/components/shared/AttachmentsDialog.vue'
 import TaxonomyTree from '@/components/shared/TaxonomyTree.vue'
 import { ALL_SKILLS, categorizeSkill } from '@/services/taxonomy'
 import { sectorForField } from '@/services/sectors'
+import { useSectorContext } from '@/composables/useSectorContext'
 import { ai } from '@/services/ai'
 import type { DayPeriod, TimeSuggestion } from '@/services/ai'
 import BaseCard from '@/components/ui/BaseCard.vue'
@@ -34,6 +35,15 @@ function mapColor(c: string): BaseColor {
 const router = useRouter()
 const store = useInterviewersStore()
 const profile = useProfileStore()
+const sector = useSectorContext()
+
+// نطاق القطاع: «قطاعاتي» (اتّحاد قطاعات المستخدم) ⟷ «الكل» — بذر افتراضيّ لا قفل.
+// العدسة هنا: مقيّمون/خبراء «في قطاعاتي» (نفس السياق، مخرَج مختلف حسب الدور).
+const sectorScope = ref<'mine' | 'all'>(sector.hasExplicit.value ? 'mine' : 'all')
+/** قطاع المقيّم (slug) من حقل مجاله عبر resolver الترحيل */
+function ivSector(iv: { field: string }): string | undefined {
+  return sectorForField(iv.field)?.id
+}
 
 // Reschedule flow — reuses the AI smart-time suggestions
 const reschedDialog = ref(false)
@@ -149,6 +159,9 @@ const filtered = computed(() => {
       return false
     if (treeSel.value.sub && !`${iv.title} ${iv.field} ${iv.specialties.join(' ')}`.includes(treeSel.value.sub))
       return false
+    // نطاق «قطاعاتي» — يقيّد على اتّحاد قطاعات المستخدم (قابل للتجاوز بـ«الكل»)
+    if (sectorScope.value === 'mine' && sector.has.value && !sector.inEffective(ivSector(iv)))
+      return false
     if (iv.rating < minRating.value)
       return false
     if (iv.priceMin > maxPrice.value)
@@ -166,7 +179,11 @@ const filtered = computed(() => {
     case 'priceLow': sorted.sort((a, b) => a.priceMin - b.priceMin); break
     case 'priceHigh': sorted.sort((a, b) => b.priceMax - a.priceMax); break
     case 'sessions': sorted.sort((a, b) => b.sessionsCount - a.sessionsCount); break
-    default: sorted.sort((a, b) => matchOf(b.id) - matchOf(a.id))
+    default: sorted.sort((a, b) => {
+      const d = matchOf(b.id) - matchOf(a.id)
+      // عند تعادل التطابق: ترفع قطاعات المستخدم (الأبرز ثم الصريح ثم المشتقّ)
+      return d !== 0 ? d : sector.boost(ivSector(b)) - sector.boost(ivSector(a))
+    })
   }
   return sorted
 })
@@ -236,6 +253,15 @@ function chipStyle(vColor: string, active: boolean) {
     <div class="grid grid-cols-1 gap-5 md:grid-cols-[260px_1fr]">
       <!-- Filters -->
       <aside class="space-y-4">
+        <BaseCard v-if="sector.has.value">
+          <div class="mb-1 text-xs font-bold">نطاق القطاع</div>
+          <div class="seg w-full" role="group" aria-label="نطاق القطاع">
+            <button type="button" class="seg-btn flex-1" :class="{ 'is-active': sectorScope === 'mine' }" @click="sectorScope = 'mine'">
+              <BaseIcon name="mdi-shape-outline" :size="15" /> قطاعاتي
+            </button>
+            <button type="button" class="seg-btn flex-1" :class="{ 'is-active': sectorScope === 'all' }" @click="sectorScope = 'all'">الكل</button>
+          </div>
+        </BaseCard>
         <BaseCard>
           <TaxonomyTree v-model="treeSel" :items="treeItems" />
         </BaseCard>

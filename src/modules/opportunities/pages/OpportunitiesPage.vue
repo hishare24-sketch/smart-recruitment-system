@@ -12,6 +12,7 @@ import { useProfileStore } from '@/stores/ProfileStore'
 import { matchScore } from '@/services/matching'
 import { opportunityMatchProfile, seekerMatchProfile } from '@/services/matchProfile'
 import { sectorForField } from '@/services/sectors'
+import { useSectorContext } from '@/composables/useSectorContext'
 import type { Opportunity } from '../interfaces/Opportunity'
 import { ai } from '@/services/ai'
 import BaseCard from '@/components/ui/BaseCard.vue'
@@ -23,6 +24,15 @@ import BaseIcon from '@/components/ui/BaseIcon.vue'
 
 const savedStore = useSavedStore()
 const profile = useProfileStore()
+const sector = useSectorContext()
+
+// نطاق القطاع: «قطاعاتي» (اتّحاد قطاعات المستخدم) ⟷ «الكل». بذر افتراضيّ عند وجود
+// سياق، لكنه ليس قفلًا — المستخدم يقلبه فورًا. بلا سياق → لا شريحة، سلوك اليوم.
+const sectorScope = ref<'mine' | 'all'>(sector.hasExplicit.value ? 'mine' : 'all')
+/** قطاع الفرصة (slug) من حقل القسم عبر resolver الترحيل */
+function oppSector(o: Opportunity): string | undefined {
+  return sectorForField(o.department)?.id
+}
 
 // AI smart quick-filters
 const smartChips = computed(() => ai.smartFilterChips({ section: 'opportunities', skills: profile.skills.map(s => s.name) }))
@@ -39,6 +49,7 @@ const seekerProfile = computed(() => seekerMatchProfile({
   skills: userSkills.value,
   city: profile.prefs.location,
   opportunityType: profile.prefs.preferred_employment_types[0],
+  ...sector.matchInput(),
 }))
 function liveMatch(o: Opportunity): number {
   return matchScore(seekerProfile.value, opportunityMatchProfile(o)).score
@@ -88,14 +99,19 @@ const filtered = computed(() => {
       || sectorForField(o.department)?.id === treeSel.value.category
       || o.skills.some(s => categorizeSkill(s) === treeSel.value.category)
     const matchesSub = !treeSel.value.sub || `${o.title} ${o.city} ${o.skills.join(' ')}`.includes(treeSel.value.sub)
+    // نطاق «قطاعاتي» — يقيّد على اتّحاد قطاعات المستخدم (قابل للتجاوز بـ«الكل»)
+    const matchesScope = sectorScope.value === 'all' || !sector.has.value || sector.inEffective(oppSector(o))
     const matchesNew = !activeChips.value.has('newToday') || o.postedDaysAgo <= 1
     const matchesSkills = !activeChips.value.has('skills') || o.skills.some(s => userSkills.value.includes(s))
-    return matchesSearch && matchesType && matchesLevel && matchesCity && matchesSalary && matchesSaved && matchesCategory && matchesSub && matchesNew && matchesSkills
+    return matchesSearch && matchesType && matchesLevel && matchesCity && matchesSalary && matchesSaved && matchesCategory && matchesSub && matchesScope && matchesNew && matchesSkills
   })
 
   list = [...list].sort((a, b) => {
-    if (sortBy.value === 'match')
-      return liveMatch(b) - liveMatch(a)
+    if (sortBy.value === 'match') {
+      const d = liveMatch(b) - liveMatch(a)
+      // عند تعادل التطابق: ترفع قطاعات المستخدم (الأبرز ثم الصريح ثم المشتقّ)
+      return d !== 0 ? d : sector.boost(oppSector(b)) - sector.boost(oppSector(a))
+    }
     if (sortBy.value === 'newest')
       return a.postedDaysAgo - b.postedDaysAgo
     if (sortBy.value === 'oldest')
@@ -115,6 +131,7 @@ function resetFilters() {
   minSalary.value = 0
   savedOnly.value = false
   treeSel.value = {}
+  sectorScope.value = sector.hasExplicit.value ? 'mine' : 'all'
 }
 </script>
 
@@ -194,6 +211,22 @@ function resetFilters() {
         </div>
       </div>
       <div class="mt-3 flex flex-wrap items-center gap-3">
+        <div v-if="sector.has.value" class="seg" role="group" aria-label="نطاق القطاع">
+          <button
+            type="button"
+            class="seg-btn"
+            :class="{ 'is-active': sectorScope === 'mine' }"
+            @click="sectorScope = 'mine'"
+          >
+            <BaseIcon name="mdi-shape-outline" :size="15" /> قطاعاتي
+          </button>
+          <button
+            type="button"
+            class="seg-btn"
+            :class="{ 'is-active': sectorScope === 'all' }"
+            @click="sectorScope = 'all'"
+          >الكل</button>
+        </div>
         <span class="whitespace-nowrap text-xs text-muted">أدنى راتب: {{ minSalary.toLocaleString('en-US') }}</span>
         <BaseSlider v-model="minSalary" :min="0" :max="28000" :step="1000" color="secondary" class="min-w-[160px] flex-1" />
         <BaseButton variant="ghost" size="sm" @click="resetFilters">

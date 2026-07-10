@@ -4,15 +4,23 @@ import PageHeader from '@/components/shared/PageHeader.vue'
 import { usePostedOpportunitiesStore } from '@/stores/PostedOpportunitiesStore'
 import { useGamificationStore } from '@/stores/GamificationStore'
 import { ai } from '@/services/ai'
-import { OPPORTUNITY_TYPES, classifyText, visibleSectors } from '@/services/sectors'
+import { OPPORTUNITY_TYPES, classifyText, getSector, visibleSectors } from '@/services/sectors'
 import { useReviewQueueStore } from '@/stores/ReviewQueueStore'
+import { useSectorContext } from '@/composables/useSectorContext'
 
 const store = usePostedOpportunitiesStore()
 const gamification = useGamificationStore()
 const review = useReviewQueueStore()
+const sector = useSectorContext()
+
+// اقتراح القطاع الافتراضيّ من سياق المستخدم (تسمية القطاع الأبرز) — بذر لا قفل.
+// يتكامل مع autoClassify (الذي يقترح مهارات/تصنيفًا من النصّ) دون تصادم.
+function defaultDepartment(): string | null {
+  return sector.primary.value ? (getSector(sector.primary.value)?.label ?? null) : null
+}
 
 const title = ref('')
-const department = ref<string | null>(null)
+const department = ref<string | null>(defaultDepartment())
 const location = ref('')
 const type = ref<string>('full_time')
 const skills = ref<string[]>([])
@@ -43,6 +51,13 @@ const snackbar = ref('')
 const errorMsg = ref('')
 
 const typeLabel = computed(() => typeOptions.find(t => t.value === type.value)?.title ?? '')
+
+// تلميح يظهر فقط ما دام القطاع على القيمة المبذورة من السياق (يختفي عند تعديله)
+const departmentHint = computed(() =>
+  (sector.has.value && department.value === defaultDepartment())
+    ? 'مبدئيًّا من قطاعات اهتمامك — عدّله بحرّية'
+    : '',
+)
 
 // AI auto-classification of the posted opportunity
 const classification = computed(() => ai.autoClassify(`${title.value} ${description.value} ${skills.value.join(' ')}`))
@@ -76,7 +91,7 @@ function validate(): boolean {
 
 function resetForm() {
   title.value = ''
-  department.value = null
+  department.value = defaultDepartment()
   location.value = ''
   type.value = 'full_time'
   skills.value = []
@@ -146,7 +161,7 @@ function openPreview() {
             </h3>
             <VRow dense>
               <VCol cols="12" md="6"><VTextField v-model="title" label="المسمى الوظيفي *" /></VCol>
-              <VCol cols="12" md="6"><VSelect v-model="department" label="المجال / القطاع *" :items="departmentOptions" /></VCol>
+              <VCol cols="12" md="6"><VSelect v-model="department" label="المجال / القطاع *" :items="departmentOptions" :hint="departmentHint" persistent-hint /></VCol>
               <VCol cols="12" md="6"><VTextField v-model="location" label="الموقع" prepend-inner-icon="mdi-map-marker-outline" /></VCol>
               <VCol cols="12" md="6"><VSelect v-model="type" label="نوع الفرصة" :items="typeOptions" /></VCol>
               <VCol cols="12"><VTextarea v-model="description" label="وصف الفرصة" rows="3" /></VCol>
