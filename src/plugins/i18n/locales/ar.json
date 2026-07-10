@@ -488,7 +488,12 @@
       "delete": "حذف",
       "confirmDeleteTitle": "حذف الفرصة؟",
       "confirmDeleteMsg": "سيُزال «{title}» نهائيًّا.",
-      "bulkDelete": "حذف المحدّد"
+      "bulkDelete": "حذف المحدّد",
+      "statTotal": "الفرص",
+      "statCategories": "القطاعات",
+      "statLocations": "المواقع",
+      "trend": "الاتّجاه (14 يومًا)",
+      "byCategory": "التوزيع حسب القطاع"
     },
     "requests": {
       "title": "الطلبات",
@@ -508,7 +513,12 @@
       "delete": "حذف",
       "confirmDeleteTitle": "حذف الطلب؟",
       "confirmDeleteMsg": "سيُزال «{title}» نهائيًّا.",
-      "bulkDelete": "حذف المحدّد"
+      "bulkDelete": "حذف المحدّد",
+      "statTotal": "الطلبات",
+      "statTypes": "الأنواع",
+      "statOpen": "المفتوحة",
+      "byType": "التوزيع حسب النوع",
+      "byState": "التوزيع حسب الحالة"
     },
     "surveys": {
       "title": "الاستبيانات",

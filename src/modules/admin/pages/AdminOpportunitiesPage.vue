@@ -1,21 +1,30 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/shared/PageHeader.vue'
+import StatCard from '@/components/shared/StatCard.vue'
+import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseChip from '@/components/ui/BaseChip.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseIcon from '@/components/ui/BaseIcon.vue'
 import BaseSnackbar from '@/components/ui/BaseSnackbar.vue'
 import BaseTooltip from '@/components/ui/BaseTooltip.vue'
+import LineChart from '@/components/charts/LineChart.vue'
+import DonutChart from '@/components/charts/DonutChart.vue'
 import ResourceScaffold from '@/modules/admin/components/ResourceScaffold.vue'
 import type { TableColumn } from '@/components/ui/BaseTable.vue'
 import { useAdminResource } from '@/modules/admin/composables/useAdminResource'
 import { confirm } from '@/components/ui/confirm'
-import { type AdminOpportunity, api } from '@/services/api'
+import { type AdminOpportunitiesStats, type AdminOpportunity, api } from '@/services/api'
 
 const { t } = useI18n()
 const r = useAdminResource<AdminOpportunity>({ fetcher: params => api.admin.opportunities(params), initialSort: '-id' })
 const { items, meta, loading, sortKey, selected, search } = r
+
+const stats = ref<AdminOpportunitiesStats | null>(null)
+async function loadStats() { try { stats.value = await api.admin.opportunitiesStats() } catch { /* تجاهل */ } }
+onMounted(loadStats)
+const seriesData = computed(() => (stats.value?.series ?? []).map(s => ({ label: s.date.slice(5), value: s.value })))
 
 const columns: TableColumn[] = [
   { key: 'title', label: t('admin.opportunities.colTitle'), sortable: true },
@@ -63,6 +72,33 @@ async function bulkDelete() {
 <template>
   <div>
     <PageHeader :title="t('admin.opportunities.title')" :subtitle="t('admin.opportunities.subtitle')" icon="mdi-briefcase-outline" />
+
+    <!-- شريط الإحصاءات -->
+    <div class="mb-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div class="grid grid-cols-3 gap-3">
+        <StatCard icon="mdi-briefcase-outline" :value="stats?.total ?? 0" :title="t('admin.opportunities.statTotal')" color="primary" />
+        <StatCard icon="mdi-shape-outline" :value="stats?.categories ?? 0" :title="t('admin.opportunities.statCategories')" color="accent" />
+        <StatCard icon="mdi-map-marker-outline" :value="stats?.locations ?? 0" :title="t('admin.opportunities.statLocations')" color="info" />
+      </div>
+      <BaseCard class="lg:col-span-2">
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <div class="mb-2 flex items-center gap-2">
+              <BaseIcon name="mdi-chart-line" :size="18" class="text-brand" />
+              <h2 class="text-sm font-bold text-content">{{ t('admin.opportunities.trend') }}</h2>
+            </div>
+            <LineChart v-if="seriesData.length" :data="seriesData" color="primary" :height="140" />
+          </div>
+          <div>
+            <div class="mb-2 flex items-center gap-2">
+              <BaseIcon name="mdi-chart-donut" :size="18" class="text-brand" />
+              <h2 class="text-sm font-bold text-content">{{ t('admin.opportunities.byCategory') }}</h2>
+            </div>
+            <DonutChart v-if="stats?.byCategory?.length" :data="stats.byCategory" :size="140" :center-label="t('admin.opportunities.statTotal')" />
+          </div>
+        </div>
+      </BaseCard>
+    </div>
 
     <ResourceScaffold
       :columns="columns"

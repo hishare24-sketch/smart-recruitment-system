@@ -124,8 +124,10 @@ export const API_PATHS = {
     role: (role: string) => `/admin/roles/${role}`,
     rolePermissions: (role: string) => `/admin/roles/${role}/permissions`,
     opportunities: '/admin/opportunities',
+    opportunitiesStats: '/admin/opportunities/stats',
     opportunity: (id: number) => `/admin/opportunities/${id}`,
     requests: '/admin/requests',
+    requestsStats: '/admin/requests/stats',
     request: (id: number) => `/admin/requests/${id}`,
     surveys: '/admin/surveys',
     surveysStats: '/admin/surveys/stats',
@@ -263,6 +265,8 @@ export interface AdminUsersStats { total: number, suspended: number, organizatio
 export interface AdminInterviewersStats { total: number, approved: number, pending: number, avgRating: number, byStatus: { label: string, value: number }[], bySpecialty: { label: string, value: number }[] }
 export interface AdminInterviewerCreate { name: string, specialty: string, status?: string, rating?: number, price_from?: number }
 export interface AdminOpportunity { id: number, title: string, company: string, location: string, salary: string, category: string, skills: string[], createdAt?: string }
+export interface AdminOpportunitiesStats { total: number, categories: number, locations: number, byCategory: { label: string, value: number }[], series: { date: string, value: number }[] }
+export interface AdminRequestsStats { total: number, types: number, open: number, byType: { label: string, value: number }[], byState: { label: string, value: number }[], series: { date: string, value: number }[] }
 export interface AdminMarketRequest { id: number, type: string, title: string, org: string, state: string, compensation: string, remote: boolean, createdAt?: string }
 export interface AdminMarketQuery { page?: number, perPage?: number, sort?: string, q?: string, category?: string, type?: string, state?: string, status?: string, specialty?: string, action?: string, resource?: string, method?: string }
 export interface AdminSurvey { id: number, title: string, state: string, points_pool: number, responses: number, owner: string | null, createdAt?: string }
@@ -378,8 +382,10 @@ export const api = {
     deleteRole: (role: string) => del(API_PATHS.admin.role(role)),
     updateRolePermissions: (role: string, permissions: string[]) => put(API_PATHS.admin.rolePermissions(role), { permissions }),
     opportunities: (params?: AdminMarketQuery) => getPage<AdminOpportunity>(API_PATHS.admin.opportunities, params as Record<string, unknown>),
+    opportunitiesStats: () => get<AdminOpportunitiesStats>(API_PATHS.admin.opportunitiesStats),
     deleteOpportunity: (id: number) => del(API_PATHS.admin.opportunity(id)),
     requests: (params?: AdminMarketQuery) => getPage<AdminMarketRequest>(API_PATHS.admin.requests, params as Record<string, unknown>),
+    requestsStats: () => get<AdminRequestsStats>(API_PATHS.admin.requestsStats),
     deleteRequest: (id: number) => del(API_PATHS.admin.request(id)),
     surveys: (params?: AdminMarketQuery) => getPage<AdminSurvey>(API_PATHS.admin.surveys, params as Record<string, unknown>),
     surveysStats: () => get<AdminSurveysStats>(API_PATHS.admin.surveysStats),

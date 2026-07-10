@@ -488,7 +488,12 @@
       "delete": "Delete",
       "confirmDeleteTitle": "Delete opportunity?",
       "confirmDeleteMsg": "“{title}” will be permanently removed.",
-      "bulkDelete": "Delete selected"
+      "bulkDelete": "Delete selected",
+      "statTotal": "Opportunities",
+      "statCategories": "Categories",
+      "statLocations": "Locations",
+      "trend": "Trend (14d)",
+      "byCategory": "By category"
     },
     "requests": {
       "title": "Requests",
@@ -508,7 +513,12 @@
       "delete": "Delete",
       "confirmDeleteTitle": "Delete request?",
       "confirmDeleteMsg": "“{title}” will be permanently removed.",
-      "bulkDelete": "Delete selected"
+      "bulkDelete": "Delete selected",
+      "statTotal": "Requests",
+      "statTypes": "Types",
+      "statOpen": "Open",
+      "byType": "By type",
+      "byState": "By state"
     },
     "surveys": {
       "title": "Surveys",

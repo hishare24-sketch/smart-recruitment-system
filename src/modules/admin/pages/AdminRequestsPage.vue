@@ -1,22 +1,30 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/shared/PageHeader.vue'
+import StatCard from '@/components/shared/StatCard.vue'
+import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseChip from '@/components/ui/BaseChip.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseIcon from '@/components/ui/BaseIcon.vue'
 import BaseSnackbar from '@/components/ui/BaseSnackbar.vue'
 import BaseTooltip from '@/components/ui/BaseTooltip.vue'
+import DonutChart from '@/components/charts/DonutChart.vue'
+import BarChart from '@/components/charts/BarChart.vue'
 import ResourceScaffold from '@/modules/admin/components/ResourceScaffold.vue'
 import type { FilterDef } from '@/modules/admin/components/ResourceScaffold.vue'
 import type { TableColumn } from '@/components/ui/BaseTable.vue'
 import { useAdminResource } from '@/modules/admin/composables/useAdminResource'
 import { confirm } from '@/components/ui/confirm'
-import { type AdminMarketRequest, api } from '@/services/api'
+import { type AdminMarketRequest, type AdminRequestsStats, api } from '@/services/api'
 
 const { t } = useI18n()
 const r = useAdminResource<AdminMarketRequest>({ fetcher: params => api.admin.requests(params), initialSort: '-id' })
 const { items, meta, loading, sortKey, selected, search, filters } = r
+
+const stats = ref<AdminRequestsStats | null>(null)
+async function loadStats() { try { stats.value = await api.admin.requestsStats() } catch { /* تجاهل */ } }
+onMounted(loadStats)
 
 const columns: TableColumn[] = [
   { key: 'title', label: t('admin.requests.colTitle'), sortable: true },
@@ -76,6 +84,33 @@ async function bulkDelete() {
 <template>
   <div>
     <PageHeader :title="t('admin.requests.title')" :subtitle="t('admin.requests.subtitle')" icon="mdi-file-document-outline" />
+
+    <!-- شريط الإحصاءات -->
+    <div class="mb-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div class="grid grid-cols-3 gap-3">
+        <StatCard icon="mdi-file-document-outline" :value="stats?.total ?? 0" :title="t('admin.requests.statTotal')" color="primary" />
+        <StatCard icon="mdi-shape-outline" :value="stats?.types ?? 0" :title="t('admin.requests.statTypes')" color="accent" />
+        <StatCard icon="mdi-lock-open-variant-outline" :value="stats?.open ?? 0" :title="t('admin.requests.statOpen')" color="success" />
+      </div>
+      <BaseCard class="lg:col-span-2">
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <div class="mb-2 flex items-center gap-2">
+              <BaseIcon name="mdi-chart-donut" :size="18" class="text-brand" />
+              <h2 class="text-sm font-bold text-content">{{ t('admin.requests.byType') }}</h2>
+            </div>
+            <DonutChart v-if="stats?.byType?.length" :data="stats.byType" :size="140" :center-label="t('admin.requests.statTotal')" />
+          </div>
+          <div>
+            <div class="mb-2 flex items-center gap-2">
+              <BaseIcon name="mdi-chart-bar" :size="18" class="text-brand" />
+              <h2 class="text-sm font-bold text-content">{{ t('admin.requests.byState') }}</h2>
+            </div>
+            <BarChart v-if="stats?.byState?.length" :data="stats.byState" color="secondary" :height="140" />
+          </div>
+        </div>
+      </BaseCard>
+    </div>
 
     <ResourceScaffold
       :columns="columns"

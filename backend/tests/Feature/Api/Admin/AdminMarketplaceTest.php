@@ -61,4 +61,21 @@ class AdminMarketplaceTest extends TestCase
         Sanctum::actingAs(User::create(['name' => 'U', 'email' => 'u'.uniqid().'@rec.test', 'password' => 'secret123']));
         $this->getJson('/api/admin/opportunities')->assertStatus(403);
     }
+
+    public function test_marketplace_stats_shapes(): void
+    {
+        $this->admin();
+        Opportunity::create(['title' => 'Dev', 'company' => 'Acme', 'location' => 'Riyadh', 'salary' => '10k', 'category' => 'tech', 'skills' => ['Vue']]);
+        MarketRequest::create(['type' => 'project', 'title' => 'Build', 'org' => 'Org', 'state' => 'open', 'compensation' => 'fixed', 'remote' => true]);
+
+        $this->getJson('/api/admin/opportunities/stats')
+            ->assertOk()
+            ->assertJsonStructure(['data' => ['total', 'categories', 'locations', 'byCategory', 'series']])
+            ->assertJsonPath('data.total', 1);
+
+        $this->getJson('/api/admin/requests/stats')
+            ->assertOk()
+            ->assertJsonStructure(['data' => ['total', 'types', 'open', 'byType', 'byState', 'series']])
+            ->assertJsonPath('data.open', 1);
+    }
 }
