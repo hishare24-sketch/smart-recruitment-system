@@ -39,6 +39,8 @@ const RIBBON_LIMIT = 8
 const filterOpen = ref(false)
 const sortOpen = ref(false)
 const sheetSearch = ref('')
+const showAllOpts = ref(false)
+const PRIMARY_TOPN = 6
 
 const activeSort = computed(() => props.sorts.find(s => s.key === api.state.sortKey) ?? props.sorts[0])
 
@@ -82,6 +84,16 @@ function sheetOptions(f: FacetSpec<T>) {
   const q = sheetSearch.value.trim()
   const opts = f.options?.() ?? []
   return f.searchable && q ? opts.filter(o => o.label.includes(q)) : opts
+}
+// قائمة مُختصرة (أهمّ N) للتصنيف القابل للبحث — تُوسَّع بـ«عرض كل القطاعات»
+function displayOptions(f: FacetSpec<T>) {
+  const all = sheetOptions(f)
+  if (sheetSearch.value.trim() || showAllOpts.value)
+    return all
+  return all.slice(0, PRIMARY_TOPN)
+}
+function hiddenCount(f: FacetSpec<T>): number {
+  return Math.max(0, sheetOptions(f).length - PRIMARY_TOPN)
 }
 function pickSort(key: string) {
   api.setSort(key)
@@ -214,23 +226,31 @@ function pickSort(key: string) {
             <div v-if="f.searchable" class="relative mb-2">
               <BaseInput v-model="sheetSearch" prefix-icon="mdi-magnify" placeholder="ابحث…" />
             </div>
-            <!-- قابل للبحث (تصنيف كبير): قائمة صفوف بمربّعات اختيار -->
-            <div v-if="f.searchable" class="max-h-56 overflow-y-auto">
+            <!-- قابل للبحث (تصنيف كبير): أهمّ N صفوف + «عرض الكل» -->
+            <div v-if="f.searchable">
               <button
-                v-for="opt in sheetOptions(f)"
+                v-for="opt in displayOptions(f)"
                 :key="opt.value"
                 type="button"
-                class="flex w-full items-center gap-2 border-b border-ui py-2 text-start"
+                class="flex w-full items-center gap-2.5 border-b border-ui py-2.5 text-start"
                 @click="api.toggleMulti(f.key, opt.value)"
               >
                 <span
-                  class="flex h-5 w-5 items-center justify-center rounded border-ui"
+                  class="flex h-5 w-5 shrink-0 items-center justify-center rounded border-ui"
                   :class="(api.state.sel[f.key] ?? []).includes(opt.value) ? 'bg-brand text-on-brand' : ''"
                 >
                   <BaseIcon v-if="(api.state.sel[f.key] ?? []).includes(opt.value)" name="mdi-check" :size="14" />
                 </span>
-                <BaseIcon v-if="opt.icon" :name="opt.icon" :size="17" class="text-muted" />
-                <span class="flex-1 text-sm">{{ opt.label }}</span>
+                <BaseIcon v-if="opt.icon" :name="opt.icon" :size="18" class="text-muted" />
+                <span class="flex-1 truncate text-sm">{{ opt.label }}</span>
+              </button>
+              <button
+                v-if="!sheetSearch.trim() && hiddenCount(f) > 0"
+                type="button"
+                class="w-full py-2.5 text-center text-sm font-medium text-brand"
+                @click="showAllOpts = !showAllOpts"
+              >
+                {{ showAllOpts ? 'عرض أقل' : `عرض كل ${f.label} (${(f.options?.() ?? []).length})` }}
               </button>
             </div>
             <!-- قائمة قصيرة: رقائق -->

@@ -9,7 +9,7 @@ import { useSavedStore } from '@/stores/SavedStore'
 import { useProfileStore } from '@/stores/ProfileStore'
 import { matchScore } from '@/services/matching'
 import { opportunityMatchProfile, seekerMatchProfile } from '@/services/matchProfile'
-import { getSector, sectorForField } from '@/services/sectors'
+import { getSector, sectorForField, visibleSectors } from '@/services/sectors'
 import { useSectorContext } from '@/composables/useSectorContext'
 import type { FacetSpec, SortSpec } from '@/composables/useFacetedList'
 import FacetedList from '@/components/shared/FacetedList.vue'
@@ -56,11 +56,10 @@ function uniq<A>(xs: A[]): A[] {
 // —— العقد الموحّد: spec الفاسِتات + الفرز (القطاع محوريّ، مُنتقٍ باحث) ——
 const facets = computed<FacetSpec<Opportunity>[]>(() => [
   {
-    key: 'sector', label: 'القطاع', kind: 'multi', primary: true, searchable: true,
+    // القطاع فاسِت محوريّ = كامل التصنيف المرئيّ (مرتّب بالأولويّة، يُخفي «أخرى»)
+    key: 'sector', label: 'القطاعات', kind: 'multi', primary: true, searchable: true,
     value: o => oppSector(o),
-    options: () => (uniq(mockOpportunities.map(oppSector).filter(Boolean) as string[]))
-      .map(id => ({ value: id, label: getSector(id)?.label ?? id, icon: getSector(id)?.icon }))
-      .sort((a, b) => (getSector(a.value)?.priority ?? 99) - (getSector(b.value)?.priority ?? 99)),
+    options: () => visibleSectors().map(s => ({ value: s.id, label: s.label, icon: s.icon })),
   },
   {
     key: 'city', label: 'المدينة', kind: 'multi', value: o => o.city,
