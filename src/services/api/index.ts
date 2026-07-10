@@ -124,8 +124,12 @@ export const API_PATHS = {
     requests: '/admin/requests',
     request: (id: number) => `/admin/requests/${id}`,
     surveys: '/admin/surveys',
+    surveysStats: '/admin/surveys/stats',
     survey: (id: number) => `/admin/surveys/${id}`,
     surveyClose: (id: number) => `/admin/surveys/${id}/close`,
+    surveyTemplates: '/admin/survey-templates',
+    surveyTemplatesStats: '/admin/survey-templates/stats',
+    surveyTemplate: (id: number) => `/admin/survey-templates/${id}`,
     wallets: '/admin/wallets',
     walletsStats: '/admin/wallets/stats',
     walletAdjust: (id: number) => `/admin/wallets/${id}/adjust`,
@@ -250,6 +254,11 @@ export interface AdminOpportunity { id: number, title: string, company: string, 
 export interface AdminMarketRequest { id: number, type: string, title: string, org: string, state: string, compensation: string, remote: boolean, createdAt?: string }
 export interface AdminMarketQuery { page?: number, perPage?: number, sort?: string, q?: string, category?: string, type?: string, state?: string, status?: string, specialty?: string }
 export interface AdminSurvey { id: number, title: string, state: string, points_pool: number, responses: number, owner: string | null, createdAt?: string }
+export interface AdminSurveysStats { total: number, active: number, responses: number, avgResponses: number, distribution: { label: string, value: number }[], series: { date: string, value: number }[] }
+export interface AdminTemplateQuestion { text: string, type: string, options?: string[], rows?: string[], scaleMin?: string, scaleMax?: string }
+export interface AdminSurveyTemplate { id: number, name: string, description: string | null, category: string, icon: string | null, questions: AdminTemplateQuestion[], questionsCount: number, is_system: boolean, active: boolean, sort: number }
+export interface AdminSurveyTemplateCreate { name: string, category: string, description?: string, icon?: string, active?: boolean, questions?: AdminTemplateQuestion[] }
+export interface AdminSurveyTemplatesStats { total: number, active: number, system: number, custom: number, distribution: { label: string, value: number }[] }
 export interface AdminWallet { id: number, userId: number, userName: string | null, userEmail: string | null, balance: number, transactions: number, updatedAt?: string }
 export interface AdminWalletsStats { totalBalance: number, wallets: number, avgBalance: number, topHolders: { label: string, value: number }[] }
 export interface AdminPlatformAccount { id: number, name: string, type: string, bank_name: string | null, account_no_masked: string | null, currency: string, balance: number, is_default: boolean, active: boolean, notes: string | null, transactions: number, updatedAt?: string }
@@ -355,8 +364,14 @@ export const api = {
     requests: (params?: AdminMarketQuery) => getPage<AdminMarketRequest>(API_PATHS.admin.requests, params as Record<string, unknown>),
     deleteRequest: (id: number) => del(API_PATHS.admin.request(id)),
     surveys: (params?: AdminMarketQuery) => getPage<AdminSurvey>(API_PATHS.admin.surveys, params as Record<string, unknown>),
+    surveysStats: () => get<AdminSurveysStats>(API_PATHS.admin.surveysStats),
     closeSurvey: (id: number) => post(API_PATHS.admin.surveyClose(id)),
     deleteSurvey: (id: number) => del(API_PATHS.admin.survey(id)),
+    surveyTemplates: (params?: AdminMarketQuery) => getPage<AdminSurveyTemplate>(API_PATHS.admin.surveyTemplates, params as Record<string, unknown>),
+    surveyTemplatesStats: () => get<AdminSurveyTemplatesStats>(API_PATHS.admin.surveyTemplatesStats),
+    createSurveyTemplate: (body: AdminSurveyTemplateCreate) => post<AdminSurveyTemplate>(API_PATHS.admin.surveyTemplates, body),
+    updateSurveyTemplate: (id: number, body: Partial<AdminSurveyTemplateCreate>) => put<AdminSurveyTemplate>(API_PATHS.admin.surveyTemplate(id), body),
+    deleteSurveyTemplate: (id: number) => del(API_PATHS.admin.surveyTemplate(id)),
     wallets: (params?: AdminMarketQuery) => getPage<AdminWallet>(API_PATHS.admin.wallets, params as Record<string, unknown>),
     walletsStats: () => get<AdminWalletsStats>(API_PATHS.admin.walletsStats),
     adjustWallet: (id: number, amount: number, note?: string) => post<AdminWallet>(API_PATHS.admin.walletAdjust(id), { amount, note }),

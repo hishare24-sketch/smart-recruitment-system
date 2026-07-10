@@ -367,7 +367,8 @@
       "groupQuality": "Quality & Accreditation",
       "interviewers": "Interviewers",
       "plans": "Plans",
-      "treasury": "Treasury"
+      "treasury": "Treasury",
+      "surveyTemplates": "Survey templates"
     },
     "groups": {
       "users": "Users & Roles",
@@ -512,7 +513,11 @@
       "confirmCloseTitle": "Close survey?",
       "confirmCloseMsg": "“{title}” will stop accepting responses.",
       "confirmDeleteTitle": "Delete survey?",
-      "confirmDeleteMsg": "“{title}” will be permanently removed."
+      "confirmDeleteMsg": "“{title}” will be permanently removed.",
+      "statTotal": "Surveys",
+      "statActive": "Active",
+      "statResponses": "Responses",
+      "byState": "By state"
     },
     "wallets": {
       "title": "Wallets",
@@ -653,6 +658,52 @@
       "noTxns": "No transactions yet",
       "confirmDeleteTitle": "Delete account?",
       "confirmDeleteMsg": "\"{name}\" will be removed (blocked for default or with balance/history)."
+    },
+    "templates": {
+      "title": "Survey templates",
+      "subtitle": "Library of ready templates, types and patterns",
+      "searchPlaceholder": "Search by template name...",
+      "statTotal": "Templates",
+      "statActive": "Active",
+      "statSystem": "System",
+      "statCustom": "Custom",
+      "byCategory": "By category",
+      "colName": "Template",
+      "colCategory": "Category",
+      "colQuestions": "Questions",
+      "colKind": "Kind",
+      "colActive": "Status",
+      "cat_satisfaction": "Satisfaction",
+      "cat_feedback": "Feedback",
+      "cat_nps": "NPS",
+      "cat_poll": "Poll",
+      "cat_assessment": "Assessment",
+      "cat_custom": "Custom",
+      "system": "System",
+      "custom": "Custom",
+      "statusActive": "Active",
+      "statusInactive": "Inactive",
+      "newTemplate": "New template",
+      "create": "Create",
+      "created": "Template created",
+      "save": "Save",
+      "edit": "Edit",
+      "delete": "Delete",
+      "preview": "Preview",
+      "editTitle": "Edit {name}",
+      "fieldName": "Template name",
+      "fieldCategory": "Category",
+      "fieldDescription": "Description",
+      "fieldActive": "Active",
+      "questions": "Questions",
+      "questionText": "Question text",
+      "options": "Options",
+      "addOption": "Add option, press Enter",
+      "noQuestions": "No questions yet — add from the types below",
+      "addQuestionType": "Add a question of type:",
+      "removeQuestion": "Remove question",
+      "confirmDeleteTitle": "Delete template?",
+      "confirmDeleteMsg": "\"{name}\" will be removed (system templates are protected)."
     }
   }
 }

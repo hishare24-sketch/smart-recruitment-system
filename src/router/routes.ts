@@ -329,6 +329,12 @@ export const routes: RouteRecordRaw[] = [
     meta: { layout: 'admin', roles: ['admin'], permission: 'view_surveys', title: 'admin.nav.surveys' },
   },
   {
+    path: '/admin/survey-templates',
+    name: 'admin-survey-templates',
+    component: () => import('@/modules/admin/pages/AdminSurveyTemplatesPage.vue'),
+    meta: { layout: 'admin', roles: ['admin'], permission: 'view_survey_templates', title: 'admin.nav.surveyTemplates' },
+  },
+  {
     path: '/admin/wallets',
     name: 'admin-wallets',
     component: () => import('@/modules/admin/pages/AdminWalletsPage.vue'),

@@ -367,7 +367,8 @@
       "groupQuality": "الجودة والاعتماد",
       "interviewers": "المقيّمون",
       "plans": "الباقات",
-      "treasury": "الخزينة"
+      "treasury": "الخزينة",
+      "surveyTemplates": "نماذج الاستبيانات"
     },
     "groups": {
       "users": "المستخدمون والأدوار",
@@ -512,7 +513,11 @@
       "confirmCloseTitle": "إغلاق الاستبيان؟",
       "confirmCloseMsg": "سيتوقّف استقبال الردود لـ «{title}».",
       "confirmDeleteTitle": "حذف الاستبيان؟",
-      "confirmDeleteMsg": "سيُزال «{title}» نهائيًّا."
+      "confirmDeleteMsg": "سيُزال «{title}» نهائيًّا.",
+      "statTotal": "الاستبيانات",
+      "statActive": "النشطة",
+      "statResponses": "الردود",
+      "byState": "التوزيع حسب الحالة"
     },
     "wallets": {
       "title": "المحافظ",
@@ -653,6 +658,52 @@
       "noTxns": "لا حركات بعد",
       "confirmDeleteTitle": "حذف الحساب؟",
       "confirmDeleteMsg": "سيُزال «{name}» (يُمنع للافتراضيّ أو ذي الرصيد/الحركات)."
+    },
+    "templates": {
+      "title": "نماذج الاستبيانات",
+      "subtitle": "مكتبة النماذج والأنواع والأنماط الجاهزة",
+      "searchPlaceholder": "بحث باسم النموذج...",
+      "statTotal": "النماذج",
+      "statActive": "المفعّلة",
+      "statSystem": "نظاميّة",
+      "statCustom": "مخصّصة",
+      "byCategory": "التوزيع حسب الفئة",
+      "colName": "النموذج",
+      "colCategory": "الفئة",
+      "colQuestions": "الأسئلة",
+      "colKind": "النوع",
+      "colActive": "الحالة",
+      "cat_satisfaction": "رضا",
+      "cat_feedback": "تغذية راجعة",
+      "cat_nps": "NPS",
+      "cat_poll": "تصويت",
+      "cat_assessment": "تقييم",
+      "cat_custom": "مخصّص",
+      "system": "نظاميّ",
+      "custom": "مخصّص",
+      "statusActive": "مفعّل",
+      "statusInactive": "معطّل",
+      "newTemplate": "نموذج جديد",
+      "create": "إنشاء",
+      "created": "أُنشئ النموذج",
+      "save": "حفظ",
+      "edit": "تحرير",
+      "delete": "حذف",
+      "preview": "معاينة",
+      "editTitle": "تحرير {name}",
+      "fieldName": "اسم النموذج",
+      "fieldCategory": "الفئة",
+      "fieldDescription": "الوصف",
+      "fieldActive": "مفعّل",
+      "questions": "الأسئلة",
+      "questionText": "نصّ السؤال",
+      "options": "الخيارات",
+      "addOption": "أضف خيارًا واضغط Enter",
+      "noQuestions": "لا أسئلة بعد — أضِف من الأنواع أدناه",
+      "addQuestionType": "أضِف سؤالًا بنوع:",
+      "removeQuestion": "حذف السؤال",
+      "confirmDeleteTitle": "حذف النموذج؟",
+      "confirmDeleteMsg": "سيُزال «{name}» (النماذج النظاميّة محميّة)."
     }
   }
 }

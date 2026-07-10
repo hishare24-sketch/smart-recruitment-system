@@ -1,21 +1,28 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/shared/PageHeader.vue'
+import StatCard from '@/components/shared/StatCard.vue'
+import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseChip from '@/components/ui/BaseChip.vue'
 import BaseIcon from '@/components/ui/BaseIcon.vue'
 import BaseSnackbar from '@/components/ui/BaseSnackbar.vue'
 import BaseTooltip from '@/components/ui/BaseTooltip.vue'
+import DonutChart from '@/components/charts/DonutChart.vue'
 import ResourceScaffold from '@/modules/admin/components/ResourceScaffold.vue'
 import type { FilterDef } from '@/modules/admin/components/ResourceScaffold.vue'
 import type { TableColumn } from '@/components/ui/BaseTable.vue'
 import { useAdminResource } from '@/modules/admin/composables/useAdminResource'
 import { confirm } from '@/components/ui/confirm'
-import { type AdminSurvey, api } from '@/services/api'
+import { type AdminSurvey, type AdminSurveysStats, api } from '@/services/api'
 
 const { t } = useI18n()
 const r = useAdminResource<AdminSurvey>({ fetcher: params => api.admin.surveys(params), initialSort: '-id' })
 const { items, meta, loading, sortKey, selected, search, filters } = r
+
+const stats = ref<AdminSurveysStats | null>(null)
+async function loadStats() { try { stats.value = await api.admin.surveysStats() } catch { /* تجاهل */ } }
+onMounted(loadStats)
 
 const columns: TableColumn[] = [
   { key: 'title', label: t('admin.surveys.colTitle'), sortable: true },
@@ -68,6 +75,23 @@ async function remove(s: AdminSurvey) {
 <template>
   <div>
     <PageHeader :title="t('admin.surveys.title')" :subtitle="t('admin.surveys.subtitle')" icon="mdi-clipboard-text-outline" />
+
+    <!-- شريط الإحصاءات -->
+    <div class="mb-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div class="grid grid-cols-3 gap-3 lg:col-span-2">
+        <StatCard icon="mdi-clipboard-text-outline" :value="stats?.total ?? 0" :title="t('admin.surveys.statTotal')" color="primary" />
+        <StatCard icon="mdi-play-circle-outline" :value="stats?.active ?? 0" :title="t('admin.surveys.statActive')" color="success" />
+        <StatCard icon="mdi-comment-check-outline" :value="stats?.responses ?? 0" :title="t('admin.surveys.statResponses')" color="info" />
+      </div>
+      <BaseCard>
+        <div class="mb-2 flex items-center gap-2">
+          <BaseIcon name="mdi-chart-donut" :size="18" class="text-brand" />
+          <h2 class="text-sm font-bold text-content">{{ t('admin.surveys.byState') }}</h2>
+        </div>
+        <DonutChart v-if="stats?.distribution?.length" :data="stats.distribution" :size="150" :center-label="t('admin.surveys.statTotal')" />
+        <p v-else class="py-6 text-center text-xs text-muted">—</p>
+      </BaseCard>
+    </div>
 
     <ResourceScaffold
       :columns="columns"
