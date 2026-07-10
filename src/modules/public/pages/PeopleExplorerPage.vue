@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/shared/PageHeader.vue'
 import { usePublicProfileStore } from '@/stores/PublicProfileStore'
 import { useSectorContext } from '@/composables/useSectorContext'
@@ -18,6 +19,7 @@ import BaseIcon from '@/components/ui/BaseIcon.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 
 // ===== استكشاف الأشخاص — دليل الصفحات التعريفية العامة: بوابة هوية أهل المنصة =====
+const { t } = useI18n()
 const router = useRouter()
 const pub = usePublicProfileStore()
 const sector = useSectorContext()
@@ -70,18 +72,18 @@ const people = computed<PersonCard[]>(() => [
 const facets = computed<FacetSpec<PersonCard>[]>(() => [
   sectorFacet(p => personSector(p.skills), () => people.value),
   {
-    key: 'role', label: 'الدور', kind: 'multi', value: p => p.roles,
+    key: 'role', label: t('discovery.people.facetRole'), kind: 'multi', value: p => p.roles,
     options: () => uniq(people.value.flatMap(p => p.roles)).map(r => ({ value: r, label: r })),
   },
   {
-    key: 'city', label: 'المدينة', kind: 'multi', value: p => p.location,
+    key: 'city', label: t('discovery.city'), kind: 'multi', value: p => p.location,
     options: () => uniq(people.value.map(p => p.location)).map(c => ({ value: c, label: c })),
   },
 ])
 const sorts = computed<SortSpec<PersonCard>[]>(() => [
-  { key: 'followers', label: 'الأكثر متابعة', cmp: (a, b) => { const d = b.followers - a.followers; return d !== 0 ? d : sector.boost(personSector(b.skills)) - sector.boost(personSector(a.skills)) } },
-  { key: 'credibility', label: 'الأعلى مصداقية', cmp: (a, b) => b.credibility - a.credibility },
-  { key: 'rating', label: 'الأعلى تقييمًا', cmp: (a, b) => b.rating - a.rating },
+  { key: 'followers', label: t('discovery.people.sortFollowers'), cmp: (a, b) => { const d = b.followers - a.followers; return d !== 0 ? d : sector.boost(personSector(b.skills)) - sector.boost(personSector(a.skills)) } },
+  { key: 'credibility', label: t('discovery.people.sortCredibility'), cmp: (a, b) => b.credibility - a.credibility },
+  { key: 'rating', label: t('discovery.sortRatingHigh'), cmp: (a, b) => b.rating - a.rating },
 ])
 const primaryPreset = sector.mySectorsPreset
 const personText = (p: PersonCard) => `${p.name} ${p.headline} ${p.skills.join(' ')}`
@@ -99,8 +101,8 @@ function open(p: PersonCard) {
 <template>
   <div>
     <PageHeader
-      title="استكشاف الأشخاص"
-      subtitle="تعرّف على أهل المنصة — خبراء وباحثون وجهات، كلٌّ بصفحته التعريفية الموثّقة"
+      :title="t('discovery.people.title')"
+      :subtitle="t('discovery.people.subtitle')"
       icon="mdi-account-group-outline"
     />
 
@@ -112,8 +114,8 @@ function open(p: PersonCard) {
       :item-key="(p: PersonCard) => p.slug"
       view="grid"
       :primary-preset="primaryPreset"
-      noun="شخص"
-      search-placeholder="ابحث بالاسم أو التخصص أو المهارة…"
+      :noun="t('discovery.people.noun')"
+      :search-placeholder="t('discovery.people.search')"
     >
       <template #item="{ item }">
         <template v-for="p in [item as PersonCard]" :key="p.slug">
@@ -130,7 +132,7 @@ function open(p: PersonCard) {
               <div class="flex-1">
                 <div class="flex items-center gap-1">
                   <span class="font-bold text-content">{{ p.name }}</span>
-                  <BaseChip v-if="p.live" color="success">حيّ</BaseChip>
+                  <BaseChip v-if="p.live" color="success">{{ t('discovery.people.live') }}</BaseChip>
                 </div>
                 <div class="text-xs text-muted">{{ p.headline }}</div>
                 <div class="text-xs text-muted"><BaseIcon name="mdi-map-marker-outline" :size="12" /> {{ p.location }}</div>
@@ -145,9 +147,9 @@ function open(p: PersonCard) {
             </div>
 
             <div class="mt-auto flex items-center gap-3 text-xs text-muted">
-              <span title="المصداقية"><BaseIcon name="mdi-shield-check-outline" :size="14" style="color: rgb(var(--v-theme-primary))" /> {{ p.credibility }}%</span>
-              <span title="المتابعون"><BaseIcon name="mdi-account-group-outline" :size="14" style="color: rgb(var(--v-theme-accent))" /> {{ p.followers }}</span>
-              <span title="التقييم"><BaseIcon name="mdi-star" :size="14" style="color: rgb(var(--v-theme-warning))" /> {{ p.rating }}</span>
+              <span :title="t('discovery.people.credibility')"><BaseIcon name="mdi-shield-check-outline" :size="14" style="color: rgb(var(--v-theme-primary))" /> {{ p.credibility }}%</span>
+              <span :title="t('discovery.people.followers')"><BaseIcon name="mdi-account-group-outline" :size="14" style="color: rgb(var(--v-theme-accent))" /> {{ p.followers }}</span>
+              <span :title="t('discovery.people.rating')"><BaseIcon name="mdi-star" :size="14" style="color: rgb(var(--v-theme-warning))" /> {{ p.rating }}</span>
               <BaseIcon name="mdi-arrow-left-circle-outline" :size="18" class="ms-auto" style="color: rgb(var(--v-theme-primary))" />
             </div>
           </BaseCard>
@@ -157,8 +159,8 @@ function open(p: PersonCard) {
 
     <!-- CTA: صفحتك أنت -->
     <div class="brand-gradient rounded-ui-lg mt-4 p-5 text-center">
-      <p class="mb-3 text-white">هذه صفحاتهم — أين صفحتك؟ قوّها وشاركها ليجدك أصحاب الفرص هنا.</p>
-      <BaseButton variant="accent" :to="{ name: 'public-profile-manage' }">إدارة صفحتي التعريفية</BaseButton>
+      <p class="mb-3 text-white">{{ t('discovery.people.ctaBanner') }}</p>
+      <BaseButton variant="accent" :to="{ name: 'public-profile-manage' }">{{ t('discovery.people.manageProfile') }}</BaseButton>
     </div>
 
     <!-- معاينة ملف تجريبي -->
@@ -172,17 +174,17 @@ function open(p: PersonCard) {
           </div>
         </div>
         <div class="mb-3 flex gap-3 text-xs text-muted">
-          <span><BaseIcon name="mdi-shield-check-outline" :size="14" style="color: rgb(var(--v-theme-primary))" /> مصداقية {{ previewPerson.credibility }}%</span>
-          <span><BaseIcon name="mdi-account-group-outline" :size="14" style="color: rgb(var(--v-theme-accent))" /> {{ previewPerson.followers }} متابعًا</span>
+          <span><BaseIcon name="mdi-shield-check-outline" :size="14" style="color: rgb(var(--v-theme-primary))" /> {{ t('discovery.people.credibilityValue', { value: previewPerson.credibility }) }}</span>
+          <span><BaseIcon name="mdi-account-group-outline" :size="14" style="color: rgb(var(--v-theme-accent))" /> {{ t('discovery.people.followersCount', { count: previewPerson.followers }) }}</span>
           <span><BaseIcon name="mdi-star" :size="14" style="color: rgb(var(--v-theme-warning))" /> {{ previewPerson.rating }}</span>
         </div>
         <div class="mb-3 flex flex-wrap gap-1">
           <BaseChip v-for="sk in previewPerson.skills" :key="sk" color="brand">{{ sk }}</BaseChip>
         </div>
         <div class="rounded-ui mb-3 border-s-4 p-3 text-xs" style="border-color: rgb(var(--v-theme-secondary)); background: rgba(var(--v-theme-secondary), 0.1)">
-          ملف تجريبي للعرض — الصفحات الكاملة لكل الأعضاء تتفعل مع الربط الخلفي.
+          {{ t('discovery.people.demoNote') }}
         </div>
-        <BaseButton variant="tonal-brand" block @click="previewPerson = null">إغلاق</BaseButton>
+        <BaseButton variant="tonal-brand" block @click="previewPerson = null">{{ t('discovery.close') }}</BaseButton>
       </div>
     </BaseModal>
   </div>

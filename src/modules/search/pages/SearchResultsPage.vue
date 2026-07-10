@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useGlobalSearch } from '@/services/globalSearch'
 import { useSectorContext } from '@/composables/useSectorContext'
 import { ai } from '@/services/ai'
@@ -15,6 +16,7 @@ import BaseChip from '@/components/ui/BaseChip.vue'
 import BaseIcon from '@/components/ui/BaseIcon.vue'
 import BaseAvatar from '@/components/ui/BaseAvatar.vue'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { search } = useGlobalSearch()
@@ -73,7 +75,7 @@ const alternatives = computed(() => ai.keywordAlternatives(query.value))
 
 // Tabs: "all" + each category that has items
 const scopeTabs = computed(() => [
-  { key: 'all' as SearchScope, label: 'الكل', icon: 'mdi-view-grid-outline', count: totalCount.value },
+  { key: 'all' as SearchScope, label: t('discovery.all'), icon: 'mdi-view-grid-outline', count: totalCount.value },
   ...categories.value.filter(c => c.items.length).map(c => ({ key: c.key, label: c.label, icon: c.icon, count: c.items.length })),
 ])
 
@@ -95,8 +97,8 @@ function searchAlt(alt: string) {
 <template>
   <div>
     <PageHeader
-      title="اكتشف"
-      subtitle="ابحث واستكشف عبر كل الأسواق معًا — فرص، طلبات، أشخاص، خبراء، ومقيّمون."
+      :title="t('discovery.portal.title')"
+      :subtitle="t('discovery.portal.subtitle')"
       icon="mdi-telescope"
     >
       <template #actions>
@@ -106,33 +108,33 @@ function searchAlt(alt: string) {
           :variant="savedNow ? 'tonal-accent' : 'outline'"
           @click="toggleSave"
         >
-          <BaseIcon :name="savedNow ? 'mdi-bookmark' : 'mdi-bookmark-outline'" :size="16" />{{ savedNow ? 'محفوظ' : 'حفظ البحث' }}
+          <BaseIcon :name="savedNow ? 'mdi-bookmark' : 'mdi-bookmark-outline'" :size="16" />{{ savedNow ? t('discovery.portal.saved') : t('discovery.portal.saveSearch') }}
         </BaseButton>
       </template>
     </PageHeader>
 
     <!-- ① البحث البطل (عابر للأسواق) -->
     <div class="mb-4">
-      <BaseInput v-model="query" prefix-icon="mdi-magnify" placeholder="ابحث في كل المنصّة: مسمّى، شخص، شركة، مهارة…">
+      <BaseInput v-model="query" prefix-icon="mdi-magnify" :placeholder="t('discovery.portal.search')">
         <template #suffix>
-          <button v-if="query" type="button" class="text-muted" aria-label="مسح" @click="query = ''"><BaseIcon name="mdi-close" :size="18" /></button>
+          <button v-if="query" type="button" class="text-muted" :aria-label="t('discovery.clear')" @click="query = ''"><BaseIcon name="mdi-close" :size="18" /></button>
         </template>
       </BaseInput>
     </div>
     <p v-if="query" class="mb-3 text-sm text-muted">
-      عن «{{ query }}» — {{ totalCount }} نتيجة
+      {{ t('discovery.portal.resultsFor', { query, count: totalCount }) }}
     </p>
 
     <!-- Saved searches (quick re-run) -->
     <div v-if="prefs.saved.length" class="mb-3 flex flex-wrap items-center gap-1">
-      <span class="flex items-center gap-1 text-xs text-muted"><BaseIcon name="mdi-bookmark-multiple-outline" :size="14" /> محفوظة:</span>
+      <span class="flex items-center gap-1 text-xs text-muted"><BaseIcon name="mdi-bookmark-multiple-outline" :size="14" /> {{ t('discovery.portal.savedLabel') }}</span>
       <span
         v-for="s in prefs.saved"
         :key="s.id"
         class="inline-flex items-center gap-1 rounded-full border border-ui px-2.5 py-1 text-sm font-medium text-content"
       >
         <button type="button" @click="runSaved(s)">{{ s.q }}</button>
-        <button type="button" class="leading-none" aria-label="حذف" @click="prefs.removeSaved(s.id)"><BaseIcon name="mdi-close" :size="13" /></button>
+        <button type="button" class="leading-none" :aria-label="t('common.delete')" @click="prefs.removeSaved(s.id)"><BaseIcon name="mdi-close" :size="13" /></button>
       </span>
     </div>
 
@@ -142,7 +144,7 @@ function searchAlt(alt: string) {
         <BaseIcon name="mdi-robot-happy-outline" :size="20" :style="{ color: 'rgb(var(--v-theme-secondary))' }" />{{ intent.note }}
       </span>
       <div v-if="alternatives.length" class="flex flex-wrap items-center gap-1">
-        <span class="text-xs text-muted">هل تقصد:</span>
+        <span class="text-xs text-muted">{{ t('discovery.portal.didYouMean') }}</span>
         <button v-for="alt in alternatives" :key="alt" type="button" class="btn-tonal-emerald rounded-full px-2.5 py-1 text-sm font-medium" @click="searchAlt(alt)">{{ alt }}</button>
       </div>
     </div>
@@ -150,15 +152,15 @@ function searchAlt(alt: string) {
     <!-- Scope tabs with counts -->
     <div class="mb-3 flex flex-wrap items-center gap-2">
       <button
-        v-for="t in scopeTabs"
-        :key="t.key"
+        v-for="tab in scopeTabs"
+        :key="tab.key"
         type="button"
         class="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-sm font-medium transition"
-        :style="toggleStyle(activeScope === t.key)"
-        @click="activeScope = t.key"
+        :style="toggleStyle(activeScope === tab.key)"
+        @click="activeScope = tab.key"
       >
-        <BaseIcon :name="t.icon" :size="14" />{{ t.label }}
-        <span class="rounded-full px-1.5 text-xs" :style="activeScope === t.key ? { background: 'rgba(255,255,255,0.25)' } : { background: 'rgba(var(--v-theme-on-surface), 0.1)' }">{{ t.count }}</span>
+        <BaseIcon :name="tab.icon" :size="14" />{{ tab.label }}
+        <span class="rounded-full px-1.5 text-xs" :style="activeScope === tab.key ? { background: 'rgba(255,255,255,0.25)' } : { background: 'rgba(var(--v-theme-on-surface), 0.1)' }">{{ tab.count }}</span>
       </button>
 
       <!-- ضمن قطاعاتي — تقييد اختياريّ (النتائج مرتّبة بقطاعاتي دائمًا) -->
@@ -169,7 +171,7 @@ function searchAlt(alt: string) {
         :style="toggleStyle(onlyMine, 'secondary')"
         @click="onlyMine = !onlyMine"
       >
-        <BaseIcon name="mdi-shape-outline" :size="14" /> ضمن قطاعاتي
+        <BaseIcon name="mdi-shape-outline" :size="14" /> {{ t('discovery.portal.withinMySectors') }}
       </button>
     </div>
 
@@ -204,8 +206,8 @@ function searchAlt(alt: string) {
     <BaseCard v-else :padded="false">
       <EmptyState
         icon="mdi-magnify-close"
-        title="لا نتائج"
-        :description="query ? `لم نجد نتائج عن «${query}». جرّب كلمات أخرى.` : 'اكتب في شريط البحث بالأعلى للبدء.'"
+        :title="t('discovery.portal.noResults')"
+        :description="query ? t('discovery.portal.noResultsFor', { query }) : t('discovery.portal.startHint')"
       />
     </BaseCard>
   </div>

@@ -3,6 +3,7 @@
 // المرجع: مراجعة عقد الاكتشاف (منع تكرار spec القطاع في 5 صفحات).
 import { categorizeSkill } from '@/services/taxonomy'
 import { visibleSectors } from '@/services/sectors'
+import { i18n } from '@/plugins/i18n'
 import type { FacetSpec } from '@/composables/useFacetedList'
 
 /**
@@ -31,9 +32,10 @@ export function sectorFacet<T>(
         else if (v)
           present.add(v)
       }
+      const en = i18n.global.locale.value === 'en'
       return visibleSectors()
         .filter(s => present.has(s.id))
-        .map(s => ({ value: s.id, label: s.label, icon: s.icon }))
+        .map(s => ({ value: s.id, label: en ? s.en : s.label, icon: s.icon }))
     },
   }
 }

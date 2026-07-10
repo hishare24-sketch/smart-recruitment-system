@@ -12,6 +12,7 @@
 // (treeSel.category يُقارَن بـ sector.id). المرجع: DOC/SECTOR_INTEGRATION_PLAN.md
 // ============================================================================
 import { computed } from 'vue'
+import { i18n } from '@/plugins/i18n'
 import { getSector, sectorsByPriority } from '@/services/sectors'
 import { dominantSector } from '@/services/matchProfile'
 import { useAuthStore } from '@/stores/AuthStore'
@@ -128,7 +129,7 @@ export function useSectorContext() {
 
   /** بذرة «قطاعاتي» لشريط FacetedList المحوريّ (undefined حين لا سياق) */
   const mySectorsPreset = computed(() =>
-    has.value ? { label: 'قطاعاتي', icon: 'mdi-shape-outline', values: effective.value } : undefined,
+    has.value ? { label: i18n.global.t('discovery.mySectors'), icon: 'mdi-shape-outline', values: effective.value } : undefined,
   )
 
   return {

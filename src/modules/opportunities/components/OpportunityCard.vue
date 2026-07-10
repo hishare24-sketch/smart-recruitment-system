@@ -63,12 +63,12 @@ function openDetails() {
       </div>
       <div class="flex items-center gap-1">
         <BaseChip v-if="opportunity.isNew" color="accent">
-          جديد
+          {{ t('discovery.opportunities.new') }}
         </BaseChip>
         <button
           class="flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-surfalt"
           :style="{ color: isSaved ? 'rgb(var(--v-theme-accent))' : 'rgba(var(--v-theme-on-surface), 0.6)' }"
-          :aria-label="isSaved ? 'إزالة الحفظ' : 'حفظ'"
+          :aria-label="isSaved ? t('discovery.opportunities.unsave') : t('discovery.opportunities.save')"
           @click.stop="savedStore.toggle(opportunity.id)"
         >
           <BaseIcon :name="isSaved ? 'mdi-bookmark' : 'mdi-bookmark-outline'" :size="22" />
@@ -94,7 +94,7 @@ function openDetails() {
 
     <div class="mt-4 flex items-center justify-between pt-2">
       <span class="flex items-center gap-1 text-xs text-muted">
-        <BaseIcon name="mdi-account-multiple-outline" :size="16" /> {{ opportunity.applicants }} متقدم
+        <BaseIcon name="mdi-account-multiple-outline" :size="16" /> {{ t('discovery.opportunities.applicants', { count: opportunity.applicants }) }}
       </span>
       <span class="text-xs text-muted">{{ opportunity.postedAt }}</span>
     </div>
@@ -103,13 +103,13 @@ function openDetails() {
 
     <div class="mt-auto flex gap-2">
       <BaseButton v-if="isApplied" variant="tonal-emerald" size="sm" class="flex-1" @click="openDetails">
-        <BaseIcon name="mdi-check" :size="18" /> تم التقديم
+        <BaseIcon name="mdi-check" :size="18" /> {{ t('discovery.opportunities.applied') }}
       </BaseButton>
       <BaseButton v-else variant="accent" size="sm" class="flex-1" @click="openDetails">
-        تقدّم الآن
+        {{ t('discovery.opportunities.apply') }}
       </BaseButton>
       <BaseButton variant="outline" size="sm" @click="openDetails">
-        التفاصيل
+        {{ t('discovery.details') }}
       </BaseButton>
     </div>
   </BaseCard>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/shared/PageHeader.vue'
 import { BOOKING_STATUS_META, INTERVIEWER_TIER_META, INTERVIEWER_TIERS, INTERVIEWER_TYPE_META, KIND_META, interviewerTier, useInterviewersStore } from '@/stores/InterviewersStore'
 import type { Interviewer, InterviewerType } from '@/stores/InterviewersStore'
@@ -30,6 +31,7 @@ function mapColor(c: string): BaseColor {
   return (({ primary: 'brand', secondary: 'emerald', 'medium-emphasis': 'neutral', 'blue-grey': 'neutral' } as Record<string, BaseColor>)[c] ?? c) as BaseColor
 }
 
+const { t } = useI18n()
 const router = useRouter()
 const store = useInterviewersStore()
 const profile = useProfileStore()
@@ -113,23 +115,23 @@ function matchOf(id: number) {
 const facets = computed<FacetSpec<Interviewer>[]>(() => [
   sectorFacet(sectorFromFieldAndSkills(ivSector, iv => iv.specialties), () => store.interviewers),
   {
-    key: 'type', label: 'التخصص', kind: 'multi', value: iv => iv.type,
-    options: () => types.map(t => ({ value: t, label: INTERVIEWER_TYPE_META[t].label, icon: INTERVIEWER_TYPE_META[t].icon })),
+    key: 'type', label: t('discovery.interviewers.facetType'), kind: 'multi', value: iv => iv.type,
+    options: () => types.map(ty => ({ value: ty, label: INTERVIEWER_TYPE_META[ty].label, icon: INTERVIEWER_TYPE_META[ty].icon })),
   },
   {
-    key: 'skills', label: 'المهارات', kind: 'multi', searchable: true,
+    key: 'skills', label: t('discovery.interviewers.facetSkills'), kind: 'multi', searchable: true,
     value: iv => iv.specialties,
     options: () => skillOptions.value.map(s => ({ value: s, label: s })),
   },
-  { key: 'rating', label: 'أدنى تقييم', kind: 'range', numberValue: iv => iv.rating, range: { min: 0, max: 5, step: 0.5 } },
-  { key: 'price', label: 'الحدّ الأقصى للسعر', kind: 'range', numberValue: iv => iv.priceMin, range: { min: 30, max: 500, step: 10, mode: 'max' } },
+  { key: 'rating', label: t('discovery.interviewers.facetMinRating'), kind: 'range', numberValue: iv => iv.rating, range: { min: 0, max: 5, step: 0.5 } },
+  { key: 'price', label: t('discovery.interviewers.facetMaxPrice'), kind: 'range', numberValue: iv => iv.priceMin, range: { min: 30, max: 500, step: 10, mode: 'max' } },
 ])
 const sorts = computed<SortSpec<Interviewer>[]>(() => [
-  { key: 'match', label: 'الأعلى تطابقًا', cmp: (a, b) => { const d = matchOf(b.id) - matchOf(a.id); return d !== 0 ? d : sector.boost(ivSector(b)) - sector.boost(ivSector(a)) } },
-  { key: 'rating', label: 'الأعلى تقييمًا', cmp: (a, b) => b.rating - a.rating },
-  { key: 'priceLow', label: 'الأقل سعرًا', cmp: (a, b) => a.priceMin - b.priceMin },
-  { key: 'priceHigh', label: 'الأعلى سعرًا', cmp: (a, b) => b.priceMax - a.priceMax },
-  { key: 'sessions', label: 'الأكثر مقابلات', cmp: (a, b) => b.sessionsCount - a.sessionsCount },
+  { key: 'match', label: t('discovery.sortTopMatch'), cmp: (a, b) => { const d = matchOf(b.id) - matchOf(a.id); return d !== 0 ? d : sector.boost(ivSector(b)) - sector.boost(ivSector(a)) } },
+  { key: 'rating', label: t('discovery.sortRatingHigh'), cmp: (a, b) => b.rating - a.rating },
+  { key: 'priceLow', label: t('discovery.interviewers.sortPriceLow'), cmp: (a, b) => a.priceMin - b.priceMin },
+  { key: 'priceHigh', label: t('discovery.interviewers.sortPriceHigh'), cmp: (a, b) => b.priceMax - a.priceMax },
+  { key: 'sessions', label: t('discovery.interviewers.sortSessions'), cmp: (a, b) => b.sessionsCount - a.sessionsCount },
 ])
 const primaryPreset = sector.mySectorsPreset
 
@@ -160,16 +162,16 @@ function chipStyle(vColor: string, active: boolean) {
 <template>
   <div>
     <PageHeader
-      title="سوق المقيّمين المعتمدين"
-      subtitle="خبراء معتمدون يُجرون مقابلات تقييمية موثّقة ترفع نسبة ثقتك"
+      :title="t('discovery.interviewers.title')"
+      :subtitle="t('discovery.interviewers.subtitle')"
       icon="mdi-account-supervisor-circle-outline"
     >
       <template #actions>
         <BaseButton variant="ghost" size="sm" @click="tiersDialog = true">
-          <BaseIcon name="mdi-medal-outline" :size="18" /> المستويات والمزايا
+          <BaseIcon name="mdi-medal-outline" :size="18" /> {{ t('discovery.interviewers.tiers') }}
         </BaseButton>
         <BaseButton variant="tonal-emerald" size="sm" :to="{ name: 'interviewer-register' }">
-          <BaseIcon name="mdi-badge-account-outline" :size="18" /> سجّل كمقيّم
+          <BaseIcon name="mdi-badge-account-outline" :size="18" /> {{ t('discovery.interviewers.register') }}
         </BaseButton>
       </template>
     </PageHeader>
@@ -178,7 +180,7 @@ function chipStyle(vColor: string, active: boolean) {
     <div v-if="recommended.length" class="mb-6">
       <div class="mb-3 flex items-center gap-2">
         <BaseIcon name="mdi-robot-happy-outline" :size="20" style="color: rgb(var(--v-theme-secondary))" />
-        <h2 class="font-bold text-content">مقيّمون موصى بهم لك</h2>
+        <h2 class="font-bold text-content">{{ t('discovery.interviewers.recommended') }}</h2>
       </div>
       <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
         <button
@@ -207,7 +209,7 @@ function chipStyle(vColor: string, active: boolean) {
     <!-- AI smart quick-filters -->
     <div class="mb-3 flex flex-wrap items-center gap-2">
       <span class="flex items-center gap-1 text-xs text-muted">
-        <BaseIcon name="mdi-robot-happy-outline" :size="16" style="color: rgb(var(--v-theme-secondary))" /> فلاتر ذكية:
+        <BaseIcon name="mdi-robot-happy-outline" :size="16" style="color: rgb(var(--v-theme-secondary))" /> {{ t('discovery.smartFilters') }}
       </span>
       <button
         v-for="chip in smartChips"
@@ -229,15 +231,15 @@ function chipStyle(vColor: string, active: boolean) {
       :item-key="(iv: Interviewer) => iv.id"
       :view="view"
       :primary-preset="primaryPreset"
-      noun="مقيّم معتمد"
-      search-placeholder="ابحث في المقيّمين بالاسم أو التخصص…"
+      :noun="t('discovery.interviewers.noun')"
+      :search-placeholder="t('discovery.interviewers.search')"
     >
       <template #toolbar>
         <div class="seg">
-          <button type="button" class="seg-btn" :class="{ 'is-active': view === 'grid' }" aria-label="شبكة" @click="view = 'grid'">
+          <button type="button" class="seg-btn" :class="{ 'is-active': view === 'grid' }" :aria-label="t('discovery.gridView')" @click="view = 'grid'">
             <BaseIcon name="mdi-view-grid-outline" :size="18" />
           </button>
-          <button type="button" class="seg-btn" :class="{ 'is-active': view === 'list' }" aria-label="قائمة" @click="view = 'list'">
+          <button type="button" class="seg-btn" :class="{ 'is-active': view === 'list' }" :aria-label="t('discovery.listView')" @click="view = 'list'">
             <BaseIcon name="mdi-view-list-outline" :size="18" />
           </button>
         </div>
@@ -282,8 +284,8 @@ function chipStyle(vColor: string, active: boolean) {
             </div>
 
             <div class="flex items-center justify-between">
-              <span class="text-xs text-muted">{{ iv.sessionsCount }} مقابلة</span>
-              <span class="font-bold text-content">{{ iv.priceMin }}–{{ iv.priceMax }} ريال</span>
+              <span class="text-xs text-muted">{{ t('discovery.interviewers.sessions', { count: iv.sessionsCount }) }}</span>
+              <span class="font-bold text-content">{{ iv.priceMin }}–{{ iv.priceMax }} {{ t('common.currency') }}</span>
             </div>
           </BaseCard>
         </template>
@@ -292,7 +294,7 @@ function chipStyle(vColor: string, active: boolean) {
 
     <!-- My bookings -->
         <div v-if="store.bookings.length" class="mt-6">
-          <h2 class="mb-3 font-bold text-content">حجوزاتي مع المقيّمين ({{ store.bookings.length }})</h2>
+          <h2 class="mb-3 font-bold text-content">{{ t('discovery.interviewers.myBookings', { count: store.bookings.length }) }}</h2>
           <BaseCard :padded="false">
             <div>
               <div
@@ -306,7 +308,7 @@ function chipStyle(vColor: string, active: boolean) {
                 </BaseAvatar>
                 <div class="min-w-[10rem] flex-1">
                   <div class="font-bold text-content">{{ b.interviewerName }} · {{ KIND_META[b.kind].label }}</div>
-                  <div class="text-sm text-muted">{{ b.datetime }} · {{ b.price }} ريال</div>
+                  <div class="text-sm text-muted">{{ b.datetime }} · {{ b.price }} {{ t('common.currency') }}</div>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
                   <BaseButton
@@ -315,7 +317,7 @@ function chipStyle(vColor: string, active: boolean) {
                     size="sm"
                     @click="openAttachments(b.id, b.interviewerName)"
                   >
-                    <BaseIcon name="mdi-paperclip" :size="16" /> مرفقات
+                    <BaseIcon name="mdi-paperclip" :size="16" /> {{ t('discovery.interviewers.attachments') }}
                     <BaseChip v-if="b.attachments?.length" color="emerald" class="ms-1">{{ b.attachments.length }}</BaseChip>
                   </BaseButton>
                   <BaseButton
@@ -324,7 +326,7 @@ function chipStyle(vColor: string, active: boolean) {
                     size="sm"
                     @click="openReschedule(b.id, b.interviewerId, b.interviewerName)"
                   >
-                    <BaseIcon name="mdi-calendar-refresh-outline" :size="16" /> إعادة جدولة
+                    <BaseIcon name="mdi-calendar-refresh-outline" :size="16" /> {{ t('discovery.interviewers.reschedule') }}
                   </BaseButton>
                   <BaseChip v-if="b.report" color="success">{{ b.report.overall }}%</BaseChip>
                   <BaseChip :color="mapColor(BOOKING_STATUS_META[b.status].color)">{{ BOOKING_STATUS_META[b.status].label }}</BaseChip>
@@ -335,18 +337,18 @@ function chipStyle(vColor: string, active: boolean) {
         </div>
 
     <!-- Accreditation tiers reference -->
-    <BaseModal v-model="tiersDialog" title="مستويات الاعتماد ومزاياها">
-      <p class="mb-3 text-xs text-muted">يترقّى المقيّم تلقائيًا بين المستويات كلما زادت مقابلاته المنجزة وتقييماته.</p>
+    <BaseModal v-model="tiersDialog" :title="t('discovery.interviewers.tiersModalTitle')">
+      <p class="mb-3 text-xs text-muted">{{ t('discovery.interviewers.tiersModalDesc') }}</p>
       <div class="space-y-2">
-        <div v-for="t in INTERVIEWER_TIERS" :key="t" class="rounded-ui border-ui p-3">
+        <div v-for="tier in INTERVIEWER_TIERS" :key="tier" class="rounded-ui border-ui p-3">
           <div class="mb-1 flex flex-wrap items-center gap-2">
-            <BaseChip :color="mapColor(INTERVIEWER_TIER_META[t].color)">
-              <BaseIcon :name="INTERVIEWER_TIER_META[t].icon" :size="12" /> {{ INTERVIEWER_TIER_META[t].label }}
+            <BaseChip :color="mapColor(INTERVIEWER_TIER_META[tier].color)">
+              <BaseIcon :name="INTERVIEWER_TIER_META[tier].icon" :size="12" /> {{ INTERVIEWER_TIER_META[tier].label }}
             </BaseChip>
-            <span class="text-xs text-muted">{{ INTERVIEWER_TIER_META[t].req }}</span>
+            <span class="text-xs text-muted">{{ INTERVIEWER_TIER_META[tier].req }}</span>
           </div>
           <div class="text-sm text-content">
-            <BaseIcon name="mdi-gift-outline" :size="14" style="color: rgb(var(--v-theme-success))" /> {{ INTERVIEWER_TIER_META[t].perk }}
+            <BaseIcon name="mdi-gift-outline" :size="14" style="color: rgb(var(--v-theme-success))" /> {{ INTERVIEWER_TIER_META[tier].perk }}
           </div>
         </div>
       </div>
@@ -355,10 +357,10 @@ function chipStyle(vColor: string, active: boolean) {
     <AttachmentsDialog v-model="attachDialog" :booking-id="attachBookingId" :interviewer-name="attachInterviewerName" />
 
     <!-- Reschedule dialog — AI suggests 3 new optimal times -->
-    <BaseModal v-model="reschedDialog" :title="`إعادة جدولة مع ${reschedName}`">
+    <BaseModal v-model="reschedDialog" :title="t('discovery.interviewers.rescheduleWith', { name: reschedName })">
       <div class="mb-3 flex items-center gap-2">
         <BaseIcon name="mdi-robot-happy-outline" :size="18" style="color: rgb(var(--v-theme-secondary))" />
-        <span class="text-xs text-muted">اقترح الـ AI مواعيد بديلة بناءً على تفضيلاتك وتوفّر المقيّم — اختر بنقرة:</span>
+        <span class="text-xs text-muted">{{ t('discovery.interviewers.reschedIntro') }}</span>
       </div>
       <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
         <button
@@ -371,7 +373,7 @@ function chipStyle(vColor: string, active: boolean) {
           <BaseChip :color="reschedColor(s.compatibility)" class="mb-2">{{ s.tag }}</BaseChip>
           <div class="mb-2 text-sm font-bold text-content">{{ s.label }}</div>
           <div class="mb-1 flex items-center justify-between text-xs">
-            <span class="text-muted">توافق</span>
+            <span class="text-muted">{{ t('discovery.interviewers.compatibility') }}</span>
             <span class="font-bold" :style="{ color: `rgb(var(--v-theme-${reschedColor(s.compatibility)}))` }">{{ s.compatibility }}%</span>
           </div>
           <BaseProgressBar :value="s.compatibility" :color="reschedColor(s.compatibility)" :height="6" />
@@ -384,7 +386,7 @@ function chipStyle(vColor: string, active: boolean) {
     </BaseModal>
 
     <BaseSnackbar v-model="reschedSnackbar" color="success">
-      تمت إعادة جدولة المقابلة — أُرسل الموعد الجديد للمقيّم للتأكيد.
+      {{ t('discovery.interviewers.reschedDone') }}
     </BaseSnackbar>
   </div>
 </template>

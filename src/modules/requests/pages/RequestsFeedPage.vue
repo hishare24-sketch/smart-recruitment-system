@@ -60,29 +60,29 @@ const kinds = Object.keys(KIND_META) as RequestKind[]
 const facets = computed<FacetSpec<MarketRequest>[]>(() => [
   sectorFacet(sectorFromFieldAndSkills(reqSector, r => r.skills), () => store.requests),
   {
-    key: 'field', label: 'المجال', kind: 'multi', searchable: true, value: r => r.field,
+    key: 'field', label: t('discovery.requests.facetField'), kind: 'multi', searchable: true, value: r => r.field,
     options: () => store.fields.map(f => ({ value: f, label: f })),
   },
   {
-    key: 'kind', label: 'نوع الطلب', kind: 'multi', value: r => r.kind,
+    key: 'kind', label: t('discovery.requests.facetKind'), kind: 'multi', value: r => r.kind,
     options: () => kinds.map(k => ({ value: k, label: KIND_META[k].label, icon: KIND_META[k].icon })),
   },
   {
-    key: 'city', label: 'المدينة', kind: 'multi', value: r => r.city,
+    key: 'city', label: t('discovery.city'), kind: 'multi', value: r => r.city,
     options: () => uniq(store.requests.map(r => r.city)).map(c => ({ value: c, label: c })),
   },
-  { key: 'remote', label: 'عن بُعد', kind: 'bool', boolValue: r => r.remote },
-  { key: 'budget', label: 'الحدّ الأدنى للمقابل', kind: 'range', numberValue: r => r.budgetValue, range: { min: 0, max: 50000, step: 2500 } },
-  { key: 'duration', label: 'المدة (أسابيع)', kind: 'range', numberValue: r => r.durationWeeks, range: { min: 1, max: 20, step: 1, mode: 'max' } },
+  { key: 'remote', label: t('discovery.remote'), kind: 'bool', boolValue: r => r.remote },
+  { key: 'budget', label: t('discovery.requests.facetMinBudget'), kind: 'range', numberValue: r => r.budgetValue, range: { min: 0, max: 50000, step: 2500 } },
+  { key: 'duration', label: t('discovery.requests.facetDuration'), kind: 'range', numberValue: r => r.durationWeeks, range: { min: 1, max: 20, step: 1, mode: 'max' } },
 ])
 
 const sorts = computed<SortSpec<MarketRequest>[]>(() => [
-  { key: 'match', label: 'الأعلى تطابقًا', cmp: (a, b) => { const d = liveMatch(b) - liveMatch(a); return d !== 0 ? d : sector.boost(reqSector(b)) - sector.boost(reqSector(a)) } },
-  { key: 'newest', label: 'الأحدث', cmp: (a, b) => b.postedOrder - a.postedOrder },
-  { key: 'oldest', label: 'الأقدم', cmp: (a, b) => a.postedOrder - b.postedOrder },
-  { key: 'rating', label: 'الأعلى تقييمًا', cmp: (a, b) => b.orgRating - a.orgRating },
-  { key: 'price', label: 'الأقل مقابلًا', cmp: (a, b) => a.budgetValue - b.budgetValue },
-  { key: 'applicants', label: 'الأكثر تقدّمًا', cmp: (a, b) => b.applicants - a.applicants },
+  { key: 'match', label: t('discovery.sortTopMatch'), cmp: (a, b) => { const d = liveMatch(b) - liveMatch(a); return d !== 0 ? d : sector.boost(reqSector(b)) - sector.boost(reqSector(a)) } },
+  { key: 'newest', label: t('discovery.sortNewest'), cmp: (a, b) => b.postedOrder - a.postedOrder },
+  { key: 'oldest', label: t('discovery.sortOldest'), cmp: (a, b) => a.postedOrder - b.postedOrder },
+  { key: 'rating', label: t('discovery.requests.sortRatingHigh'), cmp: (a, b) => b.orgRating - a.orgRating },
+  { key: 'price', label: t('discovery.requests.sortBudgetLow'), cmp: (a, b) => a.budgetValue - b.budgetValue },
+  { key: 'applicants', label: t('discovery.requests.sortApplicants'), cmp: (a, b) => b.applicants - a.applicants },
 ])
 
 const primaryPreset = sector.mySectorsPreset
@@ -108,20 +108,20 @@ function open(id: number) {
 <template>
   <div>
     <PageHeader
-      title="سوق الطلبات"
-      subtitle="وظائف ومشاريع واستشارات ومهمات — مرتّبة بذكاء حسب تطابقك"
+      :title="t('discovery.requests.title')"
+      :subtitle="t('discovery.requests.subtitle')"
       icon="mdi-storefront-outline"
     >
       <template #actions>
         <BaseButton variant="tonal-emerald" size="sm" :to="{ name: 'my-requests' }">
-          <BaseIcon name="mdi-file-send-outline" :size="18" /> طلباتي المقدّمة
+          <BaseIcon name="mdi-file-send-outline" :size="18" /> {{ t('discovery.requests.myRequests') }}
         </BaseButton>
       </template>
     </PageHeader>
 
     <!-- AI smart quick-filters -->
     <div class="mb-3 flex flex-wrap items-center gap-2">
-      <span class="text-xs text-muted"><BaseIcon name="mdi-robot-happy-outline" :size="16" style="color: rgb(var(--v-theme-secondary))" /> فلاتر ذكية:</span>
+      <span class="text-xs text-muted"><BaseIcon name="mdi-robot-happy-outline" :size="16" style="color: rgb(var(--v-theme-secondary))" /> {{ t('discovery.smartFilters') }}</span>
       <button
         v-for="chip in smartChips"
         :key="chip.key"
@@ -141,8 +141,8 @@ function open(id: number) {
       :item-key="(r: MarketRequest) => r.id"
       view="list"
       :primary-preset="primaryPreset"
-      noun="طلب"
-      search-placeholder="ابحث: مشاريع Vue، استشارة معمارية، مهمة قصيرة…"
+      :noun="t('discovery.requests.noun')"
+      :search-placeholder="t('discovery.requests.search')"
     >
       <template #banner>
         <div
@@ -151,10 +151,9 @@ function open(id: number) {
           style="border-color: rgb(var(--v-theme-secondary)); background: rgba(var(--v-theme-secondary), 0.1)"
         >
           <span class="text-sm">
-            <BaseIcon name="mdi-robot-happy-outline" :size="16" /> ترشيح مخصّص لك: «{{ topMatch.title }}» من {{ topMatch.org }} — تطابق
-            <strong>{{ liveMatch(topMatch) }}%</strong> مع ملفك.
+            <BaseIcon name="mdi-robot-happy-outline" :size="16" /> {{ t('discovery.requests.topBanner', { title: topMatch.title, org: topMatch.org, rate: liveMatch(topMatch) }) }}
           </span>
-          <BaseButton variant="emerald" size="sm" @click="open(topMatch.id)">عرض</BaseButton>
+          <BaseButton variant="emerald" size="sm" @click="open(topMatch.id)">{{ t('discovery.view') }}</BaseButton>
         </div>
       </template>
 
@@ -181,20 +180,20 @@ function open(id: number) {
                 <span>· {{ (item as MarketRequest).field }}</span>
               </div>
               <div class="flex flex-wrap gap-1">
-                <BaseChip color="neutral"><BaseIcon name="mdi-map-marker-outline" :size="12" /> {{ (item as MarketRequest).remote ? 'عن بُعد' : (item as MarketRequest).city }}</BaseChip>
+                <BaseChip color="neutral"><BaseIcon name="mdi-map-marker-outline" :size="12" /> {{ (item as MarketRequest).remote ? t('discovery.remote') : (item as MarketRequest).city }}</BaseChip>
                 <BaseChip color="neutral"><BaseIcon name="mdi-clock-outline" :size="12" /> {{ (item as MarketRequest).duration }}</BaseChip>
                 <BaseChip color="neutral"><BaseIcon name="mdi-cash" :size="12" /> {{ (item as MarketRequest).budget }}</BaseChip>
               </div>
             </div>
-            <div class="flex flex-col items-center text-center" style="min-width: 84px" title="نسبة التطابق الذكي مع مهاراتك المُثبتة">
+            <div class="flex flex-col items-center text-center" style="min-width: 84px" :title="t('discovery.matchRate')">
               <MatchBadge :value="liveMatch(item as MarketRequest)" variant="ring" :label="t('discovery.matchShort')" />
-              <BaseChip v-if="store.hasApplied((item as MarketRequest).id)" color="success" class="mt-1"><BaseIcon name="mdi-check" :size="12" /> مقدّم</BaseChip>
+              <BaseChip v-if="store.hasApplied((item as MarketRequest).id)" color="success" class="mt-1"><BaseIcon name="mdi-check" :size="12" /> {{ t('discovery.requests.applied') }}</BaseChip>
             </div>
           </div>
           <div class="my-2 border-t border-ui" />
           <div class="flex items-center justify-between text-xs text-muted">
-            <span class="flex items-center gap-1"><BaseIcon name="mdi-account-group-outline" :size="14" /> {{ (item as MarketRequest).applicants }} متقدم · {{ (item as MarketRequest).postedAt }}</span>
-            <span class="flex items-center gap-1" style="color: rgb(var(--v-theme-primary))">التفاصيل <BaseIcon name="mdi-arrow-left" :size="16" /></span>
+            <span class="flex items-center gap-1"><BaseIcon name="mdi-account-group-outline" :size="14" /> {{ t('discovery.requests.applicants', { count: (item as MarketRequest).applicants }) }} · {{ (item as MarketRequest).postedAt }}</span>
+            <span class="flex items-center gap-1" style="color: rgb(var(--v-theme-primary))">{{ t('discovery.details') }} <BaseIcon name="mdi-arrow-left" :size="16" /></span>
           </div>
         </BaseCard>
       </template>

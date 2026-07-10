@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/shared/PageHeader.vue'
 import type { MarketExpert, MarketExpertRole } from '@/stores/ExpertRolesStore'
 import { EXPERT_TIER_META, MARKET_EXPERTS, MARKET_ROLE_META, expertTier } from '@/stores/ExpertRolesStore'
@@ -22,6 +23,7 @@ import BaseModal from '@/components/ui/BaseModal.vue'
 import BaseSnackbar from '@/components/ui/BaseSnackbar.vue'
 
 // السوق الموحّد لاكتشاف خبراء النظام البيئي (جانب الطلب) — يغذي الطلبات المتبادلة
+const { t } = useI18n()
 const peerRequests = usePeerRequestsStore()
 const notifications = useNotificationsStore()
 const authStore = useAuthStore()
@@ -32,20 +34,20 @@ const snackbar = ref(false)
 const roleKeys = Object.keys(MARKET_ROLE_META) as MarketExpertRole[]
 const facets = computed<FacetSpec<MarketExpert>[]>(() => [
   {
-    key: 'role', label: 'الدور', kind: 'multi', primary: true,
+    key: 'role', label: t('discovery.experts.facetRole'), kind: 'multi', primary: true,
     value: e => e.role,
     options: () => roleKeys.map(r => ({ value: r, label: MARKET_ROLE_META[r].label, icon: MARKET_ROLE_META[r].icon })),
   },
   {
-    key: 'specialty', label: 'التخصّص', kind: 'multi', searchable: true,
+    key: 'specialty', label: t('discovery.experts.facetSpecialty'), kind: 'multi', searchable: true,
     value: e => e.specialtyKey,
     options: () => uniq(MARKET_EXPERTS.map(e => e.specialtyKey)).map(sp => ({ value: sp, label: EXPERT_SPECIALTY_META[sp].label, icon: EXPERT_SPECIALTY_META[sp].icon })),
   },
 ])
 const sorts = computed<SortSpec<MarketExpert>[]>(() => [
-  { key: 'rating', label: 'الأعلى تقييمًا', cmp: (a, b) => b.rating - a.rating },
-  { key: 'clients', label: 'الأكثر عملاء', cmp: (a, b) => b.clients - a.clients },
-  { key: 'price', label: 'الأقل سعرًا', cmp: (a, b) => a.priceFrom - b.priceFrom },
+  { key: 'rating', label: t('discovery.sortRatingHigh'), cmp: (a, b) => b.rating - a.rating },
+  { key: 'clients', label: t('discovery.experts.sortClients'), cmp: (a, b) => b.clients - a.clients },
+  { key: 'price', label: t('discovery.experts.sortPriceLow'), cmp: (a, b) => a.priceFrom - b.priceFrom },
 ])
 const expertText = (e: MarketExpert) => `${e.name} ${e.title} ${e.specialty} ${EXPERT_SPECIALTY_META[e.specialtyKey].label}`
 
@@ -92,11 +94,11 @@ function sendRequest() {
   notifications.push({
     icon: MARKET_ROLE_META[e.role].icon,
     color: 'success',
-    title: 'أُرسل طلبك للخبير',
-    body: `${MARKET_ROLE_META[e.role].service} من ${e.name} — تابع الرد في الطلبات المتبادلة.`,
+    title: t('discovery.experts.notifTitle'),
+    body: t('discovery.experts.notifBody', { service: MARKET_ROLE_META[e.role].service, name: e.name }),
     category: 'system',
     actionTo: '/peer-requests',
-    actionLabel: 'متابعة الطلب',
+    actionLabel: t('discovery.experts.notifAction'),
   })
 }
 
@@ -106,8 +108,8 @@ const canJoin = computed(() => !!authStore.authUser)
 <template>
   <div>
     <PageHeader
-      title="سوق الخبراء"
-      subtitle="اكتشف المرشدين والمدربين والمستشارين المعتمدين واطلب خدمتهم مباشرة"
+      :title="t('discovery.experts.title')"
+      :subtitle="t('discovery.experts.subtitle')"
       icon="mdi-account-tie-outline"
     />
 
@@ -118,8 +120,8 @@ const canJoin = computed(() => !!authStore.authUser)
       :text="expertText"
       :item-key="(e: MarketExpert) => e.id"
       view="grid"
-      noun="خبير"
-      search-placeholder="ابحث بالاسم أو التخصص…"
+      :noun="t('discovery.experts.noun')"
+      :search-placeholder="t('discovery.experts.search')"
     >
       <template #item="{ item }">
         <template v-for="e in [item as MarketExpert]" :key="e.id">
@@ -144,14 +146,14 @@ const canJoin = computed(() => !!authStore.authUser)
 
         <div class="mb-3 mt-auto flex items-center gap-3 text-xs text-muted">
           <span class="flex items-center gap-1"><BaseIcon name="mdi-star" :size="14" style="color: rgb(var(--v-theme-warning))" /> {{ e.rating }}</span>
-          <span class="flex items-center gap-1"><BaseIcon name="mdi-account-group-outline" :size="14" /> {{ e.clients }} عميلًا</span>
-          <span class="ms-auto font-bold" style="color: rgb(var(--v-theme-primary))">من {{ e.priceFrom }} ﷼ {{ e.priceUnit }}</span>
+          <span class="flex items-center gap-1"><BaseIcon name="mdi-account-group-outline" :size="14" /> {{ t('discovery.experts.clients', { count: e.clients }) }}</span>
+          <span class="ms-auto font-bold" style="color: rgb(var(--v-theme-primary))">{{ t('discovery.experts.priceFrom', { price: e.priceFrom, unit: e.priceUnit }) }}</span>
         </div>
 
         <div class="flex gap-2">
-          <BaseButton variant="outline" size="sm" :to="{ name: 'expert-profile', params: { slug: e.slug } }">الملف</BaseButton>
+          <BaseButton variant="outline" size="sm" :to="{ name: 'expert-profile', params: { slug: e.slug } }">{{ t('discovery.experts.profile') }}</BaseButton>
           <BaseButton :variant="e.role === 'consultant' ? 'accent' : e.role === 'trainer' ? 'emerald' : 'brand'" size="sm" class="flex-1" @click="openRequest(e)">
-            <BaseIcon name="mdi-send" :size="16" /> اطلب {{ MARKET_ROLE_META[e.role].service }}
+            <BaseIcon name="mdi-send" :size="16" /> {{ t('discovery.experts.request', { service: MARKET_ROLE_META[e.role].service }) }}
           </BaseButton>
         </div>
         </BaseCard>
@@ -161,7 +163,7 @@ const canJoin = computed(() => !!authStore.authUser)
 
     <!-- دعوة جانب العرض -->
     <div v-if="canJoin" class="brand-gradient rounded-ui-lg mt-6 p-5 text-center">
-      <p class="mb-3 text-white">لديك خبرة إرشاد أو تدريب أو استشارة؟ انضم إلى السوق وحوّل خبرتك إلى دخل.</p>
+      <p class="mb-3 text-white">{{ t('discovery.experts.joinBanner') }}</p>
       <div class="flex flex-wrap justify-center gap-2">
         <RouterLink
           v-for="(meta, role) in MARKET_ROLE_META"
@@ -169,32 +171,32 @@ const canJoin = computed(() => !!authStore.authUser)
           :to="`/join/${role}`"
           class="rounded-ui inline-flex items-center gap-1 border border-white/60 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-white/10"
         >
-          <BaseIcon :name="meta.icon" :size="16" /> انضم {{ meta.label }}
+          <BaseIcon :name="meta.icon" :size="16" /> {{ t('discovery.experts.join', { label: meta.label }) }}
         </RouterLink>
       </div>
     </div>
 
     <!-- طلب خدمة -->
-    <BaseModal v-model="requestDialog" :title="selected ? `طلب ${MARKET_ROLE_META[selected.role].service}` : ''" :max-width="480">
+    <BaseModal v-model="requestDialog" :title="selected ? t('discovery.experts.requestModalTitle', { service: MARKET_ROLE_META[selected.role].service }) : ''" :max-width="480">
       <template v-if="selected">
         <div class="mb-3 flex items-center gap-2">
           <BaseAvatar :color="roleColor(selected.role)" :size="36" tonal>{{ selected.initial }}</BaseAvatar>
           <div>
             <div class="text-sm font-bold">{{ selected.name }}</div>
-            <div class="text-xs text-muted">{{ selected.specialty }} · من {{ selected.priceFrom }} ﷼ {{ selected.priceUnit }}</div>
+            <div class="text-xs text-muted">{{ selected.specialty }} · {{ t('discovery.experts.priceFrom', { price: selected.priceFrom, unit: selected.priceUnit }) }}</div>
           </div>
         </div>
-        <BaseTextarea v-model="reason" label="صف هدفك من الخدمة" :rows="3" placeholder="مثال: أريد خطة انتقال من الدعم الفني إلى تطوير الواجهات خلال 6 أشهر" />
-        <p class="mt-2 text-xs text-muted">يصل طلبك للخبير عبر «الطلبات المتبادلة» وتتابع رده من هناك.</p>
+        <BaseTextarea v-model="reason" :label="t('discovery.experts.describeGoal')" :rows="3" :placeholder="t('discovery.experts.describeGoalPlaceholder')" />
+        <p class="mt-2 text-xs text-muted">{{ t('discovery.experts.requestHelp') }}</p>
       </template>
       <template #actions>
-        <BaseButton variant="ghost" @click="requestDialog = false">إلغاء</BaseButton>
+        <BaseButton variant="ghost" @click="requestDialog = false">{{ t('common.cancel') }}</BaseButton>
         <BaseButton :variant="selected?.role === 'consultant' ? 'accent' : 'brand'" :disabled="!reason.trim()" @click="sendRequest">
-          <BaseIcon name="mdi-send" :size="18" /> إرسال الطلب
+          <BaseIcon name="mdi-send" :size="18" /> {{ t('discovery.experts.sendRequest') }}
         </BaseButton>
       </template>
     </BaseModal>
 
-    <BaseSnackbar v-model="snackbar" color="success" :timeout="3000">أُرسل طلبك — تابع في الطلبات المتبادلة.</BaseSnackbar>
+    <BaseSnackbar v-model="snackbar" color="success" :timeout="3000">{{ t('discovery.experts.requestSent') }}</BaseSnackbar>
   </div>
 </template>
