@@ -370,7 +370,8 @@
       "treasury": "Treasury",
       "surveyTemplates": "Survey templates",
       "groupSystem": "System",
-      "audit": "Audit log"
+      "audit": "Audit log",
+      "settings": "Platform settings"
     },
     "groups": {
       "users": "Users & Roles",
@@ -734,6 +735,18 @@
       "act_suspend": "Suspend",
       "act_activate": "Activate",
       "act_permissions": "Permissions"
+    },
+    "settings": {
+      "title": "Platform settings",
+      "subtitle": "Central control of platform options — grouped and typed",
+      "save": "Save",
+      "reset": "Reset",
+      "saved": "Settings saved",
+      "group_general": "General",
+      "group_registration": "Registration",
+      "group_finance": "Finance",
+      "group_surveys": "Surveys",
+      "note": "Some settings govern real behavior (signup toggle, welcome balance)."
     }
   }
 }

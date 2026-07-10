@@ -117,6 +117,7 @@ export const API_PATHS = {
     adminRole: (id: number) => `/admin/users/${id}/admin-role`,
     auditLogs: '/admin/audit-logs',
     auditStats: '/admin/audit-logs/stats',
+    settings: '/admin/settings',
     roles: '/admin/roles',
     rolesStats: '/admin/roles/stats',
     role: (role: string) => `/admin/roles/${role}`,
@@ -245,6 +246,7 @@ export interface AdminStats {
   usersByKind: Record<string, number>
   signups: { date: string, count: number }[]
 }
+export interface AdminSetting { key: string, value: string | number | boolean, type: 'string' | 'number' | 'boolean' | 'select', group: string, label: string, description: string | null, options: { value: string, label: string }[], sort: number }
 export interface AdminAuditLog { id: number, actor: string, actorId: number | null, method: string, resource: string | null, action: string, path: string, targetId: number | null, status: number, ip: string | null, at?: string }
 export interface AdminAuditStats { total: number, today: number, actors: number, byAction: { label: string, value: number }[], byResource: { label: string, value: number }[], series: { date: string, value: number }[] }
 export interface AdminRole { name: string, usersCount: number, permissions: string[] }
@@ -360,6 +362,8 @@ export const api = {
     setAdminRole: (id: number, role: string | null) => put<AdminUser>(API_PATHS.admin.adminRole(id), { role }),
     auditLogs: (params?: AdminMarketQuery) => getPage<AdminAuditLog>(API_PATHS.admin.auditLogs, params as Record<string, unknown>),
     auditStats: () => get<AdminAuditStats>(API_PATHS.admin.auditStats),
+    settings: () => get<AdminSetting[]>(API_PATHS.admin.settings),
+    updateSettings: (settings: Record<string, string | number | boolean>) => put<AdminSetting[]>(API_PATHS.admin.settings, { settings }),
     roles: () => get<AdminRolesResponse>(API_PATHS.admin.roles),
     rolesStats: () => get<AdminRolesStats>(API_PATHS.admin.rolesStats),
     createRole: (name: string, permissions: string[]) => post<AdminRole>(API_PATHS.admin.roles, { name, permissions }),

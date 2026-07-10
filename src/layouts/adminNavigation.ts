@@ -59,6 +59,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     titleKey: 'admin.nav.groupSystem',
     items: [
       { title: 'admin.nav.audit', icon: 'mdi-history', to: 'admin-audit', permission: 'view_audit' },
+      { title: 'admin.nav.settings', icon: 'mdi-cog-outline', to: 'admin-settings', permission: 'view_settings' },
     ],
   },
 ]

@@ -353,6 +353,12 @@ export const routes: RouteRecordRaw[] = [
     meta: { layout: 'admin', roles: ['admin'], permission: 'view_audit', title: 'admin.nav.audit' },
   },
   {
+    path: '/admin/settings',
+    name: 'admin-settings',
+    component: () => import('@/modules/admin/pages/AdminSettingsPage.vue'),
+    meta: { layout: 'admin', roles: ['admin'], permission: 'view_settings', title: 'admin.nav.settings' },
+  },
+  {
     path: '/admin/interviewers',
     name: 'admin-interviewers',
     component: () => import('@/modules/admin/pages/AdminInterviewersPage.vue'),

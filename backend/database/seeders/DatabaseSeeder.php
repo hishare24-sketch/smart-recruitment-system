@@ -7,6 +7,7 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Modules\Account\Database\Seeders\PlanSeeder;
 use Modules\Account\Database\Seeders\PlatformAccountSeeder;
+use Modules\Settings\Database\Seeders\PlatformSettingSeeder;
 use Modules\Survey\Database\Seeders\SurveyTemplateSeeder;
 
 class DatabaseSeeder extends Seeder
@@ -28,5 +29,6 @@ class DatabaseSeeder extends Seeder
         $this->call(PlanSeeder::class);
         $this->call(PlatformAccountSeeder::class);
         $this->call(SurveyTemplateSeeder::class);
+        $this->call(PlatformSettingSeeder::class);
     }
 }

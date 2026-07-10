@@ -10,6 +10,22 @@ if (! function_exists('current_user')) {
     }
 }
 
+if (! function_exists('setting')) {
+    /**
+     * قيمة إعداد منصّة مُطبَّعة (أو الافتراضيّ). آمنة حين غياب الجدول/الإعداد.
+     */
+    function setting(string $key, mixed $default = null): mixed
+    {
+        try {
+            $row = \Modules\Settings\Entities\PlatformSetting::where('key', $key)->first();
+
+            return $row !== null ? $row->typedValue() : $default;
+        } catch (\Throwable $e) {
+            return $default;
+        }
+    }
+}
+
 if (! function_exists('getLocaleField')) {
     function getLocaleField(array|string|null $data, $col = null)
     {

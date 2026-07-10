@@ -44,8 +44,8 @@ class PermissionEnum
             // نماذج الاستبيانات
             'view_survey_templates', 'manage_survey_templates',
 
-            // التحليلات وسجلّ التدقيق
-            'view_analytics', 'view_audit',
+            // التحليلات وسجلّ التدقيق والإعدادات
+            'view_analytics', 'view_audit', 'view_settings', 'manage_settings',
         ];
     }
 }

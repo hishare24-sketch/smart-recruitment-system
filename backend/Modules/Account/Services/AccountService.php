@@ -24,13 +24,15 @@ class AccountService
     /** محفظة المستخدم — تُنشأ برصيد ترحيبيّ عند أول وصول. */
     public function getWallet(int $userId): Wallet
     {
+        $welcome = (float) setting('finance.welcome_balance', 100);
+
         return Wallet::firstOrCreate(
             ['user_id' => $userId],
             [
-                'balance' => 100,
+                'balance' => $welcome,
                 'transactions' => [[
                     'id' => 1,
-                    'amount' => 100,
+                    'amount' => $welcome,
                     'label' => __('Welcome balance'),
                     'at' => Carbon::now()->toISOString(),
                 ]],

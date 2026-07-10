@@ -9,6 +9,11 @@ class AuthService
 {
     public function register(array $data): array
     {
+        // بوّابة التسجيل من إعدادات المنصّة (الافتراضيّ مسموح)
+        if (! setting('registration.allow_signups', true)) {
+            abort(403, __('Registration is currently disabled.'));
+        }
+
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
