@@ -24,6 +24,7 @@ class RoleHasPermissionSeeder extends Seeder
             'view_surveys', 'update_surveys', 'delete_surveys', 'close_surveys',
             'view_survey_templates', 'manage_survey_templates',
             'view_profiles', 'view_broadcast', 'create_broadcast',
+            'view_governance', 'manage_governance',
             'view_plans', 'create_plans', 'update_plans', 'delete_plans', 'view_wallets', 'adjust_wallets',
             'view_billing', 'manage_billing',
             'view_platform_accounts', 'manage_platform_accounts',
@@ -35,7 +36,7 @@ class RoleHasPermissionSeeder extends Seeder
         $governance?->syncPermissions([
             'view_profiles', 'verify_skills',
             'view_endorsements', 'approve_endorsements',
-            'view_governance', 'approve_experts',
+            'view_governance', 'manage_governance', 'approve_experts',
             'view_analytics',
         ]);
     }

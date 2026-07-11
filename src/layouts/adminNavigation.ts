@@ -53,6 +53,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     titleKey: 'admin.nav.groupQuality',
     items: [
       { title: 'admin.nav.interviewers', icon: 'mdi-account-tie-outline', to: 'admin-interviewers', permission: 'view_interviewers' },
+      { title: 'admin.nav.governance', icon: 'mdi-gavel', to: 'admin-governance', permission: 'view_governance' },
     ],
   },
   {

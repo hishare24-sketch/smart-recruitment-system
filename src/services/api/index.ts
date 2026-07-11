@@ -119,6 +119,9 @@ export const API_PATHS = {
     auditLogs: '/admin/audit-logs',
     auditStats: '/admin/audit-logs/stats',
     settings: '/admin/settings',
+    moderation: '/admin/moderation',
+    moderationStats: '/admin/moderation/stats',
+    moderationResolve: (id: number) => `/admin/moderation/${id}/resolve`,
     roles: '/admin/roles',
     rolesStats: '/admin/roles/stats',
     role: (role: string) => `/admin/roles/${role}`,
@@ -254,6 +257,8 @@ export interface AdminStats {
   signups: { date: string, count: number }[]
 }
 export interface AdminSetting { key: string, value: string | number | boolean, type: 'string' | 'number' | 'boolean' | 'select', group: string, label: string, description: string | null, options: { value: string, label: string }[], sort: number }
+export interface AdminModerationItem { id: number, type: string, subject: string, submitter: string, targetRef: string | null, reason: string | null, status: string, resolver: string | null, resolvedAt?: string, createdAt?: string }
+export interface AdminModerationStats { total: number, pending: number, approved: number, rejected: number, byType: { label: string, value: number }[], byStatus: { label: string, value: number }[], series: { date: string, value: number }[] }
 export interface AdminAuditLog { id: number, actor: string, actorId: number | null, method: string, resource: string | null, action: string, path: string, targetId: number | null, status: number, ip: string | null, at?: string }
 export interface AdminAuditStats { total: number, today: number, actors: number, byAction: { label: string, value: number }[], byResource: { label: string, value: number }[], series: { date: string, value: number }[] }
 export interface AdminRole { name: string, usersCount: number, permissions: string[] }
@@ -381,6 +386,9 @@ export const api = {
     auditStats: () => get<AdminAuditStats>(API_PATHS.admin.auditStats),
     settings: () => get<AdminSetting[]>(API_PATHS.admin.settings),
     updateSettings: (settings: Record<string, string | number | boolean>) => put<AdminSetting[]>(API_PATHS.admin.settings, { settings }),
+    moderation: (params?: AdminMarketQuery) => getPage<AdminModerationItem>(API_PATHS.admin.moderation, params as Record<string, unknown>),
+    moderationStats: () => get<AdminModerationStats>(API_PATHS.admin.moderationStats),
+    resolveModeration: (id: number, decision: 'approved' | 'rejected' | 'resolved') => post<AdminModerationItem>(API_PATHS.admin.moderationResolve(id), { decision }),
     roles: () => get<AdminRolesResponse>(API_PATHS.admin.roles),
     rolesStats: () => get<AdminRolesStats>(API_PATHS.admin.rolesStats),
     createRole: (name: string, permissions: string[]) => post<AdminRole>(API_PATHS.admin.roles, { name, permissions }),

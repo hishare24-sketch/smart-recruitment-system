@@ -372,7 +372,8 @@
       "groupSystem": "النظام",
       "audit": "سجلّ التدقيق",
       "settings": "إعدادات المنصّة",
-      "billing": "الفوترة والاشتراكات"
+      "billing": "الفوترة والاشتراكات",
+      "governance": "الحوكمة والإشراف"
     },
     "groups": {
       "users": "المستخدمون والأدوار",
@@ -800,6 +801,34 @@
       "refunded": "تمّ الاسترداد",
       "confirmRefundTitle": "استرداد الفاتورة؟",
       "confirmRefundMsg": "سيُعاد {amount} ر.س لمحفظة المستخدم ويُخصم من الخزينة ({ref})."
+    },
+    "governance": {
+      "title": "الحوكمة والإشراف",
+      "subtitle": "طابور اعتماد الخبراء والمهارات وبلاغات المحتوى",
+      "searchPlaceholder": "بحث بالموضوع أو مقدّم الطلب...",
+      "statPending": "قيد المراجعة",
+      "statApproved": "المعتمدة",
+      "statRejected": "المرفوضة",
+      "statTotal": "الإجمالي",
+      "byType": "التوزيع حسب النوع",
+      "byStatus": "التوزيع حسب الحالة",
+      "colType": "النوع",
+      "colSubject": "الموضوع",
+      "colSubmitter": "مقدّم الطلب",
+      "colStatus": "الحالة",
+      "colDate": "التاريخ",
+      "type_expert_application": "اعتماد خبير",
+      "type_skill_verification": "توثيق مهارة",
+      "type_content_report": "بلاغ محتوى",
+      "type_endorsement": "تزكية",
+      "st_pending": "قيد المراجعة",
+      "st_approved": "معتمد",
+      "st_rejected": "مرفوض",
+      "st_resolved": "مُعالَج",
+      "confirm_rejected_title": "رفض العنصر؟",
+      "confirm_resolved_title": "إغلاق العنصر؟",
+      "confirmMsg": "«{subject}»",
+      "done": "تمّ البتّ في العنصر"
     }
   }
 }

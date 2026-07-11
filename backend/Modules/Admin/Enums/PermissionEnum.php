@@ -30,7 +30,7 @@ class PermissionEnum
             // الملفّات والتزكيات والخبراء (حوكمة)
             'view_profiles', 'verify_skills',
             'view_endorsements', 'approve_endorsements',
-            'view_governance', 'approve_experts',
+            'view_governance', 'manage_governance', 'approve_experts',
 
             // البثّ والإشعارات
             'view_broadcast', 'create_broadcast',

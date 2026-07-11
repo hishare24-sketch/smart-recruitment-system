@@ -372,7 +372,8 @@
       "groupSystem": "System",
       "audit": "Audit log",
       "settings": "Platform settings",
-      "billing": "Billing"
+      "billing": "Billing",
+      "governance": "Governance"
     },
     "groups": {
       "users": "Users & Roles",
@@ -800,6 +801,34 @@
       "refunded": "Refunded",
       "confirmRefundTitle": "Refund invoice?",
       "confirmRefundMsg": "{amount} SAR will be returned to the user wallet and debited from treasury ({ref})."
+    },
+    "governance": {
+      "title": "Governance & moderation",
+      "subtitle": "Expert/skill approvals and content reports queue",
+      "searchPlaceholder": "Search by subject or submitter...",
+      "statPending": "Pending",
+      "statApproved": "Approved",
+      "statRejected": "Rejected",
+      "statTotal": "Total",
+      "byType": "By type",
+      "byStatus": "By status",
+      "colType": "Type",
+      "colSubject": "Subject",
+      "colSubmitter": "Submitter",
+      "colStatus": "Status",
+      "colDate": "Date",
+      "type_expert_application": "Expert application",
+      "type_skill_verification": "Skill verification",
+      "type_content_report": "Content report",
+      "type_endorsement": "Endorsement",
+      "st_pending": "Pending",
+      "st_approved": "Approved",
+      "st_rejected": "Rejected",
+      "st_resolved": "Resolved",
+      "confirm_rejected_title": "Reject item?",
+      "confirm_resolved_title": "Resolve item?",
+      "confirmMsg": "\"{subject}\"",
+      "done": "Item reviewed"
     }
   }
 }
