@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineProps<{ embedded?: boolean }>()
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/shared/PageHeader.vue'
 import StatCard from '@/components/shared/StatCard.vue'
@@ -18,6 +18,7 @@ import type { FilterDef } from '@/modules/admin/components/ResourceScaffold.vue'
 import type { TableColumn } from '@/components/ui/BaseTable.vue'
 import { useAdminResource } from '@/modules/admin/composables/useAdminResource'
 import { type AdminSupportStats, type AdminTicket, api } from '@/services/api'
+import { subscribeAdminSupport } from '@/services/supportRealtime'
 import { useAuthStore } from '@/stores/AuthStore'
 
 const { t } = useI18n()
@@ -30,6 +31,19 @@ const stats = ref<AdminSupportStats | null>(null)
 async function loadStats() { try { stats.value = await api.admin.ticketsStats() } catch { /* تجاهل */ } }
 onMounted(loadStats)
 function refreshAll() { r.refresh(); loadStats() }
+
+// بثّ لحظيّ: ردود المستخدمين تصل مباشرةً للطابور والدرج المفتوح.
+let unsubscribe: (() => void) | null = null
+onMounted(() => {
+  unsubscribe = subscribeAdminSupport((e) => {
+    if (ticket.value && ticket.value.id === e.ticketId && !(ticket.value.replies ?? []).some(x => x.id === e.reply.id)) {
+      const reply = { id: e.reply.id, author: e.reply.author, isStaff: e.reply.isStaff, body: e.reply.body, at: e.reply.at ?? undefined }
+      ticket.value = { ...ticket.value, status: e.status, replies: [...(ticket.value.replies ?? []), reply] }
+    }
+    refreshAll()
+  })
+})
+onUnmounted(() => unsubscribe?.())
 
 const CATEGORIES = ['billing', 'technical', 'account', 'other']
 const PRIORITIES = ['low', 'normal', 'high', 'urgent']

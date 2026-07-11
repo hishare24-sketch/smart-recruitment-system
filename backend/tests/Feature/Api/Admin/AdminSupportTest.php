@@ -3,9 +3,11 @@
 namespace Tests\Feature\Api\Admin;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use Laravel\Sanctum\Sanctum;
 use Modules\Support\Database\Seeders\TicketSeeder;
 use Modules\Support\Entities\Ticket;
+use Modules\Support\Events\TicketReplyPosted;
 use Modules\User\Entities\User;
 use Spatie\Permission\Models\Role;
 use Tests\Support\Api\AssertsApiJson;
@@ -84,5 +86,19 @@ class AdminSupportTest extends TestCase
     {
         Sanctum::actingAs(User::create(['name' => 'U', 'email' => 'sp'.uniqid().'@rec.test', 'password' => 'secret123']));
         $this->getJson('/api/admin/tickets')->assertStatus(403);
+    }
+
+    public function test_staff_reply_broadcasts_to_owner_channel(): void
+    {
+        $this->admin();
+        $owner = User::create(['name' => 'صاحب التذكرة', 'email' => 'own'.uniqid().'@rec.test', 'password' => 'secret123']);
+        $ticket = Ticket::create(['user_id' => $owner->id, 'user_name' => $owner->name, 'subject' => 'S', 'category' => 'billing', 'priority' => 'high', 'status' => 'open']);
+
+        Event::fake([TicketReplyPosted::class]);
+        $this->postJson("/api/admin/tickets/{$ticket->id}/reply", ['body' => 'نعمل عليها'])->assertOk();
+
+        Event::assertDispatched(TicketReplyPosted::class, fn (TicketReplyPosted $e) => $e->channelName === 'user.'.$owner->fresh()->uuid
+            && $e->payload['ticketId'] === $ticket->id
+            && $e->payload['reply']['isStaff'] === true);
     }
 }

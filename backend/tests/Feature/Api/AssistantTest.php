@@ -129,6 +129,20 @@ class AssistantTest extends TestCase
         $this->getJson("/api/v1/support/tickets/{$id}")->assertStatus(403);
     }
 
+    public function test_user_reply_broadcasts_to_admin_channel(): void
+    {
+        $this->user(['role' => 'seeker']);
+        $id = $this->postJson('/api/v1/support/tickets', ['subject' => 'استفسار', 'body' => 'سؤال'])->json('data.id');
+
+        \Illuminate\Support\Facades\Event::fake([\Modules\Support\Events\TicketReplyPosted::class]);
+        $this->postJson("/api/v1/support/tickets/{$id}/reply", ['body' => 'تحديث'])->assertOk();
+
+        \Illuminate\Support\Facades\Event::assertDispatched(
+            \Modules\Support\Events\TicketReplyPosted::class,
+            fn ($e) => $e->channelName === 'support.admin' && $e->payload['ticketId'] === $id && $e->payload['reply']['isStaff'] === false,
+        );
+    }
+
     public function test_persona_seeker_reply_mentions_applications_context(): void
     {
         $this->seed(AiSeeder::class);

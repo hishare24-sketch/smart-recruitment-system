@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Modules\Support\Entities\Ticket;
+use Modules\Support\Events\TicketReplyPosted;
 
 /**
  * تذاكر الدعم من جهة المستخدم — يملك المستخدم تذاكره فقط.
@@ -69,7 +70,7 @@ class TicketController extends Controller
         $data = $request->validate(['body' => ['required', 'string', 'max:2000']]);
         $user = $request->user();
 
-        $ticket->replies()->create([
+        $reply = $ticket->replies()->create([
             'author_id' => $user->id,
             'author_name' => $user->name,
             'is_staff' => false,
@@ -79,6 +80,9 @@ class TicketController extends Controller
             'last_reply_at' => Carbon::now(),
             'status' => in_array($ticket->status, ['resolved', 'closed'], true) ? 'open' : $ticket->status,
         ]);
+
+        // بثّ لحظيّ لطابور الأدمن — event() يبثّ ShouldBroadcast تلقائيًّا.
+        event(new TicketReplyPosted(TicketReplyPosted::payloadFor($ticket, $reply), 'support.admin'));
 
         return $this->updatedResponse($this->detail($ticket->load('replies')));
     }

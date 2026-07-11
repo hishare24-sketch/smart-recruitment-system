@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Modules\Support\Entities\Ticket;
+use Modules\Support\Events\TicketReplyPosted;
 use Modules\Support\Http\Resources\Admin\AdminTicketResource;
+use Modules\User\Entities\User;
 
 class AdminTicketController extends Controller
 {
@@ -86,7 +88,7 @@ class AdminTicketController extends Controller
         $data = $request->validate(['body' => ['required', 'string', 'max:2000']]);
         $user = current_user();
 
-        $ticket->replies()->create([
+        $reply = $ticket->replies()->create([
             'author_id' => $user?->id,
             'author_name' => $user?->name ?? __('Support'),
             'is_staff' => true,
@@ -96,6 +98,11 @@ class AdminTicketController extends Controller
             'last_reply_at' => Carbon::now(),
             'status' => $ticket->status === 'open' ? 'pending' : $ticket->status,
         ]);
+
+        // بثّ لحظيّ لصاحب التذكرة على قناته (إن وُجد uuid) — event() يبثّ ShouldBroadcast تلقائيًّا.
+        if ($ownerUuid = User::whereKey($ticket->user_id)->value('uuid')) {
+            event(new TicketReplyPosted(TicketReplyPosted::payloadFor($ticket, $reply), 'user.'.$ownerUuid));
+        }
 
         return $this->updatedResponse((new AdminTicketResource($ticket->load('replies')))->resolve());
     }

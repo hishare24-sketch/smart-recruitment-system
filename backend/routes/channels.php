@@ -10,3 +10,12 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
 Broadcast::channel('user.{uuid}', function ($user, string $uuid) {
     return $user->uuid === $uuid;
 });
+
+// قناة الأدمن للدعم — ردود المستخدمين اللحظيّة (تخويل بصلاحية view_support على guard admin)
+Broadcast::channel('support.admin', function ($user) {
+    try {
+        return $user->hasPermissionTo('view_support', 'admin');
+    } catch (\Throwable) {
+        return false;
+    }
+});

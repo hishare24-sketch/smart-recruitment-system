@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import BaseAvatar from '@/components/ui/BaseAvatar.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -16,6 +16,8 @@ import {
   type AssistantContext, type AssistantContextResponse, type AssistantConversationRow, type AssistantGovernanceState,
   type AssistantNudge, type AssistantQuota, type SupportTicketDetail, type SupportTicketRow, api,
 } from '@/services/api'
+import { subscribeUserTickets } from '@/services/supportRealtime'
+import { useAuthStore } from '@/stores/AuthStore'
 
 const { t } = useI18n()
 
@@ -203,7 +205,22 @@ async function saveSettings() {
 
 function toneColor(tone: string) { return `rgb(var(--v-theme-${tone === 'amber' ? 'warning' : tone}))` }
 
-onMounted(async () => { await loadContext(); greet(); loadConversations(); loadTickets(); loadSettings() })
+// بثّ لحظيّ: ردود الدعم تصل مباشرةً للتذكرة المفتوحة والقائمة.
+let unsubscribeTickets: (() => void) | null = null
+onMounted(async () => {
+  await loadContext(); greet(); loadConversations(); loadTickets(); loadSettings()
+  const uuid = useAuthStore().authUser?.uuid
+  if (uuid) {
+    unsubscribeTickets = subscribeUserTickets(uuid, (e) => {
+      if (activeTicket.value && activeTicket.value.id === e.ticketId && !activeTicket.value.replies.some(x => x.id === e.reply.id)) {
+        activeTicket.value = { ...activeTicket.value, status: e.status, replies: [...activeTicket.value.replies, e.reply] }
+        scrollDown()
+      }
+      loadTickets()
+    })
+  }
+})
+onUnmounted(() => unsubscribeTickets?.())
 </script>
 
 <template>
