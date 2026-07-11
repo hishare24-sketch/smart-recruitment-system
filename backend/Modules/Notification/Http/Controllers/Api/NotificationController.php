@@ -14,10 +14,11 @@ class NotificationController extends Controller
 
     public function index(Request $request)
     {
-        $items = $this->service->list($request->user()->id);
+        $page = $this->service->list($request->user()->id, $this->perPage($request));
 
-        return $this->dataResponse(
-            NotificationResource::collection($items)->resolve(),
+        return $this->paginatedResource(
+            $page,
+            NotificationResource::class,
             ['unread' => $this->service->unread($request->user()->id)]
         );
     }

@@ -2,7 +2,9 @@
 
 namespace App\Http\Traits;
 
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 trait ApiResponder
 {
@@ -10,6 +12,26 @@ trait ApiResponder
     public function dataResponse($data, array $extra = []): array
     {
         return ['data' => $data, ...$extra];
+    }
+
+    /**
+     * GET قائمة مقسّمة عبر Resource → {data, meta}.
+     * يخرّط عناصر الصفحة عبر الـResource المعطى ثمّ يبني الغلاف الموحّد.
+     * عقد موحّد لكل القوائم (عميل + أدمن) — يقابل getPage/useAdminResource أماميًّا.
+     */
+    public function paginatedResource(LengthAwarePaginator $paginator, string $resource, array $extra = []): array
+    {
+        $paginator->setCollection(
+            $paginator->getCollection()->map(fn ($model) => (new $resource($model))->resolve())
+        );
+
+        return $this->dashboardResponse($paginator, $extra);
+    }
+
+    /** perPage آمن من الاستعلام (افتراضيّ 15، محدود بـ$max منعًا لإغراق الخادم). */
+    public function perPage(Request $request, int $default = 15, int $max = 100): int
+    {
+        return min(max((int) $request->query('perPage', (string) $default), 1), $max);
     }
 
     /** GET قائمة مقسّمة صفحات (->paginate()) → {data, meta}. */

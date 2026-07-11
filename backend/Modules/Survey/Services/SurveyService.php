@@ -2,8 +2,8 @@
 
 namespace Modules\Survey\Services;
 
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Collection;
 use Modules\Survey\Entities\Survey;
 use Modules\User\Entities\User;
 
@@ -12,9 +12,9 @@ class SurveyService
     /** حدّ عدد الاستبيانات لكل باقة — يطابق تمكين الواجهة. */
     private const SURVEY_LIMIT = ['free' => 1, 'pro' => 10, 'elite' => PHP_INT_MAX];
 
-    public function list(int $userId): Collection
+    public function list(int $userId, int $perPage = 15): LengthAwarePaginator
     {
-        return Survey::where('user_id', $userId)->orderByDesc('id')->get();
+        return Survey::where('user_id', $userId)->orderByDesc('id')->paginate($perPage);
     }
 
     public function create(int $userId, array $data): Survey

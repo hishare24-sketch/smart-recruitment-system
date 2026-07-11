@@ -2,14 +2,14 @@
 
 namespace Modules\Marketplace\Services;
 
-use Illuminate\Support\Collection;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Modules\Marketplace\Entities\Application;
 use Modules\Marketplace\Entities\MarketRequest;
 use Modules\Marketplace\Entities\Opportunity;
 
 class MarketplaceService
 {
-    public function listOpportunities(?string $q, ?string $category): Collection
+    public function listOpportunities(?string $q, ?string $category, int $perPage = 15): LengthAwarePaginator
     {
         $this->seedOpportunities();
 
@@ -19,7 +19,7 @@ class MarketplaceService
                 fn ($sub) => $sub->where('title', 'like', "%{$q}%")->orWhere('company', 'like', "%{$q}%")
             ))
             ->orderByDesc('id')
-            ->get();
+            ->paginate($perPage);
     }
 
     public function createOpportunity(int $userId, array $data): Opportunity
@@ -46,19 +46,19 @@ class MarketplaceService
         ]);
     }
 
-    public function listRequests(?string $type): Collection
+    public function listRequests(?string $type, int $perPage = 15): LengthAwarePaginator
     {
         $this->seedRequests();
 
         return MarketRequest::query()
             ->when($type, fn ($query) => $query->where('type', $type))
             ->orderByDesc('id')
-            ->get();
+            ->paginate($perPage);
     }
 
-    public function listMyRequests(int $userId): Collection
+    public function listMyRequests(int $userId, int $perPage = 15): LengthAwarePaginator
     {
-        return MarketRequest::where('user_id', $userId)->orderByDesc('id')->get();
+        return MarketRequest::where('user_id', $userId)->orderByDesc('id')->paginate($perPage);
     }
 
     private function seedOpportunities(): void

@@ -62,7 +62,23 @@ class NotificationTest extends TestCase
         $this->getJson('/api/v1/notifications')
             ->assertOk()
             ->assertJsonPath('unread', 1)
-            ->assertJsonStructure(['data' => [['id', 'title', 'read', 'at']], 'unread']);
+            ->assertJsonStructure(['data' => [['id', 'title', 'read', 'at']], 'unread', 'meta' => ['current_page', 'last_page', 'itemPerPage', 'total']]);
+    }
+
+    public function test_index_paginates_while_preserving_unread_total(): void
+    {
+        $user = $this->actingAsUser();
+        $svc = app(\Modules\Notification\Services\NotificationService::class);
+        foreach (range(1, 4) as $i) {
+            $svc->push($user->id, ['title' => "إشعار {$i}", 'category' => 'system']);
+        }
+
+        // الدفع المسبق يتخطّى بذر الترحيب (العدّاد > 0) → 4 إشعارات حتميًّا، كلّها غير مقروءة
+        $res = $this->getJson('/api/v1/notifications?perPage=2&page=1')->assertOk();
+        $res->assertJsonCount(2, 'data')
+            ->assertJsonPath('meta.total', 4)
+            ->assertJsonPath('meta.last_page', 2)
+            ->assertJsonPath('unread', 4); // العدّ إجماليّ لا صفحيّ
     }
 
     public function test_read_one_marks_single_and_enforces_ownership(): void

@@ -14,9 +14,11 @@ class InterviewerController extends Controller
 {
     public function __construct(private readonly InterviewerService $service) {}
 
-    public function index()
+    public function index(Request $request)
     {
-        return $this->dataResponse(InterviewerResource::collection($this->service->list()));
+        $page = $this->service->list($this->perPage($request));
+
+        return $this->paginatedResource($page, InterviewerResource::class);
     }
 
     public function book(CreateBookingRequest $request, int $id)

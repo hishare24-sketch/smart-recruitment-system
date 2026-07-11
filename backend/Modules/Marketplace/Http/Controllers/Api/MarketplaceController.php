@@ -15,9 +15,9 @@ class MarketplaceController extends Controller
 
     public function opportunities(Request $request)
     {
-        $items = $this->service->listOpportunities($request->query('q'), $request->query('category'));
+        $page = $this->service->listOpportunities($request->query('q'), $request->query('category'), $this->perPage($request));
 
-        return $this->dataResponse(OpportunityResource::collection($items));
+        return $this->paginatedResource($page, OpportunityResource::class);
     }
 
     public function storeOpportunity(CreateOpportunityRequest $request)
@@ -36,13 +36,15 @@ class MarketplaceController extends Controller
 
     public function requests(Request $request)
     {
-        $items = $this->service->listRequests($request->query('type'));
+        $page = $this->service->listRequests($request->query('type'), $this->perPage($request));
 
-        return $this->dataResponse(MarketRequestResource::collection($items));
+        return $this->paginatedResource($page, MarketRequestResource::class);
     }
 
     public function myRequests(Request $request)
     {
-        return $this->dataResponse(MarketRequestResource::collection($this->service->listMyRequests($request->user()->id)));
+        $page = $this->service->listMyRequests($request->user()->id, $this->perPage($request));
+
+        return $this->paginatedResource($page, MarketRequestResource::class);
     }
 }

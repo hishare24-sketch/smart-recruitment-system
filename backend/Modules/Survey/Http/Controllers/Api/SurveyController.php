@@ -14,7 +14,9 @@ class SurveyController extends Controller
 
     public function index(Request $request)
     {
-        return $this->dataResponse(SurveyResource::collection($this->service->list($request->user()->id)));
+        $page = $this->service->list($request->user()->id, $this->perPage($request));
+
+        return $this->paginatedResource($page, SurveyResource::class);
     }
 
     public function store(CreateSurveyRequest $request)
