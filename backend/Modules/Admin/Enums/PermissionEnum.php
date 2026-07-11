@@ -20,6 +20,7 @@ class PermissionEnum
             'view_opportunities', 'create_opportunities', 'update_opportunities', 'delete_opportunities',
             'view_requests', 'update_requests', 'delete_requests',
             'view_pipeline', 'manage_pipeline',
+            'view_matching', 'manage_matching',
 
             // المقيّمون والمقابلات (حوكمة الاعتماد)
             'view_interviewers', 'update_interviewers', 'approve_interviewers', 'reject_interviewers',

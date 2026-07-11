@@ -202,6 +202,8 @@ export const API_PATHS = {
     pipelineOpportunities: '/admin/pipeline/opportunities',
     pipelineMove: (id: number) => `/admin/pipeline/applications/${id}/move`,
     pipelineBulkMove: '/admin/pipeline/bulk-move',
+    matchingSettings: '/admin/matching/settings',
+    matchingShortlist: '/admin/matching/shortlist',
   },
   /** وسيط Claude — المفتاح يبقى في الخادم، والعقد يطابق أسماء src/services/ai/types.ts */
   ai: (contract: string) => `/v1/ai/${contract}`,
@@ -419,6 +421,13 @@ export interface PipelineStage { key: PipelineStageKey, count: number, items: Pi
 export interface PipelineBoard { stages: PipelineStage[] }
 export interface PipelineStats { total: number, active: number, hired: number, rejected: number, hireRate: number, byStage: { label: string, value: number }[] }
 export interface PipelineOpportunity { id: number, title: string, company: string | null, applications: number }
+// ——— المطابقة والفرز الذكيّ ———
+export interface MatchSettings { skillsWeight: number, experienceWeight: number, categoryWeight: number, threshold: number, aiBoost: boolean }
+export interface MatchBreakdown { skills: number, experience: number, category: number, aiBoost: boolean }
+export interface MatchShortlistItem { applicationId: number, candidate: string, stage: string, score: number, breakdown: MatchBreakdown, matchedSkills: string[] }
+export interface MatchShortlist { opportunity: { id: number, title: string, company: string | null, skills: string[] }, aiActive: boolean, threshold: number, shortlist: MatchShortlistItem[] }
+export interface MatchSettingsResponse { settings: MatchSettings, aiActive: boolean }
+export interface MatchSettingsPatch { skills_weight?: number, experience_weight?: number, category_weight?: number, threshold?: number, ai_boost?: boolean }
 // ——— صحّة النظام ———
 export interface HealthService { key: string, label: string, status: 'ok' | 'warn' | 'down', detail: string, metric: number | null, driver: string | null }
 export interface HealthMetrics { users: number, pendingJobs: number, failedJobs: number, requestsToday: number, errorsToday: number, php: string, laravel: string, env: string, debug: boolean }
@@ -624,6 +633,9 @@ export const api = {
     pipelineOpportunities: () => get<PipelineOpportunity[]>(API_PATHS.admin.pipelineOpportunities),
     movePipeline: (id: number, toStage: string, note?: string) => post<PipelineCard>(API_PATHS.admin.pipelineMove(id), { to_stage: toStage, note }),
     bulkMovePipeline: (ids: number[], toStage: string) => post<{ moved: number }>(API_PATHS.admin.pipelineBulkMove, { ids, to_stage: toStage }),
+    matchingSettings: () => get<MatchSettingsResponse>(API_PATHS.admin.matchingSettings),
+    updateMatchingSettings: (body: MatchSettingsPatch) => put<MatchSettings>(API_PATHS.admin.matchingSettings, body),
+    matchingShortlist: (opportunityId: number) => get<MatchShortlist>(API_PATHS.admin.matchingShortlist, { opportunity_id: opportunityId }),
     toggleAiCapability: (id: number) => post<AiCapability>(API_PATHS.admin.aiCapabilityToggle(id)),
     addAiKnowledge: (body: AiKnowledgePayload) => post<AiKnowledgeEntry>(API_PATHS.admin.aiKnowledge, body),
     updateAiKnowledge: (id: number, body: Partial<AiKnowledgePayload>) => put<AiKnowledgeEntry>(API_PATHS.admin.aiKnowledgeItem(id), body),

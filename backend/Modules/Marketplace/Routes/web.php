@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Marketplace\Http\Controllers\Admin\AdminApplicationController;
+use Modules\Marketplace\Http\Controllers\Admin\AdminMatchController;
 use Modules\Marketplace\Http\Controllers\Admin\AdminOpportunityController;
 use Modules\Marketplace\Http\Controllers\Admin\AdminRequestController;
 
@@ -17,6 +18,11 @@ Route::get('pipeline/stats', [AdminApplicationController::class, 'stats']);
 Route::get('pipeline/opportunities', [AdminApplicationController::class, 'opportunities']);
 Route::post('pipeline/applications/{application}/move', [AdminApplicationController::class, 'move']);
 Route::post('pipeline/bulk-move', [AdminApplicationController::class, 'bulkMove']);
+
+// المطابقة والفرز الذكيّ
+Route::get('matching/settings', [AdminMatchController::class, 'settings']);
+Route::put('matching/settings', [AdminMatchController::class, 'updateSettings']);
+Route::get('matching/shortlist', [AdminMatchController::class, 'shortlist']);
 
 Route::get('requests/stats', [AdminRequestController::class, 'stats']);
 Route::get('requests', [AdminRequestController::class, 'index']);

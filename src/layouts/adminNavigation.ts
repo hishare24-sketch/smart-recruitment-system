@@ -35,6 +35,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { title: 'admin.nav.opportunities', icon: 'mdi-briefcase-outline', to: 'admin-opportunities', permission: 'view_opportunities' },
       { title: 'admin.nav.requests', icon: 'mdi-file-document-outline', to: 'admin-requests', permission: 'view_requests' },
       { title: 'admin.nav.pipeline', icon: 'mdi-sitemap-outline', to: 'admin-pipeline', permission: 'view_pipeline' },
+      { title: 'admin.nav.matching', icon: 'mdi-target-account', to: 'admin-matching', permission: 'view_matching' },
     ],
   },
   {

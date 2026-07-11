@@ -329,6 +329,12 @@ export const routes: RouteRecordRaw[] = [
     meta: { layout: 'admin', roles: ['admin'], permission: 'view_pipeline', title: 'admin.nav.pipeline' },
   },
   {
+    path: '/admin/matching',
+    name: 'admin-matching',
+    component: () => import('@/modules/admin/pages/AdminMatchingPage.vue'),
+    meta: { layout: 'admin', roles: ['admin'], permission: 'view_matching', title: 'admin.nav.matching' },
+  },
+  {
     path: '/admin/surveys',
     name: 'admin-surveys',
     component: () => import('@/modules/admin/pages/AdminSurveysPage.vue'),
