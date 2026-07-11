@@ -135,6 +135,8 @@ export const API_PATHS = {
     auditStats: '/admin/audit-logs/stats',
     auditExport: '/admin/audit-logs/export',
     settings: '/admin/settings',
+    settingsOverview: '/admin/settings/overview',
+    settingsReset: '/admin/settings/reset',
     moderation: '/admin/moderation',
     moderationStats: '/admin/moderation/stats',
     moderationResolve: (id: number) => `/admin/moderation/${id}/resolve`,
@@ -335,7 +337,8 @@ export interface AdminStats {
   usersByKind: Record<string, number>
   signups: { date: string, count: number }[]
 }
-export interface AdminSetting { key: string, value: string | number | boolean, type: 'string' | 'number' | 'boolean' | 'select', group: string, label: string, description: string | null, options: { value: string, label: string }[], sort: number }
+export interface AdminSetting { key: string, value: string | number | boolean, default: string | number | boolean, modified: boolean, type: 'string' | 'number' | 'boolean' | 'select', group: string, label: string, description: string | null, options: { value: string, label: string }[], sort: number }
+export interface AdminSettingsOverview { total: number, groups: number, modified: number, byGroup: { label: string, value: number }[] }
 export interface AdminModerationItem { id: number, type: string, subject: string, submitter: string, targetRef: string | null, reason: string | null, status: string, resolver: string | null, resolvedAt?: string, createdAt?: string }
 export interface AdminModerationStats { total: number, pending: number, approved: number, rejected: number, byType: { label: string, value: number }[], byStatus: { label: string, value: number }[], series: { date: string, value: number }[] }
 export interface AdminBroadcast { id: number, title: string, body: string, channel: string, audience: string, audience_value: string | null, status: string, recipients: number, sender: string | null, sentAt?: string, createdAt?: string }
@@ -650,7 +653,9 @@ export const api = {
     auditStats: () => get<AdminAuditStats>(API_PATHS.admin.auditStats),
     exportAuditLogs: (params?: AdminMarketQuery) => getBlob(API_PATHS.admin.auditExport, params as Record<string, unknown>),
     settings: () => get<AdminSetting[]>(API_PATHS.admin.settings),
+    settingsOverview: () => get<AdminSettingsOverview>(API_PATHS.admin.settingsOverview),
     updateSettings: (settings: Record<string, string | number | boolean>) => put<AdminSetting[]>(API_PATHS.admin.settings, { settings }),
+    resetSettings: (payload: { keys?: string[], group?: string }) => post<AdminSetting[]>(API_PATHS.admin.settingsReset, payload),
     moderation: (params?: AdminMarketQuery) => getPage<AdminModerationItem>(API_PATHS.admin.moderation, params as Record<string, unknown>),
     moderationStats: () => get<AdminModerationStats>(API_PATHS.admin.moderationStats),
     resolveModeration: (id: number, decision: 'approved' | 'rejected' | 'resolved') => post<AdminModerationItem>(API_PATHS.admin.moderationResolve(id), { decision }),

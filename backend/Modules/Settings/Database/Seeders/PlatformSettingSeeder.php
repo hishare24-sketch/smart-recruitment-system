@@ -31,7 +31,23 @@ class PlatformSettingSeeder extends Seeder
         ];
 
         foreach ($settings as $s) {
-            PlatformSetting::updateOrCreate(['key' => $s['key']], $s);
+            // الافتراضيّ المصنعيّ = قيمة البذر (يتيح إعادة الضبط وحساب «المُعدَّل»).
+            $s['default_value'] = $s['value'];
+            // لا نطمس تعديل الأدمن على القيمة عند إعادة البذر — نحدّث الوصف/الافتراضيّ فقط.
+            $existing = PlatformSetting::where('key', $s['key'])->first();
+            if ($existing !== null) {
+                $existing->update([
+                    'default_value' => $s['default_value'],
+                    'type' => $s['type'],
+                    'group' => $s['group'],
+                    'label' => $s['label'],
+                    'description' => $s['description'] ?? null,
+                    'options' => $s['options'] ?? null,
+                    'sort' => $s['sort'],
+                ]);
+            } else {
+                PlatformSetting::create($s);
+            }
         }
     }
 }

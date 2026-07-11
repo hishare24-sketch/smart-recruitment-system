@@ -10,7 +10,7 @@ import BaseSelect from '@/components/ui/BaseSelect.vue'
 import BaseSnackbar from '@/components/ui/BaseSnackbar.vue'
 import BaseSwitch from '@/components/ui/BaseSwitch.vue'
 import BaseTabs from '@/components/ui/BaseTabs.vue'
-import { type AdminSetting, api } from '@/services/api'
+import { type AdminSetting, type AdminSettingsOverview, api } from '@/services/api'
 import { useAuthStore } from '@/stores/AuthStore'
 
 const { t } = useI18n()
@@ -20,8 +20,10 @@ const canManage = computed(() => auth.hasPermission('manage_settings'))
 const settings = ref<AdminSetting[]>([])
 const values = ref<Record<string, string | number | boolean>>({})
 const original = ref<Record<string, string | number | boolean>>({})
+const overview = ref<AdminSettingsOverview | null>(null)
 const loading = ref(true)
 const saving = ref(false)
+const resetting = ref(false)
 const activeGroup = ref('general')
 
 const snack = ref({ show: false, text: '', color: 'success' })
@@ -46,12 +48,16 @@ function hydrate(list: AdminSetting[]) {
   if (!groups.value.includes(activeGroup.value) && groups.value.length)
     activeGroup.value = groups.value[0]
 }
+async function loadOverview() { try { overview.value = await api.admin.settingsOverview() } catch { /* تجاهل */ } }
 async function load() {
   loading.value = true
-  try { hydrate(await api.admin.settings()) }
+  try { hydrate(await api.admin.settings()); await loadOverview() }
   finally { loading.value = false }
 }
 onMounted(load)
+
+// عدد المُعدَّل عن الافتراضيّ في المجموعة النشطة (لإتاحة إعادة ضبط المجموعة)
+const groupModifiedCount = computed(() => groupSettings.value.filter(s => s.modified).length)
 
 async function save() {
   if (!dirtyCount.value)
@@ -71,6 +77,20 @@ async function save() {
   finally { saving.value = false }
 }
 function reset() { values.value = { ...original.value } }
+
+/** إعادة ضبط حقيقيّة للافتراضيّ المصنعيّ (مفتاح واحد أو المجموعة النشطة) عبر الخادم. */
+async function resetToDefault(payload: { keys?: string[], group?: string }) {
+  if (resetting.value)
+    return
+  resetting.value = true
+  try {
+    hydrate(await api.admin.resetSettings(payload))
+    await loadOverview()
+    toast(t('admin.settings.resetDone'))
+  }
+  catch (e) { toast((e as { message?: string })?.message ?? t('admin.toast.failed'), 'error') }
+  finally { resetting.value = false }
+}
 </script>
 
 <template>
@@ -86,13 +106,43 @@ function reset() { values.value = { ...original.value } }
       </template>
     </PageHeader>
 
+    <!-- نظرة إحصائيّة مدمجة -->
+    <div v-if="overview" class="mb-4 grid grid-cols-3 gap-3">
+      <div class="ov-card"><span class="ov-val">{{ overview.total }}</span><span class="ov-lbl">{{ t('admin.settings.ovTotal') }}</span></div>
+      <div class="ov-card"><span class="ov-val">{{ overview.groups }}</span><span class="ov-lbl">{{ t('admin.settings.ovGroups') }}</span></div>
+      <div class="ov-card" :class="overview.modified ? 'ov-warn' : ''"><span class="ov-val">{{ overview.modified }}</span><span class="ov-lbl">{{ t('admin.settings.ovModified') }}</span></div>
+    </div>
+
     <BaseCard>
-      <BaseTabs v-model="activeGroup" :tabs="tabs" />
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <BaseTabs v-model="activeGroup" :tabs="tabs" />
+        <BaseButton
+          v-if="canManage && groupModifiedCount"
+          variant="ghost"
+          size="sm"
+          :disabled="resetting"
+          @click="resetToDefault({ group: activeGroup })"
+        >
+          <BaseIcon name="mdi-backup-restore" :size="16" />{{ t('admin.settings.resetGroup') }} ({{ groupModifiedCount }})
+        </BaseButton>
+      </div>
 
       <div class="mt-4 divide-y divide-ui">
         <div v-for="s in groupSettings" :key="s.key" class="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div class="sm:max-w-[55%]">
-            <div class="font-medium text-content">{{ s.label }}</div>
+            <div class="flex items-center gap-2">
+              <span class="font-medium text-content">{{ s.label }}</span>
+              <span v-if="s.modified" class="mod-badge">{{ t('admin.settings.modified') }}</span>
+              <button
+                v-if="s.modified && canManage"
+                class="reset-key"
+                :disabled="resetting"
+                :title="t('admin.settings.resetKey')"
+                @click="resetToDefault({ keys: [s.key] })"
+              >
+                <BaseIcon name="mdi-backup-restore" :size="14" />
+              </button>
+            </div>
             <div v-if="s.description" class="text-xs text-muted">{{ s.description }}</div>
             <div class="mt-0.5 font-mono text-[10px] text-muted" dir="ltr">{{ s.key }}</div>
           </div>
@@ -125,3 +175,32 @@ function reset() { values.value = { ...original.value } }
     <BaseSnackbar v-model="snack.show" :color="snack.color">{{ snack.text }}</BaseSnackbar>
   </div>
 </template>
+
+<style scoped>
+.ov-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+  background: rgba(var(--v-theme-on-surface), 0.02);
+}
+.ov-val { font-size: 1.5rem; font-weight: 800; color: rgb(var(--v-theme-on-surface)); }
+.ov-lbl { font-size: 0.72rem; color: rgba(var(--v-theme-on-surface), 0.6); }
+.ov-warn { border-color: rgba(var(--v-theme-warning), 0.5); background: rgba(var(--v-theme-warning), 0.08); }
+.mod-badge {
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  color: rgb(var(--v-theme-warning));
+  background: rgba(var(--v-theme-warning), 0.14);
+}
+.reset-key {
+  display: inline-flex;
+  color: rgba(var(--v-theme-on-surface), 0.55);
+}
+.reset-key:hover { color: rgb(var(--v-theme-primary)); }
+.reset-key:disabled { opacity: 0.5; }
+</style>

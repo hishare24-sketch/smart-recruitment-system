@@ -11,6 +11,8 @@ class AdminSettingResource extends JsonResource
         return [
             'key' => $this->key,
             'value' => $this->typedValue(),
+            'default' => $this->typedDefault(),
+            'modified' => $this->isModified(),
             'type' => $this->type,
             'group' => $this->group,
             'label' => $this->label,

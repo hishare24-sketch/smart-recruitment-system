@@ -17,7 +17,7 @@ class AuditMiddleware
     private const MUTATING = ['POST', 'PUT', 'PATCH', 'DELETE'];
 
     /** أفعال ذات معنًى في آخر المسار (بدل map الطريقة). */
-    private const VERBS = ['close', 'approve', 'reject', 'suspend', 'activate', 'adjust', 'transactions', 'permissions', 'admin-role', 'assign', 'revoke', 'review'];
+    private const VERBS = ['close', 'approve', 'reject', 'suspend', 'activate', 'adjust', 'transactions', 'permissions', 'admin-role', 'assign', 'revoke', 'review', 'reset'];
 
     public function handle(Request $request, Closure $next)
     {

@@ -83,5 +83,79 @@ class AdminSettingTest extends TestCase
     {
         Sanctum::actingAs(User::create(['name' => 'U', 'email' => 'se'.uniqid().'@rec.test', 'password' => 'secret123']));
         $this->getJson('/api/admin/settings')->assertStatus(403);
+        $this->getJson('/api/admin/settings/overview')->assertStatus(403);
+        $this->postJson('/api/admin/settings/reset', [])->assertStatus(403);
+    }
+
+    public function test_overview_reports_modified_count(): void
+    {
+        $this->admin();
+        $this->seed(PlatformSettingSeeder::class);
+
+        $this->getJson('/api/admin/settings/overview')
+            ->assertOk()
+            ->assertJsonStructure(['data' => ['total', 'groups', 'modified', 'byGroup']])
+            ->assertJsonPath('data.modified', 0); // كلّها على الافتراضيّ بعد البذر
+
+        $this->putJson('/api/admin/settings', ['settings' => ['general.platform_name' => 'X']])->assertOk();
+
+        $this->getJson('/api/admin/settings/overview')->assertOk()->assertJsonPath('data.modified', 1);
+    }
+
+    public function test_update_records_before_after_in_audit(): void
+    {
+        $this->admin();
+        $this->seed(PlatformSettingSeeder::class);
+
+        $this->putJson('/api/admin/settings', ['settings' => ['general.support_email' => 'new@rec.test']])->assertOk();
+
+        $log = \Modules\Audit\Entities\AuditLog::where('resource', 'settings')->latest('id')->first();
+        $this->assertNotNull($log);
+        $this->assertSame('support@rec.test', $log->meta['settings']['general.support_email']['from']);
+        $this->assertSame('new@rec.test', $log->meta['settings']['general.support_email']['to']);
+    }
+
+    public function test_index_exposes_modified_flag(): void
+    {
+        $this->admin();
+        $this->seed(PlatformSettingSeeder::class);
+        $this->putJson('/api/admin/settings', ['settings' => ['general.platform_name' => 'مُعدَّل']])->assertOk();
+
+        $this->getJson('/api/admin/settings')
+            ->assertOk()
+            ->assertJsonFragment(['key' => 'general.platform_name', 'modified' => true]);
+    }
+
+    public function test_reset_restores_default_and_audits(): void
+    {
+        $this->admin();
+        $this->seed(PlatformSettingSeeder::class);
+        $this->putJson('/api/admin/settings', ['settings' => ['general.platform_name' => 'مُغيَّر']])->assertOk();
+        $this->assertDatabaseHas('platform_settings', ['key' => 'general.platform_name', 'value' => 'مُغيَّر']);
+
+        $this->postJson('/api/admin/settings/reset', ['keys' => ['general.platform_name']])
+            ->assertOk()
+            ->assertJsonFragment(['key' => 'general.platform_name', 'modified' => false]);
+
+        $this->assertDatabaseHas('platform_settings', ['key' => 'general.platform_name', 'value' => 'منظومة التوظيف الذكية']);
+
+        $log = \Modules\Audit\Entities\AuditLog::where('resource', 'settings')->where('action', 'reset')->latest('id')->first();
+        $this->assertNotNull($log);
+        $this->assertArrayHasKey('general.platform_name', $log->meta['reset']);
+    }
+
+    public function test_reset_by_group_restores_all_group_defaults(): void
+    {
+        $this->admin();
+        $this->seed(PlatformSettingSeeder::class);
+        $this->putJson('/api/admin/settings', ['settings' => [
+            'registration.allow_signups' => false,
+            'registration.email_verification' => true,
+        ]])->assertOk();
+
+        $this->postJson('/api/admin/settings/reset', ['group' => 'registration'])->assertOk();
+
+        $this->assertDatabaseHas('platform_settings', ['key' => 'registration.allow_signups', 'value' => 'true']);
+        $this->assertDatabaseHas('platform_settings', ['key' => 'registration.email_verification', 'value' => 'false']);
     }
 }
