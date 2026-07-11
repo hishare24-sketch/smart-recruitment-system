@@ -2,14 +2,14 @@
 
 namespace Modules\Interview\Services;
 
-use Illuminate\Support\Collection;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Modules\Interview\Entities\Interview;
 
 class InterviewService
 {
-    public function list(int $userId): Collection
+    public function list(int $userId, int $perPage = 15): LengthAwarePaginator
     {
-        return Interview::where('user_id', $userId)->orderByDesc('id')->get();
+        return Interview::where('user_id', $userId)->orderByDesc('id')->paginate($perPage);
     }
 
     public function create(int $userId, array $data): Interview

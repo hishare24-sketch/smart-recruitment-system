@@ -95,4 +95,33 @@ class MarketplaceTest extends TestCase
         // طلباتي فارغة (البذور بلا مالك)
         $this->getJson('/api/v1/requests/mine')->assertOk()->assertJsonCount(0, 'data');
     }
+
+    public function test_opportunities_expose_pagination_meta(): void
+    {
+        $this->actingAsUser();
+
+        $this->getJson('/api/v1/opportunities') // seeds 3
+            ->assertOk()
+            ->assertJsonStructure(['data', 'meta' => ['current_page', 'last_page', 'itemPerPage', 'total']])
+            ->assertJsonPath('meta.current_page', 1)
+            ->assertJsonPath('meta.total', 3);
+    }
+
+    public function test_opportunities_honor_per_page_and_page(): void
+    {
+        $user = $this->actingAsUser();
+        // نُنشئ 5 قبل أيّ list — فيتخطّى البذر (العدّاد > 0) ويصير الإجماليّ 5 حتميًّا
+        foreach (range(1, 5) as $i) {
+            Opportunity::create(['user_id' => $user->id, 'title' => "Extra {$i}", 'category' => 'tech']);
+        }
+
+        $first = $this->getJson('/api/v1/opportunities?perPage=2&page=1')->assertOk();
+        $first->assertJsonCount(2, 'data')
+            ->assertJsonPath('meta.itemPerPage', 2)
+            ->assertJsonPath('meta.total', 5)
+            ->assertJsonPath('meta.last_page', 3); // ceil(5 / 2)
+
+        $second = $this->getJson('/api/v1/opportunities?perPage=2&page=2')->assertOk();
+        $this->assertNotSame($first->json('data.0.id'), $second->json('data.0.id'));
+    }
 }

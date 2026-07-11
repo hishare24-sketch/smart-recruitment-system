@@ -2,14 +2,14 @@
 
 namespace Modules\Notification\Services;
 
-use Illuminate\Support\Collection;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Modules\Notification\Entities\Notification;
 use Modules\Notification\Events\NotificationSent;
 use Modules\User\Entities\User;
 
 class NotificationService
 {
-    public function list(int $userId): Collection
+    public function list(int $userId, int $perPage = 15): LengthAwarePaginator
     {
         if (Notification::where('user_id', $userId)->count() === 0) {
             // إشعار ترحيبيّ عند أول وصول
@@ -22,7 +22,7 @@ class NotificationService
             ]);
         }
 
-        return Notification::where('user_id', $userId)->orderByDesc('id')->get();
+        return Notification::where('user_id', $userId)->orderByDesc('id')->paginate($perPage);
     }
 
     /** إنشاء إشعار وبثّه لحظيًّا — يُستدعى داخليًّا من التدفّقات (حجز/قبول/رسالة/بثّ…). */

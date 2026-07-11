@@ -144,7 +144,7 @@
 
 ### 🟡 المرحلة 6 — التحويل الأماميّ + الترقيم + التقاعد — **التحويل الأماميّ مُنجز ومُتحقَّق حيًّا**
 - [x] **التحويل الأماميّ:** `VITE_BASE_API_URL`→`http://localhost:8090/api` (الواجهة تفكّ `{data}` وتتوقّع أخطاء 422 «بأسلوب Laravel» أصلًا). **مُتحقَّق حيًّا في المتصفح:** تسجيل عبر الواجهة → `POST /api/v1/auth/register` **201** من Laravel → **توكن Sanctum حقيقيّ** (`1|…`) في authUser (id/uuid من القاعدة) → أدوار مُعبّأة عبر `fromNestUser` → انتقال onboarding → إماهة المخازن من `/account-states/*` (Bearer يعمل، **0 نداء فاشل**، **0 خطأ console**) → الجلسة تدوم بعد إعادة التحميل. CORS الافتراضيّ يسمح (api/* + أصل *).
-- [ ] `->paginate()` + `{data,meta}` معمّم لبقية القوائم؛ الواجهة تُضيف أزرار الصفحات تدريجيًّا (البند 6)
+- [x] `->paginate()` + `{data,meta}` **معمّم على كل قوائم العميل** (opportunities/requests/mine · surveys · notifications · interviews · interviewers) عبر مساعِدَي `ApiResponder::paginatedResource()` + `perPage()` (افتراضي 15، محدود 100). **غير كاسر:** `data` يبقى مصفوفة الصفحة، و`unread` في الإشعارات يبقى إجماليًّا. أزرار الصفحات أماميًّا **جاهزة أصلًا** في كونسول الأدمن (ResourceScaffold + useAdminResource) — المستهلك الحقيقيّ الوحيد لقوائم العميل هو الإشعارات (تعرض أحدث صفحة، وهو المطلوب). **+9 اختبارات meta/ترقيم؛ الحزمة 214 خضراء.**
 - [ ] مؤجّلات المرحلة 5 الأماميّة: `reverb:start` + `socket.io-client`←`laravel-echo` + `/broadcasting/auth` + WS حيّ
 - [ ] هجرة بيانات (إن لزم — dev يبدأ نظيفًا؛ يهمّ فقط لو ثمّة بيانات NestJS إنتاجيّة)
 - [ ] تقاعد `api/` (NestJS): إيقاف، إبقاء العقد `openapi.yaml` مرجعًا

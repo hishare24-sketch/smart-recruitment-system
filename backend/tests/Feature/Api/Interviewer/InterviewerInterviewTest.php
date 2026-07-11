@@ -92,4 +92,29 @@ class InterviewerInterviewTest extends TestCase
 
         $this->assertApiValidation($this->postJson('/api/v1/interviews', ['track' => 'invalid']), 'track');
     }
+
+    public function test_interviewers_list_exposes_pagination_meta(): void
+    {
+        Sanctum::actingAs($this->user());
+
+        $this->getJson('/api/v1/interviewers?perPage=2&page=1') // يبذر 3 معتمدين
+            ->assertOk()
+            ->assertJsonStructure(['data', 'meta' => ['current_page', 'last_page', 'itemPerPage', 'total']])
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('meta.total', 3)
+            ->assertJsonPath('meta.last_page', 2);
+    }
+
+    public function test_interviews_list_exposes_pagination_meta(): void
+    {
+        Sanctum::actingAs($this->user());
+        $this->postJson('/api/v1/interviews', ['track' => 'tech']);
+        $this->postJson('/api/v1/interviews', ['track' => 'management']);
+
+        $this->getJson('/api/v1/interviews?perPage=1&page=1')
+            ->assertOk()
+            ->assertJsonStructure(['data', 'meta' => ['current_page', 'last_page', 'itemPerPage', 'total']])
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('meta.total', 2);
+    }
 }

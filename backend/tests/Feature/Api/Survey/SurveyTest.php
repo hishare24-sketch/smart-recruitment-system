@@ -78,4 +78,19 @@ class SurveyTest extends TestCase
 
         $this->assertApiValidation($this->postJson('/api/v1/surveys', ['pointsPool' => 5]), 'title');
     }
+
+    public function test_list_exposes_pagination_meta(): void
+    {
+        $this->actingAsUser('pro');
+        $this->postJson('/api/v1/surveys', ['title' => 'A']);
+        $this->postJson('/api/v1/surveys', ['title' => 'B']);
+
+        $this->getJson('/api/v1/surveys?perPage=1&page=1')
+            ->assertOk()
+            ->assertJsonStructure(['data', 'meta' => ['current_page', 'last_page', 'itemPerPage', 'total']])
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('meta.total', 2)
+            ->assertJsonPath('meta.last_page', 2)
+            ->assertJsonPath('data.0.title', 'B'); // أحدث أوّلًا
+    }
 }

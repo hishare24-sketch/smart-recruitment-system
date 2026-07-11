@@ -2,18 +2,18 @@
 
 namespace Modules\Interviewer\Services;
 
-use Illuminate\Support\Collection;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Modules\Interviewer\Entities\Booking;
 use Modules\Interviewer\Entities\Interviewer;
 
 class InterviewerService
 {
-    public function list(): Collection
+    public function list(int $perPage = 15): LengthAwarePaginator
     {
         $this->seedIfEmpty();
 
         // القائمة العامّة تعرض المقيّمين المعتمدين فقط (حوكمة الاعتماد الإداريّ).
-        return Interviewer::where('status', 'approved')->orderByDesc('rating')->get();
+        return Interviewer::where('status', 'approved')->orderByDesc('rating')->paginate($perPage);
     }
 
     public function book(int $userId, int $interviewerId, array $data): Booking

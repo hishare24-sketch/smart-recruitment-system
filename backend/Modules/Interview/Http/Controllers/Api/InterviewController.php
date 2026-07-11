@@ -14,7 +14,9 @@ class InterviewController extends Controller
 
     public function index(Request $request)
     {
-        return $this->dataResponse(InterviewResource::collection($this->service->list($request->user()->id)));
+        $page = $this->service->list($request->user()->id, $this->perPage($request));
+
+        return $this->paginatedResource($page, InterviewResource::class);
     }
 
     public function store(CreateInterviewRequest $request)
