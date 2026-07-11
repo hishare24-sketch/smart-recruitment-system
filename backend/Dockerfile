@@ -26,12 +26,12 @@ RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --no-in
 
 # بقيّة التطبيق + بناء autoload المحسّن
 COPY . .
-RUN composer dump-autoload --optimize --no-dev --classmap-authoritative \
- && chmod +x start.sh
+RUN composer dump-autoload --optimize --no-dev --classmap-authoritative
 
 ENV APP_ENV=production \
     APP_DEBUG=false \
     LOG_CHANNEL=stderr
 
-# الإقلاع عبر سكربت (هجرة + صلاحيّات + تقديم) — يتجنّب تفسير Render لـ && في dockerCommand.
-CMD ["sh", "start.sh"]
+# الإقلاع بصيغة شِل — Docker يُشغّلها عبر /bin/sh -c (يُفسّر ;/&& و$PORT، بلا سكربت
+# ولا قلق نهايات أسطر). هجرة بمهلة لا تُعلّق الاستيقاظ، ثمّ صلاحيّات، ثمّ تقديم.
+CMD timeout 60 php artisan migrate --force || true; php artisan permission:insert || true; exec frankenphp php-server --root public/ --listen :${PORT:-8080}
