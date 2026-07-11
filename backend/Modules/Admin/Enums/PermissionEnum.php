@@ -68,6 +68,9 @@ class PermissionEnum
 
             // الأرشيف ودورة حياة البيانات
             'view_archive', 'manage_archive',
+
+            // العدالة والامتثال (تحيّز/تنوّع/تدقيق قرارات الذكاء)
+            'view_compliance',
         ];
     }
 }

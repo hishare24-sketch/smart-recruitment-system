@@ -56,6 +56,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     items: [
       { title: 'admin.nav.interviewers', icon: 'mdi-account-tie-outline', to: 'admin-interviewers', permission: 'view_interviewers' },
       { title: 'admin.nav.interviewQuality', icon: 'mdi-clipboard-check-outline', to: 'admin-interview-quality', permission: 'view_interviews' },
+      { title: 'admin.nav.compliance', icon: 'mdi-scale-balance', to: 'admin-compliance', permission: 'view_compliance' },
       { title: 'admin.nav.governance', icon: 'mdi-gavel', to: 'admin-governance', permission: 'view_governance' },
     ],
   },

@@ -37,6 +37,7 @@ class RoleHasPermissionSeeder extends Seeder
             'view_reports', 'view_health',
             'view_branding', 'manage_branding',
             'view_archive', 'manage_archive',
+            'view_compliance',
         ]);
 
         // governance: الحوكمة والمحتوى فقط
@@ -45,7 +46,7 @@ class RoleHasPermissionSeeder extends Seeder
             'view_profiles', 'verify_skills',
             'view_endorsements', 'approve_endorsements',
             'view_governance', 'manage_governance', 'approve_experts',
-            'view_analytics',
+            'view_analytics', 'view_compliance',
         ]);
     }
 }

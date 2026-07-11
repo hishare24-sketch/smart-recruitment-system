@@ -23,6 +23,7 @@ export const ADMIN_PERMISSIONS = [
   'view_chat', 'manage_chat',
   'view_reports', 'view_health',
   'view_archive', 'manage_archive',
+  'view_compliance',
 ] as const
 
 export type AdminPermission = typeof ADMIN_PERMISSIONS[number]
@@ -33,7 +34,7 @@ export interface PermissionGroup { key: string, labelKey: string, permissions: A
 export const PERMISSION_GROUPS: PermissionGroup[] = [
   { key: 'users', labelKey: 'admin.groups.users', permissions: ['view_users', 'create_users', 'update_users', 'delete_users', 'view_roles', 'create_roles', 'update_roles', 'delete_roles'] },
   { key: 'marketplace', labelKey: 'admin.groups.marketplace', permissions: ['view_opportunities', 'create_opportunities', 'update_opportunities', 'delete_opportunities', 'view_requests', 'update_requests', 'delete_requests', 'view_pipeline', 'manage_pipeline', 'view_matching', 'manage_matching'] },
-  { key: 'interviews', labelKey: 'admin.groups.interviews', permissions: ['view_interviewers', 'update_interviewers', 'approve_interviewers', 'reject_interviewers', 'view_interviews'] },
+  { key: 'interviews', labelKey: 'admin.groups.interviews', permissions: ['view_interviewers', 'update_interviewers', 'approve_interviewers', 'reject_interviewers', 'view_interviews', 'manage_interview_quality', 'view_compliance'] },
   { key: 'surveys', labelKey: 'admin.groups.surveys', permissions: ['view_surveys', 'update_surveys', 'delete_surveys', 'close_surveys', 'view_survey_templates', 'manage_survey_templates'] },
   { key: 'governance', labelKey: 'admin.groups.governance', permissions: ['view_profiles', 'verify_skills', 'view_endorsements', 'approve_endorsements', 'view_governance', 'manage_governance', 'approve_experts'] },
   { key: 'broadcast', labelKey: 'admin.groups.broadcast', permissions: ['view_broadcast', 'create_broadcast'] },

@@ -9,6 +9,7 @@ use Modules\Account\Database\Seeders\PlanSeeder;
 use Modules\Account\Database\Seeders\PlatformAccountSeeder;
 use Modules\Ai\Database\Seeders\AiSeeder;
 use Modules\Chat\Database\Seeders\ChatSeeder;
+use Modules\Compliance\Database\Seeders\ComplianceDemoSeeder;
 use Modules\Governance\Database\Seeders\ModerationSeeder;
 use Modules\Interview\Database\Seeders\InterviewQualitySeeder;
 use Modules\Interview\Database\Seeders\InterviewRubricSeeder;
@@ -44,5 +45,6 @@ class DatabaseSeeder extends Seeder
         $this->call(ChatSeeder::class);
         $this->call(InterviewRubricSeeder::class);
         $this->call(InterviewQualitySeeder::class);
+        $this->call(ComplianceDemoSeeder::class);
     }
 }

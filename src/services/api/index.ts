@@ -216,6 +216,10 @@ export const API_PATHS = {
     interviewCalibration: '/admin/interview-quality/calibration',
     interviewRubrics: '/admin/interview-rubrics',
     interviewRubricItem: (id: number) => `/admin/interview-rubrics/${id}`,
+    complianceOverview: '/admin/compliance/overview',
+    complianceAdverseImpact: '/admin/compliance/adverse-impact',
+    complianceFunnel: '/admin/compliance/funnel',
+    complianceAuditTrail: '/admin/compliance/audit-trail',
   },
   /** هويّة المنصّة العامّة (بلا مصادقة) */
   brandingPublic: '/v1/branding',
@@ -450,6 +454,15 @@ export interface InterviewQualityStats { total: number, avgScore: number, flagge
 export interface InterviewCalibrationRow { track: string, count: number, avgScore: number, minScore: number, maxScore: number, highRiskRate: number, bias: number }
 export interface InterviewCalibration { overallAvg: number, tracks: InterviewCalibrationRow[] }
 export interface RubricPayload { name: string, track: string, criteria: RubricCriterion[], active?: boolean }
+
+// العدالة والامتثال (B4)
+export interface ComplianceAiOversight { weights: { skills: number, experience: number, category: number }, threshold: number, aiBoost: boolean, aiActive: boolean, boostEffective: boolean, governed: boolean }
+export interface ComplianceOverview { totals: { applicants: number, hired: number, hireRate: number }, dimensions: string[], adverseFlags: number, compliant: boolean, aiOversight: ComplianceAiOversight }
+export interface AdverseImpactGroup { group: string, applicants: number, hired: number, selectionRate: number, smallSample: boolean, impactRatio: number | null, adverse: boolean }
+export interface AdverseImpact { dimension: string, groups: AdverseImpactGroup[], maxSelectionRate: number, adverseFlags: number, compliant: boolean, minSample: number }
+export interface FunnelGroup { group: string, total: number, stages: Record<string, number> }
+export interface ComplianceFunnel { dimension: string, stages: string[], groups: FunnelGroup[], representation: { label: string, value: number }[] }
+export interface ComplianceAuditRow { id: number, actor: string | null, action: string | null, resource: string | null, targetId: number | null, status: number | null, at: string | null }
 // ——— هويّة المنصّة (Branding) ———
 export interface Branding {
   platformName: string
@@ -707,6 +720,11 @@ export const api = {
     createRubric: (body: RubricPayload) => post<AdminInterviewRubric>(API_PATHS.admin.interviewRubrics, body),
     updateRubric: (id: number, body: Partial<RubricPayload>) => put<AdminInterviewRubric>(API_PATHS.admin.interviewRubricItem(id), body),
     deleteRubric: (id: number) => del(API_PATHS.admin.interviewRubricItem(id)),
+    // العدالة والامتثال (B4)
+    complianceOverview: () => get<ComplianceOverview>(API_PATHS.admin.complianceOverview),
+    complianceAdverseImpact: (dimension: string) => get<AdverseImpact>(API_PATHS.admin.complianceAdverseImpact, { dimension }),
+    complianceFunnel: (dimension: string) => get<ComplianceFunnel>(API_PATHS.admin.complianceFunnel, { dimension }),
+    complianceAuditTrail: () => get<ComplianceAuditRow[]>(API_PATHS.admin.complianceAuditTrail),
     toggleAiCapability: (id: number) => post<AiCapability>(API_PATHS.admin.aiCapabilityToggle(id)),
     addAiKnowledge: (body: AiKnowledgePayload) => post<AiKnowledgeEntry>(API_PATHS.admin.aiKnowledge, body),
     updateAiKnowledge: (id: number, body: Partial<AiKnowledgePayload>) => put<AiKnowledgeEntry>(API_PATHS.admin.aiKnowledgeItem(id), body),
