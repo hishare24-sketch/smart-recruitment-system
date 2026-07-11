@@ -25,8 +25,12 @@ class AuthService
             'kind' => $data['kind'] ?? 'individual',
         ]);
 
-        // بريد ترحيبيّ عبر Resend (مُصفَّر؛ لا يعطّل الاستجابة ولا يكسر التسجيل لو فشل)
-        Mail::to($user->email)->send(new WelcomeMail($user->name));
+        // بريد ترحيبيّ عبر Resend (لا يعطّل الاستجابة ولا يكسر التسجيل مهما فشل الإرسال/الإعداد)
+        try {
+            Mail::to($user->email)->send(new WelcomeMail($user->name));
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return $this->sessionFor($user);
     }

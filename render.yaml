@@ -37,13 +37,11 @@ envVarGroups:
         value: sync
       - key: BROADCAST_CONNECTION
         value: log             # البثّ اللحظيّ مطفأ على المجّانيّ (يحتاج Reverb دائم التشغيل)
-      # ——— Resend (البريد) ———
+      # ——— البريد: log على المجّانيّ (لا يحتاج مفتاح؛ بدّله resend لاحقًا) ———
       - key: MAIL_MAILER
-        value: resend
-      - key: RESEND_API_KEY
-        sync: false
+        value: log
       - key: MAIL_FROM_ADDRESS
-        sync: false
+        value: no-reply@recruitment.local
       - key: MAIL_FROM_NAME
         value: "منظومة التوظيف الذكية"
       # ——— اختياريّ ———
