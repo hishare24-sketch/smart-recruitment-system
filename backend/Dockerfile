@@ -32,6 +32,7 @@ ENV APP_ENV=production \
     APP_DEBUG=false \
     LOG_CHANNEL=stderr
 
-# الإقلاع بصيغة شِل (Docker يُشغّلها عبر /bin/sh -c). على المثيل المجّانيّ 512MB نستخدم
-# php artisan serve (عمليّة واحدة خفيفة) بدل FrankenPHP متعدّد الخيوط (يتجنّب نفاد الذاكرة).
-CMD timeout 60 php artisan migrate --force || true; php artisan permission:insert || true; exec php artisan serve --host=0.0.0.0 --port=${PORT:-8080}
+# نُلغي ENTRYPOINT الأساس (يتعارض مع تشغيل Render) ونستخدم CMD صيغة exec صريحة
+# بـ /bin/sh -c — لا لبس في التفسير. php artisan serve خفيف يناسب 512MB المجّانيّ.
+ENTRYPOINT []
+CMD ["/bin/sh", "-c", "timeout 60 php artisan migrate --force || true; php artisan permission:insert || true; exec php artisan serve --host=0.0.0.0 --port=${PORT:-10000}"]
