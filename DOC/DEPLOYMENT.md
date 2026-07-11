@@ -6,16 +6,15 @@
 ## المكوّنات
 | الخدمة | الدور | الملفّ الجاهز |
 |--------|------|--------------|
-| **Render** | استضافة + نشر تلقائيّ من GitHub | `render.yaml` (مخطّط: web + queue + reverb + redis) |
-| **Supabase** | قاعدة Postgres | `DB_CONNECTION=pgsql` في المخطّط |
+| **Render** | استضافة + نشر تلقائيّ من GitHub + **Postgres + Redis** | `render.yaml` (مخطّط: db + web + queue + reverb + redis، القاعدة تُربَط تلقائيًّا) |
 | **Resend** | بريد المعاملات | `MAIL_MAILER=resend` (يتطلّب تثبيت الحزمة — §الخطوة 5) |
 | **Firebase** | إشعارات Push (FCM) | `FIREBASE_CREDENTIALS` (يتطلّب قناة FCM — §الخطوة 5) |
 
 ## الرَنبوك (6 خطوات — نقر فقط)
 
-### 1) Supabase — القاعدة
-1. أنشئ مشروعًا (أو استخدم الحاليّ). Settings → Database → **Connection string** (Postgres).
-2. احتفظ بـ: `host` · `port=5432` · `database=postgres` · `user` · `password`.
+### 1) القاعدة — Render Postgres (تلقائيّة)
+لا خطوات يدويّة: `render.yaml` يُعرّف `recruitment-db` (Postgres 16)، وRender يُنشئها ويحقن
+`DB_HOST/PORT/DATABASE/USERNAME/PASSWORD` في الخدمات تلقائيًّا عند تطبيق الـBlueprint.
 
 ### 2) Render — المخطّط
 1. Render → **New → Blueprint** → اختر مستودع `smart-recruitment-system` (يقرأ `render.yaml`).

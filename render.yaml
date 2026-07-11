@@ -1,7 +1,15 @@
 # ===== مخطّط نشر Render لمنظومة التوظيف =====
-# يطابق مكدّس موازين: Render (استضافة) + Supabase (Postgres) + Resend (بريد) + Firebase (FCM).
-# القاعدة خارجيّة (Supabase) فلا تُعرَّف هنا؛ تُضبط أسرارها في مجموعة البيئة أدناه.
-# النشر: Render → New → Blueprint → اختر المستودع. ثمّ املأ الأسرار في لوحة Render (لا في الكود).
+# Render (استضافة + Postgres + Redis) + Resend (بريد) + Firebase (FCM).
+# القاعدة والكاش يُنشآن ويُربطان تلقائيًّا هنا — لا تنسخ سلسلة اتّصال ولا تلصق أسرار قاعدة.
+# النشر: Render → New → Blueprint → اختر المستودع. ثمّ الصق الأسرار غير-القاعديّة فقط.
+
+# ——— القاعدة (Render Postgres، تُنشأ تلقائيًّا) ———
+databases:
+  - name: recruitment-db
+    databaseName: recruitment
+    user: recruitment
+    plan: basic-256mb          # ~6$/شهر؛ للتجربة يمكن free (يُحذف بعد 30 يومًا)
+    postgresMajorVersion: "16"
 
 envVarGroups:
   - name: recruitment-shared
@@ -13,24 +21,13 @@ envVarGroups:
       - key: APP_DEBUG
         value: "false"
       - key: APP_KEY
-        sync: false            # ولّده: php artisan key:generate --show ثمّ الصقه في Render
+        sync: false            # ولّده: php artisan key:generate --show ثمّ الصقه
       - key: APP_URL
-        sync: false            # https://api.example.com
-      # ——— قاعدة Supabase (Postgres) ———
+        sync: false            # https://api.example.com (أو رابط onrender مؤقّتًا)
       - key: DB_CONNECTION
         value: pgsql
-      - key: DB_HOST
-        sync: false            # db.xxxx.supabase.co
-      - key: DB_PORT
-        value: "5432"
-      - key: DB_DATABASE
-        value: postgres
-      - key: DB_USERNAME
-        sync: false
-      - key: DB_PASSWORD
-        sync: false
       - key: DB_SSLMODE
-        value: require
+        value: prefer          # اتّصال داخليّ في Render لا يحتاج SSL إلزاميًّا
       # ——— الجلسات/الكاش/الطابور/البثّ ———
       - key: SESSION_DRIVER
         value: database
@@ -48,7 +45,7 @@ envVarGroups:
       - key: REVERB_APP_SECRET
         sync: false
       - key: REVERB_HOST
-        sync: false            # ws.example.com (دومين خدمة reverb أدناه)
+        sync: false            # دومين خدمة reverb (onrender أو ws.example.com)
       - key: REVERB_PORT
         value: "443"
       - key: REVERB_SCHEME
@@ -64,10 +61,10 @@ envVarGroups:
         sync: false
       - key: MAIL_FROM_NAME
         value: "منظومة التوظيف الذكية"
-      # ——— Firebase (FCM) ———
+      # ——— Firebase (FCM، اختياريّ — اتركه فارغًا لتخطّي Push) ———
       - key: FIREBASE_CREDENTIALS
-        sync: false            # مسار/محتوى ملفّ حساب الخدمة JSON
-      # ——— الذكاء (وسيط Claude، اختياريّ) ———
+        sync: false
+      # ——— وسيط Claude (اختياريّ) ———
       - key: ANTHROPIC_API_KEY
         sync: false
 
@@ -82,17 +79,23 @@ services:
     dockerContext: backend
     plan: starter
     healthCheckPath: /up
-    # الهجرات + بذر الصلاحيّات قبل تبديل الإصدار (لا في أمر التشغيل)
     preDeployCommand: "php artisan migrate --force && php artisan permission:insert"
     envVars:
       - fromGroup: recruitment-shared
+      - key: DB_HOST
+        fromDatabase: { name: recruitment-db, property: host }
+      - key: DB_PORT
+        fromDatabase: { name: recruitment-db, property: port }
+      - key: DB_DATABASE
+        fromDatabase: { name: recruitment-db, property: database }
+      - key: DB_USERNAME
+        fromDatabase: { name: recruitment-db, property: user }
+      - key: DB_PASSWORD
+        fromDatabase: { name: recruitment-db, property: password }
       - key: REDIS_URL
-        fromService:
-          type: redis
-          name: recruitment-redis
-          property: connectionString
+        fromService: { type: redis, name: recruitment-redis, property: connectionString }
 
-  # 2) عامل الطابور — الإشعارات/البثّ مُصفَّرة عبر Redis
+  # 2) عامل الطابور
   - type: worker
     name: recruitment-queue
     runtime: docker
@@ -104,13 +107,20 @@ services:
     dockerCommand: "php artisan queue:work --tries=3 --timeout=90 --sleep=1"
     envVars:
       - fromGroup: recruitment-shared
+      - key: DB_HOST
+        fromDatabase: { name: recruitment-db, property: host }
+      - key: DB_PORT
+        fromDatabase: { name: recruitment-db, property: port }
+      - key: DB_DATABASE
+        fromDatabase: { name: recruitment-db, property: database }
+      - key: DB_USERNAME
+        fromDatabase: { name: recruitment-db, property: user }
+      - key: DB_PASSWORD
+        fromDatabase: { name: recruitment-db, property: password }
       - key: REDIS_URL
-        fromService:
-          type: redis
-          name: recruitment-redis
-          property: connectionString
+        fromService: { type: redis, name: recruitment-redis, property: connectionString }
 
-  # 3) Reverb — خادم WebSocket العامّ (اربط دومين ws.example.com بهذه الخدمة)
+  # 3) Reverb — خادم WebSocket العامّ (اربط به دومين ws.example.com)
   - type: web
     name: recruitment-reverb
     runtime: docker
@@ -122,15 +132,22 @@ services:
     dockerCommand: "php artisan reverb:start --host=0.0.0.0 --port=${PORT}"
     envVars:
       - fromGroup: recruitment-shared
+      - key: DB_HOST
+        fromDatabase: { name: recruitment-db, property: host }
+      - key: DB_PORT
+        fromDatabase: { name: recruitment-db, property: port }
+      - key: DB_DATABASE
+        fromDatabase: { name: recruitment-db, property: database }
+      - key: DB_USERNAME
+        fromDatabase: { name: recruitment-db, property: user }
+      - key: DB_PASSWORD
+        fromDatabase: { name: recruitment-db, property: password }
       - key: REDIS_URL
-        fromService:
-          type: redis
-          name: recruitment-redis
-          property: connectionString
+        fromService: { type: redis, name: recruitment-redis, property: connectionString }
 
   # 4) Redis — كاش/طابور/توسّع البثّ (Render Key Value)
   - type: redis
     name: recruitment-redis
     plan: starter
     maxmemoryPolicy: noeviction
-    ipAllowList: []          # داخليّ فقط (وصول الخدمات أعلاه)
+    ipAllowList: []          # داخليّ فقط
