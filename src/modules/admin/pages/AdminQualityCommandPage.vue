@@ -18,7 +18,7 @@ import ResourceScaffold from '@/modules/admin/components/ResourceScaffold.vue'
 import type { FilterDef } from '@/modules/admin/components/ResourceScaffold.vue'
 import type { TableColumn } from '@/components/ui/BaseTable.vue'
 import { useAdminResource } from '@/modules/admin/composables/useAdminResource'
-import { type QualityAtom, type QualityBoard, type QualityDispatchCard, type QualityOverview, type QualityRuntimeError, api } from '@/services/api'
+import { type QualityAtom, type QualityBoard, type QualityCi, type QualityDispatchCard, type QualityOverview, type QualityRuntimeError, api } from '@/services/api'
 import { useAuthStore } from '@/stores/AuthStore'
 
 const { t } = useI18n()
@@ -119,8 +119,17 @@ async function loadRuntime() {
 }
 function fmtTime(s: string | null) { return s ? new Date(s).toLocaleString() : '—' }
 
-function refreshAll() { r.refresh(); loadOverview(); loadBoard(); loadRuntime() }
-onMounted(() => { loadOverview(); loadBoard(); loadRuntime() })
+// ——— حالة CI (GitHub Actions) ———
+const ci = ref<QualityCi | null>(null)
+async function loadCi() {
+  try { ci.value = await api.admin.qualityCi() }
+  catch { /* تجاهل */ }
+}
+const CI_COLOR: Record<string, ChipColor> = { success: 'success', failure: 'error', cancelled: 'neutral', skipped: 'neutral', in_progress: 'info', queued: 'info' }
+const ciConcColor = (c: string | null) => CI_COLOR[c ?? ''] ?? 'info'
+
+function refreshAll() { r.refresh(); loadOverview(); loadBoard(); loadRuntime(); loadCi() }
+onMounted(() => { loadOverview(); loadBoard(); loadRuntime(); loadCi() })
 
 const columns: TableColumn[] = [
   { key: 'caseId', label: t('admin.qcc.colId'), sortable: true },
@@ -253,6 +262,30 @@ const filterDefs = computed<FilterDef[]>(() => [
           </div>
         </div>
       </div>
+    </BaseCard>
+
+    <!-- حالة CI (GitHub Actions) -->
+    <BaseCard class="mb-5">
+      <div class="mb-3 flex flex-wrap items-center gap-2">
+        <BaseIcon name="mdi-github" :size="18" class="text-brand" />
+        <h2 class="text-sm font-bold text-content">{{ t('admin.qcc.ciTitle') }}</h2>
+        <template v-if="ci?.available && ci.summary">
+          <BaseChip :color="ciConcColor(ci.summary.lastConclusion)" class="ms-1">{{ ci.summary.lastConclusion ?? t('admin.qcc.ciRunning') }}</BaseChip>
+          <span v-if="ci.summary.passRate !== null" class="text-xs text-muted">{{ t('admin.qcc.ciPassRate') }}: <b class="text-content">{{ ci.summary.passRate }}%</b></span>
+          <span v-if="ci.repo" class="ms-auto font-mono text-[11px] text-muted" dir="ltr">{{ ci.repo }}</span>
+        </template>
+      </div>
+      <div v-if="ci?.available && ci.runs?.length" class="space-y-1.5">
+        <a v-for="run in ci.runs.slice(0, 8)" :key="run.id" :href="run.url || undefined" target="_blank" rel="noopener"
+           class="flex items-center gap-2 rounded-ui border border-ui px-2.5 py-1.5 text-sm hover:bg-ui/40">
+          <BaseChip :color="ciConcColor(run.conclusion ?? run.status)">{{ run.conclusion ?? run.status }}</BaseChip>
+          <span class="font-medium text-content">{{ run.name }}</span>
+          <BaseChip color="neutral" class="font-mono">{{ run.branch }}</BaseChip>
+          <span class="truncate text-[11px] text-muted" :title="run.commit">{{ run.commit }}</span>
+          <span class="ms-auto shrink-0 text-[11px] text-muted" dir="ltr">#{{ run.runNumber }} · {{ fmtTime(run.updatedAt) }}</span>
+        </a>
+      </div>
+      <p v-else class="py-4 text-center text-xs text-muted">{{ t('admin.qcc.ciUnavailable') }}</p>
     </BaseCard>
 
     <!-- رصد وقت-التشغيل -->

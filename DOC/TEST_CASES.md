@@ -545,6 +545,10 @@
 | QCC-27 | أدمن runtime → قائمة مقسّمة + فلترة الخطورة | F | 🔴 | ✅ | ObserveTest |
 | QCC-28 | overview يضمّ ملخّص runtime (open/critical/today) | F | 🟠 | ✅ | ObserveTest |
 | QCC-29 | غير أدمن → runtime → 403 | F | 🔴 | ✅ | ObserveTest |
+| QCC-30 | GithubCiService يخرّط تشغيلات GitHub + ملخّص (passRate/lastConclusion) | F | 🔴 | ✅ | AdminQualityCiTest |
+| QCC-31 | تدهور لطيف عند خطأ GitHub (5xx) → available=false | F | 🟠 | ✅ | AdminQualityCiTest |
+| QCC-32 | بلا مستودع مضبوط → available=false · reason=no_repo | F | 🟠 | ✅ | AdminQualityCiTest |
+| QCC-33 | غير أدمن → ci → 403 | F | 🔴 | ✅ | AdminQualityCiTest |
 
 ---
 # الواجهة (Frontend)

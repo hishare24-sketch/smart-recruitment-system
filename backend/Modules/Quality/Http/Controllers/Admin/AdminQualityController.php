@@ -10,6 +10,7 @@ use Modules\Quality\Entities\QualityDispatch;
 use Modules\Quality\Entities\QualitySnapshot;
 use Modules\Quality\Entities\RuntimeError;
 use Modules\Quality\Entities\TestCase as TestCaseAtom;
+use Modules\Quality\Services\GithubCiService;
 
 /**
  * مركز قيادة الجودة (الأدمن) — قراءة ذرّات حالات الاختبار وإحصاءاتها + التحويل.
@@ -117,6 +118,14 @@ class AdminQualityController extends Controller
         $page->getCollection()->transform(fn (TestCaseAtom $a) => $this->present($a));
 
         return $this->dashboardResponse($page);
+    }
+
+    /** حالة CI حيًّا من GitHub Actions (ف4). */
+    public function ci(GithubCiService $github)
+    {
+        $this->authorize('view_quality');
+
+        return $this->dataResponse($github->latest(15));
     }
 
     // ═══ التحويل (لوحة الأقسام / kanban) ═══

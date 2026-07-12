@@ -787,7 +787,11 @@
       "rtCount": "Count",
       "rtStatus": "Status",
       "rtLastSeen": "Last seen",
-      "rtEmpty": "No signals captured yet"
+      "rtEmpty": "No signals captured yet",
+      "ciTitle": "CI status",
+      "ciPassRate": "Pass rate",
+      "ciRunning": "Running",
+      "ciUnavailable": "CI status unavailable (set GITHUB_TOKEN in the backend)"
     },
     "iquality": {
       "title": "Interview Quality",

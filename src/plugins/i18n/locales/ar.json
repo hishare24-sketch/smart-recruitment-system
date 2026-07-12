@@ -787,7 +787,11 @@
       "rtCount": "التكرار",
       "rtStatus": "الحالة",
       "rtLastSeen": "آخر ظهور",
-      "rtEmpty": "لا إشارات مرصودة بعد"
+      "rtEmpty": "لا إشارات مرصودة بعد",
+      "ciTitle": "حالة CI",
+      "ciPassRate": "نسبة النجاح",
+      "ciRunning": "جارٍ",
+      "ciUnavailable": "حالة CI غير متاحة (اضبط GITHUB_TOKEN في الباك-إند)"
     },
     "iquality": {
       "title": "جودة المقابلات",
