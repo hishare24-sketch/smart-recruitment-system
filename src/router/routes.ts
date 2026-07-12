@@ -85,6 +85,12 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/modules/profile/pages/ProfilePage.vue'),
     meta: { layout: 'default' },
   },
+  {
+    path: '/cv-studio',
+    name: 'cv-studio',
+    component: () => import('@/modules/profile/pages/CvStudioPage.vue'),
+    meta: { layout: 'default' },
+  },
   // انتقل التحكم إلى مركز الإعدادات — المساران القديمان يحوّلان إليه فتبقى كل الروابط حيّة
   {
     path: '/plan',

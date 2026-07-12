@@ -434,10 +434,22 @@ const heroStats = computed(() => [
       <!-- استيراد السيرة الذاتيّة بالذكاء -->
       <CvImport
         v-if="tab === 'skills'"
-        class="mb-4"
+        class="mb-3"
         @applied="c => toast(`تمّ استيراد سيرتك: ${c}`)"
         @error="m => toast(m)"
       />
+      <div v-if="tab === 'skills'" class="mb-4 flex items-center justify-between gap-3 rounded-ui border border-brand/30 bg-brand/5 p-3">
+        <div class="flex items-center gap-2">
+          <BaseIcon name="mdi-file-star-outline" :size="20" class="text-brand" />
+          <div>
+            <p class="text-sm font-bold text-content">استوديو السيرة الذاتيّة</p>
+            <p class="text-xs text-muted">صياغة بالذكاء · ثيمات · ترتيب مرن · روابط تفاعليّة · تصدير PDF</p>
+          </div>
+        </div>
+        <BaseButton variant="brand" size="sm" @click="$router.push('/cv-studio')">
+          <BaseIcon name="mdi-arrow-left" :size="16" />افتح الاستوديو
+        </BaseButton>
+      </div>
 
       <!-- Skills -->
       <BaseCard v-if="tab === 'skills'">

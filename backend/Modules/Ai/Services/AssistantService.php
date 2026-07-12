@@ -456,4 +456,125 @@ class AssistantService
             'email' => null, 'phone' => null, 'skills' => [], 'experiences' => [], 'certificates' => [], 'confidence' => 0,
         ];
     }
+
+    // ═══════════════════ استوديو السيرة: صياغة تكيّفيّة بالذكاء ═══════════════════
+
+    /**
+     * يصوغ نبذة مهنيّة + مسمّى + نقاط إبراز، مخصّصة لمجال المستخدم ومهاراته وخبراته،
+     * بطول قابل للاختيار (short/medium/expanded). مزوّد حيّ إن هُيّئ، وإلّا محاكاة تكيّفيّة
+     * حقيقيّة (تعمل بلا مفتاح — ليجرّب المستخدم الاستوديو فورًا).
+     *
+     * @param  array  $profile  {name, headline, field, skills:[{name,level}], experiences:[{title,org,years,summary}], certificates:[...]}
+     * @return array{live:bool, data:array, meta:array}
+     */
+    public function composeCv(array $profile, string $length): array
+    {
+        $length = in_array($length, ['short', 'medium', 'expanded'], true) ? $length : 'medium';
+        $ai = AiSetting::current();
+        $provider = $this->providerFor($ai);
+
+        if ($provider === null) {
+            return ['live' => false, 'data' => $this->simulateCompose($profile, $length), 'meta' => ['simulated' => true, 'length' => $length]];
+        }
+
+        $spec = match ($length) {
+            'short' => 'نبذة موجزة جدًّا (25-40 كلمة) + 3 نقاط إبراز قصيرة مؤثّرة',
+            'expanded' => 'نبذة موسّعة غنيّة (85-120 كلمة) + 5 نقاط إبراز تفصيليّة',
+            default => 'نبذة متوسّطة (45-65 كلمة) + 4 نقاط إبراز متوازنة',
+        };
+        $system = 'أنت كاتب سير ذاتيّة محترف. اكتب بالعربيّة الفصحى المهنيّة، مخصّصًا لمجال المستخدم وتخصّصه وخبرته ومهاراته وسابقات أعماله. '
+            .'المطلوب: '.$spec.'. لا تختلق شهادات أو جهات أو أرقامًا غير مذكورة. '
+            .'أعِد JSON صالحًا فقط بلا أيّ نصّ إضافيّ بالشكل: {"headline":"مسمّى مهنيّ جذّاب","summary":"نبذة","highlights":["نقطة","نقطة"]}';
+
+        try {
+            $result = $provider->generate($system, 'بيانات المستخدم: '.json_encode($profile, JSON_UNESCAPED_UNICODE));
+            $parsed = $this->parseJsonObject($result['text']);
+            if ($parsed === null) {
+                throw new \RuntimeException('compose_parse');
+            }
+
+            return [
+                'live' => true,
+                'data' => $this->normalizeCompose($parsed, $profile, $length),
+                'meta' => [
+                    'simulated' => false, 'length' => $length,
+                    'provider' => $ai->provider, 'model' => $ai->model,
+                    'usage' => ['request' => (int) ($result['usage']['input'] ?? 0), 'response' => (int) ($result['usage']['output'] ?? 0)],
+                ],
+            ];
+        } catch (\Throwable $e) {
+            return ['live' => false, 'data' => $this->simulateCompose($profile, $length), 'meta' => ['simulated' => true, 'length' => $length, 'fallback' => true, 'fallbackReason' => $e->getMessage()]];
+        }
+    }
+
+    /** يستخرج أوّل كائن JSON من نصّ المزوّد (يتحمّل أسوار ```json ونصًّا محيطًا). */
+    private function parseJsonObject(string $text): ?array
+    {
+        $start = strpos($text, '{');
+        $end = strrpos($text, '}');
+        if ($start === false || $end === false || $end <= $start) {
+            return null;
+        }
+        $json = substr($text, $start, $end - $start + 1);
+        $data = json_decode($json, true);
+
+        return is_array($data) ? $data : null;
+    }
+
+    private function normalizeCompose(array $raw, array $profile, string $length): array
+    {
+        $str = fn ($v, $fallback = '') => is_string($v) && trim($v) !== '' ? trim($v) : $fallback;
+        $max = ['short' => 3, 'medium' => 4, 'expanded' => 5][$length] ?? 4;
+        $highlights = collect($raw['highlights'] ?? [])->filter(fn ($h) => is_string($h) && trim($h) !== '')
+            ->map(fn ($h) => trim($h))->take($max)->values()->all();
+
+        return [
+            'headline' => $str($raw['headline'] ?? null, $profile['headline'] ?? ''),
+            'summary' => $str($raw['summary'] ?? null, $profile['summary'] ?? ''),
+            'highlights' => $highlights,
+            'length' => $length,
+        ];
+    }
+
+    /** محاكاة تكيّفيّة — تبني صياغة حقيقيّة من مهارات وخبرات المستخدم بثلاثة أطوال (بلا مفتاح). */
+    private function simulateCompose(array $profile, string $length): array
+    {
+        $skills = collect($profile['skills'] ?? [])->pluck('name')->filter()->take(6)->values();
+        $exps = collect($profile['experiences'] ?? [])->filter(fn ($e) => ! empty($e['title']));
+        $field = $profile['field'] ?? $profile['headline'] ?? 'مجاله المهنيّ';
+        $topSkills = $skills->take(3)->join('، ');
+        $years = (int) $exps->sum(fn ($e) => (float) ($e['years'] ?? 0));
+
+        $headline = $str = $profile['headline'] ?? ($skills->first() ? ('متخصّص في '.$skills->first()) : 'محترف');
+
+        $summaries = [
+            'short' => "محترف في {$field}"."، متمكّن من {$topSkills}.",
+            'medium' => "محترف في {$field} بخبرة عمليّة"
+                .($years ? " تناهز {$years} سنوات" : '')
+                ."، متمكّن من {$topSkills}. يركّز على تسليم نتائج عالية الجودة وحلّ المشكلات بكفاءة.",
+            'expanded' => "محترف في {$field} بخبرة عمليّة"
+                .($years ? " تمتدّ نحو {$years} سنوات" : ' متنامية')
+                ."، يجمع بين إتقان {$topSkills} وفهم عميق لاحتياجات العمل. "
+                .'قاد مبادرات أثمرت تحسينات ملموسة في الأداء والجودة، ويتميّز بالتعلّم السريع والعمل ضمن الفريق وتحويل المتطلّبات إلى حلول عمليّة قابلة للتوسّع.',
+        ];
+
+        $count = ['short' => 3, 'medium' => 4, 'expanded' => 5][$length] ?? 4;
+        $pool = [];
+        if ($topSkills) {
+            $pool[] = "إتقان {$topSkills} وتطبيقها في مشاريع عمليّة.";
+        }
+        foreach ($exps->take(3) as $e) {
+            $pool[] = trim(($e['title'] ?? '').(! empty($e['org']) ? ' — '.$e['org'] : '').(! empty($e['summary']) ? ': '.$e['summary'] : '.'));
+        }
+        $pool[] = 'التعلّم المستمرّ ومواكبة أحدث ممارسات المجال.';
+        $pool[] = 'العمل ضمن فريق وتحويل المتطلّبات إلى نتائج قابلة للقياس.';
+        $pool[] = 'التركيز على الجودة والأداء وتجربة المستخدم النهائيّة.';
+
+        return [
+            'headline' => $headline,
+            'summary' => $summaries[$length] ?? $summaries['medium'],
+            'highlights' => array_slice(array_values(array_unique(array_filter($pool))), 0, $count),
+            'length' => $length,
+        ];
+    }
 }

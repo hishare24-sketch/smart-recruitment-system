@@ -382,4 +382,60 @@ class AssistantTest extends TestCase
         $this->postJson('/api/v1/assistant/extract-cv', ['base64' => 'x', 'mediaType' => 'application/zip'])
             ->assertStatus(422);
     }
+
+    // ═══ صياغة السيرة التكيّفيّة ═══
+
+    private function sampleProfile(): array
+    {
+        return [
+            'headline' => 'مطوّر واجهات', 'field' => 'تطوير الويب',
+            'skills' => [['name' => 'Vue.js', 'level' => 5], ['name' => 'Laravel', 'level' => 4]],
+            'experiences' => [['title' => 'مطوّر أول', 'org' => 'شركة تقنية', 'years' => 3, 'summary' => 'قيادة فريق']],
+            'certificates' => [],
+        ];
+    }
+
+    public function test_compose_cv_simulation_respects_length(): void
+    {
+        $this->seed(AiSeeder::class); // simulation
+        $this->user(['role' => 'seeker']);
+
+        $short = $this->postJson('/api/v1/assistant/compose-cv', ['length' => 'short', 'profile' => $this->sampleProfile()])
+            ->assertOk()->assertJsonPath('data.live', false)->assertJsonPath('data.data.length', 'short');
+        $expanded = $this->postJson('/api/v1/assistant/compose-cv', ['length' => 'expanded', 'profile' => $this->sampleProfile()])
+            ->assertOk()->assertJsonPath('data.data.length', 'expanded');
+
+        $this->assertLessThanOrEqual(3, count($short->json('data.data.highlights')));
+        $this->assertLessThanOrEqual(5, count($expanded->json('data.data.highlights')));
+        $this->assertNotEmpty($short->json('data.data.summary'));
+        // الموسّع أطول من المختصر
+        $this->assertGreaterThan(mb_strlen($short->json('data.data.summary')), mb_strlen($expanded->json('data.data.summary')));
+    }
+
+    public function test_compose_cv_live_via_openai(): void
+    {
+        $this->seed(AiSeeder::class);
+        $this->useOpenAiProvider();
+        Http::fake(['api.openai.com/*' => Http::response([
+            'choices' => [['message' => ['content' => '{"headline":"مهندس واجهات أول","summary":"نبذة احترافيّة مصاغة بالذكاء.","highlights":["إتقان Vue.js","قيادة فرق"]}'], 'finish_reason' => 'stop']],
+            'usage' => ['prompt_tokens' => 200, 'completion_tokens' => 80],
+        ], 200)]);
+        $this->user(['role' => 'seeker']);
+
+        $this->postJson('/api/v1/assistant/compose-cv', ['length' => 'medium', 'profile' => $this->sampleProfile()])
+            ->assertOk()
+            ->assertJsonPath('data.live', true)
+            ->assertJsonPath('data.data.headline', 'مهندس واجهات أول')
+            ->assertJsonPath('data.data.highlights.0', 'إتقان Vue.js')
+            ->assertJsonPath('data.meta.simulated', false);
+    }
+
+    public function test_compose_cv_validates_length(): void
+    {
+        $this->seed(AiSeeder::class);
+        $this->user(['role' => 'seeker']);
+
+        $this->postJson('/api/v1/assistant/compose-cv', ['length' => 'huge', 'profile' => $this->sampleProfile()])
+            ->assertStatus(422);
+    }
 }

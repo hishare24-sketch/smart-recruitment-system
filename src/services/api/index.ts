@@ -117,6 +117,7 @@ export const API_PATHS = {
     settings: '/v1/assistant/settings',
     escalate: '/v1/assistant/escalate',
     extractCv: '/v1/assistant/extract-cv',
+    composeCv: '/v1/assistant/compose-cv',
   },
   support: {
     tickets: '/v1/support/tickets',
@@ -567,6 +568,10 @@ export interface CvExtractionData {
   confidence: number
 }
 export interface CvExtractionResult { live: boolean, data: CvExtractionData, meta: { simulated: boolean, provider?: string, model?: string | null, fallback?: boolean, fallbackReason?: string } }
+export type CvLength = 'short' | 'medium' | 'expanded'
+export interface CvComposeData { headline: string, summary: string, highlights: string[], length: CvLength }
+export interface CvComposeResult { live: boolean, data: CvComposeData, meta: { simulated: boolean, length: CvLength, provider?: string, model?: string | null, fallback?: boolean, fallbackReason?: string } }
+export interface CvComposePayload { headline?: string, field?: string, skills?: { name: string, level: number }[], experiences?: { title: string, org: string, years: number, summary: string }[], certificates?: unknown[] }
 
 export const api = {
   auth: {
@@ -661,6 +666,8 @@ export const api = {
     escalate: (body: { conversationId?: number, subject?: string, body?: string, category?: string, priority?: string }) => post<{ id: number, subject: string, status: string }>(API_PATHS.assistant.escalate, body),
     /** استخراج بيانات الملف من سيرة ذاتيّة (base64 صورة/PDF) لتعبئة الملف تلقائيًّا. */
     extractCv: (base64: string, mediaType: string) => post<CvExtractionResult>(API_PATHS.assistant.extractCv, { base64, mediaType }),
+    /** صياغة سيرة تكيّفيّة بالذكاء بطول مختار (مختصر/متوسط/موسّع) حسب ملف المستخدم. */
+    composeCv: (length: CvLength, profile: CvComposePayload) => post<CvComposeResult>(API_PATHS.assistant.composeCv, { length, profile }),
   },
   /** تذاكر/محادثات الدعم من جهة المستخدم */
   support: {
