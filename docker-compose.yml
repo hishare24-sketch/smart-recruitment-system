@@ -2,7 +2,8 @@
 # التشغيل:
 #   cp .env.docker.example .env
 #   docker compose up -d --build
-# ثم افتح: http://localhost:8080
+# الدومين: https://recruitment.mawazinswift.com
+# (nginx على المضيف يعكس إلى 127.0.0.1:8080 — انظر docker/host-nginx/)
 #
 # الخدمات: web (Vue+nginx) · api (Laravel) · queue · reverb · mysql · redis
 
@@ -149,7 +150,8 @@ services:
         VITE_REVERB_SCHEME: ${VITE_REVERB_SCHEME:-http}
     restart: unless-stopped
     ports:
-      - "${HTTP_PORT:-8080}:80"
+      # افتراضيًا على localhost فقط خلف nginx؛ للوصول المباشر: HTTP_BIND=0.0.0.0
+      - "${HTTP_BIND:-127.0.0.1}:${HTTP_PORT:-8080}:80"
     depends_on:
       api:
         condition: service_healthy

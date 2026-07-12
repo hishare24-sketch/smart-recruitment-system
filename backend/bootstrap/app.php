@@ -33,6 +33,8 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // خلف nginx/Docker: اعتمد X-Forwarded-* حتى تُولَّد روابط https صحيحة
+        $middleware->trustProxies(at: '*');
         // يفرض معاملة كلّ طلبات api/* كـJSON (غير المصادَق → 401 لا 500 login-redirect).
         $middleware->prepend(\App\Http\Middleware\ForceJsonForApi::class);
         $middleware->alias([

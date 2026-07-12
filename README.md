@@ -29,12 +29,22 @@
 
 ### Docker (موصى به — كل شيء بأمر واحد)
 
+الدومين المعتمد: **https://recruitment.mawazinswift.com**
+
 ```bash
 cp .env.docker.example .env
 docker compose up -d --build
 ```
 
-ثم افتح: **http://localhost:8080** (أو `http://<IP-السيرفر>:8080`).
+ثم اربط nginx على المضيف (ملف جاهز في `docker/host-nginx/recruitment.mawazinswift.com.conf`) وفعّل الشهادة:
+
+```bash
+# مثال — انسخ الكونفيج لمجلد nginx عندك ثم:
+sudo certbot --nginx -d recruitment.mawazinswift.com
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+التطبيق داخليًا على `127.0.0.1:8080`؛ العامة عبر الدومين فقط.
 
 | الخدمة | الدور |
 |--------|------|
