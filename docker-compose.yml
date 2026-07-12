@@ -151,7 +151,7 @@ services:
         VITE_REVERB_SCHEME: ${VITE_REVERB_SCHEME:-https}
     restart: unless-stopped
     ports:
-      # منفذ داخلي فقط — nginx المشترك على السيرفر يعكس الدومين هنا
+      # للفحص المحلي فقط؛ الوصول العام عبر ubuntu-nginx-1
       - "${HTTP_BIND:-127.0.0.1}:${HTTP_PORT:-8088}:80"
     depends_on:
       api:
@@ -159,11 +159,18 @@ services:
       reverb:
         condition: service_started
     networks:
-      - app
+      app:
+      edge:
+        aliases:
+          - mawazin-swift
 
 networks:
   app:
     driver: bridge
+  # شبكة مشروع nginx المشترك (حاوية ubuntu-nginx-1)
+  edge:
+    external: true
+    name: ${NGINX_NETWORK:-ubuntu_default}
 
 volumes:
   mysql_data:

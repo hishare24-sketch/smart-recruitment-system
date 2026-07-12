@@ -27,18 +27,18 @@
 
 ## 🚀 التشغيل
 
-### Docker (مكدّس التطبيق + nginx مشترك على السيرفر)
+### Docker + nginx المشترك (`ubuntu-nginx-1`)
 
-الدومين: **https://recruitment.mawazinswift.com**
+الدومين: **recruitment.mawazinswift.com**
 
-على السيرفر منفذَا **80/443 محجوزين** لـ nginx مشترك — لذلك حاوية `web` تسمع على `127.0.0.1:8088` فقط، والـ nginx المشترك يعكس الدومين إليها.
+1. التطبيق على `127.0.0.1:8088` وبنفس شبكة nginx عبر alias `mawazin-swift`
+2. كونفيج الدومين في مستودع nginx: `servers/mawazinswift/live/web.conf`
 
 ```bash
+# في mawazin_swift
 cp .env.docker.example .env
-docker compose up -d --build
-
-# انسخ كونفيج الدومين لمجلد nginx المشترك عندك، ثم reload:
-# docker/host-nginx/recruitment.mawazinswift.com.conf
+# تأكد NGINX_NETWORK= اسم شبكة ubuntu-nginx-1
+docker compose up -d --build --remove-orphans
 ```
 
 | الخدمة | الدور |
