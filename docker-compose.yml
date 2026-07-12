@@ -1,12 +1,9 @@
-# ===== منظومة التوظيف — مكدّس كامل داخل Docker (nginx عام على 80/443) =====
-# التشغيل:
+# ===== منظومة التوظيف — مكدّس Docker =====
+# السيرفر عنده nginx مشترك على :80/:443 — لذلك web هنا على 127.0.0.1:8088 فقط.
+#
 #   cp .env.docker.example .env
 #   docker compose up -d --build
-#   docker compose run --rm certbot-init   # أول مرة بعد توجيه DNS
-#   docker compose exec web nginx -s reload
-#
-# الدومين: https://recruitment.mawazinswift.com
-# لا يحتاج nginx على المضيف.
+# ثم أضف موقع الدومين في nginx المشترك (انظر docker/host-nginx/)
 
 name: mawazin-swift
 
@@ -110,6 +107,8 @@ services:
       <<: *laravel_env
       RUN_MIGRATIONS: "0"
     command: ["php", "artisan", "queue:work", "--tries=3", "--timeout=90", "--sleep=1"]
+    healthcheck:
+      disable: true
     volumes:
       - api_storage:/app/storage
     depends_on:
@@ -127,6 +126,8 @@ services:
       <<: *laravel_env
       RUN_MIGRATIONS: "0"
     command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
+    healthcheck:
+      disable: true
     volumes:
       - api_storage:/app/storage
     depends_on:
@@ -149,51 +150,14 @@ services:
         VITE_REVERB_PORT: ""
         VITE_REVERB_SCHEME: ${VITE_REVERB_SCHEME:-https}
     restart: unless-stopped
-    environment:
-      DOMAIN: ${DOMAIN:-recruitment.mawazinswift.com}
     ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - certbot_certs:/etc/letsencrypt
-      - certbot_www:/var/www/certbot
+      # منفذ داخلي فقط — nginx المشترك على السيرفر يعكس الدومين هنا
+      - "${HTTP_BIND:-127.0.0.1}:${HTTP_PORT:-8088}:80"
     depends_on:
       api:
         condition: service_healthy
       reverb:
         condition: service_started
-    networks:
-      - app
-
-  # أول مرة فقط: يصدر شهادة Let's Encrypt (webroot عبر حاوية web)
-  certbot-init:
-    image: certbot/certbot
-    profiles: ["ssl"]
-    volumes:
-      - certbot_certs:/etc/letsencrypt
-      - certbot_www:/var/www/certbot
-    environment:
-      DOMAIN: ${DOMAIN:-recruitment.mawazinswift.com}
-      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-admin@mawazinswift.com}
-    entrypoint: >
-      /bin/sh -c "certbot certonly --webroot
-      -w /var/www/certbot
-      -d $${DOMAIN}
-      --email $${LETSENCRYPT_EMAIL}
-      --agree-tos
-      --no-eff-email
-      --non-interactive"
-
-  # تجديد تلقائي كل 12 ساعة
-  certbot-renew:
-    image: certbot/certbot
-    restart: unless-stopped
-    volumes:
-      - certbot_certs:/etc/letsencrypt
-      - certbot_www:/var/www/certbot
-    entrypoint: /bin/sh -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h; done"
-    depends_on:
-      - web
     networks:
       - app
 
@@ -204,5 +168,3 @@ networks:
 volumes:
   mysql_data:
   api_storage:
-  certbot_certs:
-  certbot_www:

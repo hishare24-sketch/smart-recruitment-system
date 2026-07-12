@@ -27,34 +27,28 @@
 
 ## 🚀 التشغيل
 
-### Docker (موصى به — كل شيء داخل Docker، بما فيها nginx + SSL)
+### Docker (مكدّس التطبيق + nginx مشترك على السيرفر)
 
-الدومين: **https://recruitment.mawazinswift.com** — لا تحتاج nginx على السيرفر.
+الدومين: **https://recruitment.mawazinswift.com**
+
+على السيرفر منفذَا **80/443 محجوزين** لـ nginx مشترك — لذلك حاوية `web` تسمع على `127.0.0.1:8088` فقط، والـ nginx المشترك يعكس الدومين إليها.
 
 ```bash
 cp .env.docker.example .env
-# تأكد DNS: A record → recruitment.mawazinswift.com → IP السيرفر
-# وافتح Security Group: TCP 80 و 443
-
 docker compose up -d --build
 
-# أول مرة فقط — شهادة Let's Encrypt من داخل Docker:
-docker compose --profile ssl run --rm certbot-init
-docker compose exec web nginx -s reload
+# انسخ كونفيج الدومين لمجلد nginx المشترك عندك، ثم reload:
+# docker/host-nginx/recruitment.mawazinswift.com.conf
 ```
-
-بعدها الموقع على HTTPS. التجديد تلقائي عبر خدمة `certbot-renew`.
 
 | الخدمة | الدور |
 |--------|------|
-| `web` | nginx عام (80/443) + Vue + بروكسي API/WebSocket |
-| `api` | Laravel (FrankenPHP) |
-| `queue` | عامل الطابور |
-| `reverb` | البثّ اللحظي |
-| `mysql` / `redis` | قاعدة البيانات والكاش |
-| `certbot-*` | شهادات SSL |
+| `web` | nginx داخلي (Vue + بروكسي API) على `:8088` |
+| `api` | Laravel |
+| `queue` / `reverb` | طابور + بثّ لحظي |
+| `mysql` / `redis` | قاعدة وكاش |
 
-إيقاف: `docker compose down` — مع الإبقاء على البيانات: بدون `-v`.
+إيقاف: `docker compose down`
 
 ### تطوير محلي بدون Docker
 

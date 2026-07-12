@@ -1,4 +1,6 @@
-# ===== الواجهة (Vue) → بناء Vite ثم تقديم عبر nginx (80/443 + Let's Encrypt) =====
+# ===== الواجهة (Vue) → بناء Vite ثم تقديم عبر nginx داخلي =====
+# المنفذ العام 80/443 على السيرفر مشغول — التطبيق يُعرَض على 127.0.0.1:8088
+# وnginx المشترك يعكس الدومين إليه.
 
 FROM node:20-alpine AS build
 WORKDIR /app
@@ -32,9 +34,7 @@ ENV DOCKER=$DOCKER \
 RUN npm run build
 
 FROM nginx:1.27-alpine
-COPY docker/nginx/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh \
-    && mkdir -p /var/www/certbot
+COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
-EXPOSE 80 443
-ENTRYPOINT ["/entrypoint.sh"]
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
