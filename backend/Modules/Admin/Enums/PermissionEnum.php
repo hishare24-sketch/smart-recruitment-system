@@ -66,6 +66,9 @@ class PermissionEnum
             // صحّة النظام والمراقبة
             'view_health',
 
+            // مركز قيادة الجودة (اللوحة الذرّية — حالات الاختبار/الرصد/التحويل)
+            'view_quality', 'manage_quality',
+
             // الأرشيف ودورة حياة البيانات
             'view_archive', 'manage_archive',
 

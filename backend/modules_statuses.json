@@ -16,6 +16,7 @@
     "Notification": true,
     "Profile": true,
     "PublicProfile": true,
+    "Quality": true,
     "Reports": true,
     "Settings": true,
     "Support": true,

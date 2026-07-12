@@ -35,6 +35,7 @@ class RoleHasPermissionSeeder extends Seeder
             'view_ai', 'manage_ai',
             'view_chat', 'manage_chat',
             'view_reports', 'view_health',
+            'view_quality', 'manage_quality',
             'view_branding', 'manage_branding',
             'view_archive', 'manage_archive',
             'view_compliance',
