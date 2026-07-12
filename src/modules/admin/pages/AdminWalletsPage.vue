@@ -12,13 +12,19 @@ import BaseSnackbar from '@/components/ui/BaseSnackbar.vue'
 import BaseTooltip from '@/components/ui/BaseTooltip.vue'
 import BarChart from '@/components/charts/BarChart.vue'
 import ResourceScaffold from '@/modules/admin/components/ResourceScaffold.vue'
+import type { FilterDef } from '@/modules/admin/components/ResourceScaffold.vue'
 import type { TableColumn } from '@/components/ui/BaseTable.vue'
 import { useAdminResource } from '@/modules/admin/composables/useAdminResource'
 import { type AdminWallet, type AdminWalletsStats, api } from '@/services/api'
 
 const { t } = useI18n()
 const r = useAdminResource<AdminWallet>({ fetcher: params => api.admin.wallets(params), initialSort: '-balance' })
-const { items, meta, loading, sortKey, search } = r
+const { items, meta, loading, sortKey, search, filters } = r
+
+const filterDefs: FilterDef[] = [
+  { key: 'tier', label: t('admin.users.filterTier'), options: [{ value: 'free', label: 'Free' }, { value: 'pro', label: 'Pro' }, { value: 'elite', label: 'Elite' }] },
+  { key: 'balance', label: t('admin.wallets.filterBalance'), options: [{ value: 'positive', label: t('admin.wallets.hasBalance') }, { value: 'zero', label: t('admin.wallets.emptyBalance') }] },
+]
 
 const stats = ref<AdminWalletsStats | null>(null)
 async function loadStats() { try { stats.value = await api.admin.walletsStats() } catch { /* تجاهل */ } }
@@ -94,10 +100,13 @@ async function applyAdjust() {
       :meta="meta"
       :sort-key="sortKey"
       :search="search"
+      :filters="filterDefs"
+      :active-filters="filters"
       :search-placeholder="t('admin.wallets.searchPlaceholder')"
       export-name="wallets"
       @update:sort-key="r.setSort"
       @update:search="r.setSearch"
+      @filter="r.setFilter"
       @update:page="r.setPage"
       @update:per-page="r.setPerPage"
     >

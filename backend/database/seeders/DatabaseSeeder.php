@@ -46,5 +46,6 @@ class DatabaseSeeder extends Seeder
         $this->call(InterviewRubricSeeder::class);
         $this->call(InterviewQualitySeeder::class);
         $this->call(ComplianceDemoSeeder::class);
+        $this->call(DemoSeeder::class);
     }
 }

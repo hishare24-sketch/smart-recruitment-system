@@ -591,7 +591,10 @@
       "statCount": "عدد المحافظ",
       "statAvg": "متوسّط الرصيد",
       "topHolders": "أعلى الحائزين",
-      "noData": "لا بيانات"
+      "noData": "لا بيانات",
+      "filterBalance": "حالة الرصيد",
+      "hasBalance": "له رصيد",
+      "emptyBalance": "فارغ"
     },
     "toast": {
       "updated": "تم الحفظ",

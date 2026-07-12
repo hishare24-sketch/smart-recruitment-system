@@ -591,7 +591,10 @@
       "statCount": "Wallets",
       "statAvg": "Avg balance",
       "topHolders": "Top holders",
-      "noData": "No data"
+      "noData": "No data",
+      "filterBalance": "Balance status",
+      "hasBalance": "Has balance",
+      "emptyBalance": "Empty"
     },
     "toast": {
       "updated": "Saved",

@@ -25,6 +25,18 @@ class AdminWalletController extends Controller
             });
         }
 
+        // تصفية بباقة المالك (free/pro/elite)
+        if ($tier = $request->query('tier')) {
+            $query->whereHas('user', fn ($sub) => $sub->where('tier', $tier));
+        }
+
+        // تصفية بحالة الرصيد (positive = له رصيد · zero = فارغ)
+        if ($balance = $request->query('balance')) {
+            $balance === 'zero'
+                ? $query->where('balance', '<=', 0)
+                : $query->where('balance', '>', 0);
+        }
+
         [$column, $dir] = $this->parseSort((string) $request->query('sort', '-balance'), self::SORTABLE);
         $query->orderBy($column, $dir);
 
