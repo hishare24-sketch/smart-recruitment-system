@@ -1373,6 +1373,29 @@
       "openAi": "Open full AI governance"
     }
   },
+  "chat": {
+    "title": "Assistant & Support",
+    "open": "Open chat",
+    "close": "Close",
+    "expand": "Open full screen",
+    "online": "Online now",
+    "offline": "Currently offline",
+    "tabAssistant": "AI Assistant",
+    "tabSupport": "Support",
+    "placeholder": "Type your message…",
+    "replyPlaceholder": "Type your reply…",
+    "escalate": "Escalate to support",
+    "escalateHint": "Need a human? You can escalate to support.",
+    "noTickets": "No support tickets yet.",
+    "newTicket": "New support ticket",
+    "ticketSubject": "Subject",
+    "ticketSubjectPh": "A short title for your issue",
+    "ticketCategory": "Category",
+    "ticketPriority": "Priority",
+    "ticketBody": "Details",
+    "ticketBodyPh": "Describe your issue in detail…",
+    "ticketSend": "Send ticket"
+  },
   "assistant": {
     "title": "Help Center",
     "online": "Assistant online",

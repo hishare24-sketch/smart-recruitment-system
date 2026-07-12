@@ -9,6 +9,7 @@ import { useNotificationsStore } from '@/stores/NotificationsStore'
 import { useMessagesStore } from '@/stores/MessagesStore'
 import { useGamificationStore } from '@/stores/GamificationStore'
 import GlobalSearchBar from '@/components/shared/GlobalSearchBar.vue'
+import ChatWidget from '@/components/shared/ChatWidget.vue'
 import RewardFeedback from '@/components/shared/RewardFeedback.vue'
 import RoleSwitcher from '@/components/shared/RoleSwitcher.vue'
 import ThemeCustomizer from '@/components/shared/ThemeCustomizer.vue'
@@ -599,6 +600,9 @@ onBeforeUnmount(() => {
 
   <!-- Global reward toasts + badge-unlock celebrations -->
   <RewardFeedback />
+
+  <!-- ويدجت الشات العائم الموحّد (مساعد + دعم) -->
+  <ChatWidget />
 
   <!-- What's new after each deploy (once per build) -->
   <WhatsNewDialog />
