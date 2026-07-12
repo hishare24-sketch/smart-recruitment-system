@@ -85,6 +85,12 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/modules/profile/pages/ProfilePage.vue'),
     meta: { layout: 'default' },
   },
+  {
+    path: '/cv-studio',
+    name: 'cv-studio',
+    component: () => import('@/modules/profile/pages/CvStudioPage.vue'),
+    meta: { layout: 'default', roles: ['seeker'] },
+  },
   // انتقل التحكم إلى مركز الإعدادات — المساران القديمان يحوّلان إليه فتبقى كل الروابط حيّة
   {
     path: '/plan',
@@ -265,10 +271,10 @@ export const routes: RouteRecordRaw[] = [
     meta: { layout: 'blank' },
   },
   {
+    // وُحِّد «منشئ السيرة الذاتيّة» القديم مع الاستوديو الذكيّ — يُعاد توجيهه فتبقى الروابط حيّة.
     path: '/resume-builder',
     name: 'resume-builder',
-    component: () => import('@/modules/resume-builder/pages/ResumeBuilderPage.vue'),
-    meta: { layout: 'default', roles: ['seeker'] },
+    redirect: { name: 'cv-studio' },
   },
   {
     path: '/assistant',

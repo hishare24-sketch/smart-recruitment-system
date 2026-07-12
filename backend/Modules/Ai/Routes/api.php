@@ -12,4 +12,6 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('assistant/settings', [AssistantController::class, 'settings']);
     Route::put('assistant/settings', [AssistantController::class, 'updateSettings']);
     Route::post('assistant/escalate', [AssistantController::class, 'escalate']);
+    Route::post('assistant/extract-cv', [AssistantController::class, 'extractCv']);
+    Route::post('assistant/compose-cv', [AssistantController::class, 'composeCv']);
 });

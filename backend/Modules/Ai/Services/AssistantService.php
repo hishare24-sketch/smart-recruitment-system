@@ -324,4 +324,257 @@ class AssistantService
             ],
         ];
     }
+
+    // ═══════════════════ استخراج السيرة الذاتيّة بالذكاء ═══════════════════
+
+    /**
+     * يستخرج حقول ملفّ مهنيّ من سيرة ذاتيّة (صورة/PDF) عبر مزوّد حيّ (Claude/OpenAI).
+     * بلا مزوّد مهيّأ → اقتراح فارغ موسوم (live=false) — لا يكسر التدفّق.
+     *
+     * @return array{live:bool, data:array, meta:array}
+     */
+    public function extractCv(string $base64, string $mediaType): array
+    {
+        $ai = AiSetting::current();
+        $provider = $this->providerFor($ai);
+
+        if ($provider === null) {
+            return ['live' => false, 'data' => $this->emptyCvSuggestion(), 'meta' => ['simulated' => true]];
+        }
+
+        try {
+            $result = $provider->extract($this->cvPrompt(), $base64, $mediaType, $this->cvTool(), ['maxTokens' => 1500]);
+
+            return [
+                'live' => true,
+                'data' => $this->normalizeCv(is_array($result['raw']) ? $result['raw'] : []),
+                'meta' => [
+                    'simulated' => false,
+                    'provider' => $ai->provider,
+                    'model' => $ai->model,
+                    'usage' => [
+                        'request' => (int) ($result['usage']['input'] ?? 0),
+                        'response' => (int) ($result['usage']['output'] ?? 0),
+                    ],
+                ],
+            ];
+        } catch (\Throwable $e) {
+            return ['live' => false, 'data' => $this->emptyCvSuggestion(), 'meta' => ['simulated' => true, 'fallback' => true, 'fallbackReason' => $e->getMessage()]];
+        }
+    }
+
+    private function cvPrompt(): string
+    {
+        return 'أنت مساعد توظيف. استخرج من هذه السيرة الذاتيّة الحقول المهنيّة المنظّمة بدقّة: '
+            .'الاسم، المسمّى المهنيّ (headline)، نبذة موجزة، الموقع، البريد، الهاتف، المهارات (بمستوى تقديريّ 1..5)، '
+            .'الخبرات (المسمّى/الجهة/سنوات/وصف)، الشهادات (الاسم/الجهة/السنة). '
+            .'لا تختلق بيانات غير موجودة — اترك أيّ حقل مجهول فارغًا (null). أعِد النتيجة عبر الأداة فقط.';
+    }
+
+    /** مخطّط أداة الاستخراج — حقول ملفّ منصّة التوظيف. */
+    private function cvTool(): array
+    {
+        $nullableStr = ['type' => ['string', 'null']];
+
+        return [
+            'name' => 'extract_cv',
+            'description' => 'سجّل الحقول المهنيّة المنظّمة المستخرَجة من السيرة الذاتيّة.',
+            'schema' => [
+                'type' => 'object',
+                'properties' => [
+                    'name' => $nullableStr,
+                    'headline' => array_merge($nullableStr, ['description' => 'المسمّى المهنيّ']),
+                    'summary' => array_merge($nullableStr, ['description' => 'نبذة موجزة']),
+                    'location' => $nullableStr,
+                    'email' => $nullableStr,
+                    'phone' => $nullableStr,
+                    'skills' => [
+                        'type' => 'array',
+                        'description' => 'المهارات مع مستوى تقديريّ 1..5',
+                        'items' => [
+                            'type' => 'object',
+                            'properties' => ['name' => ['type' => 'string'], 'level' => ['type' => ['integer', 'null']]],
+                            'required' => ['name'],
+                        ],
+                    ],
+                    'experiences' => [
+                        'type' => 'array',
+                        'items' => [
+                            'type' => 'object',
+                            'properties' => ['title' => ['type' => 'string'], 'org' => $nullableStr, 'years' => ['type' => ['number', 'null']], 'summary' => $nullableStr],
+                            'required' => ['title'],
+                        ],
+                    ],
+                    'certificates' => [
+                        'type' => 'array',
+                        'items' => [
+                            'type' => 'object',
+                            'properties' => ['name' => ['type' => 'string'], 'issuer' => $nullableStr, 'year' => ['type' => ['integer', 'null']]],
+                            'required' => ['name'],
+                        ],
+                    ],
+                    'confidence' => ['type' => 'number', 'description' => 'ثقة الاستخراج 0..100'],
+                ],
+                'required' => ['skills', 'confidence'],
+            ],
+        ];
+    }
+
+    /** يطبّع مخرَج الأداة إلى شكل ثابت آمن يستهلكه العميل (يحصر الأنواع والحدود). */
+    private function normalizeCv(array $raw): array
+    {
+        $str = fn ($v) => is_string($v) && trim($v) !== '' ? trim($v) : null;
+
+        $skills = collect($raw['skills'] ?? [])->filter(fn ($s) => is_array($s) && ! empty($s['name']))
+            ->map(fn ($s) => ['name' => (string) $s['name'], 'level' => max(1, min(5, (int) ($s['level'] ?? 3)))])
+            ->values()->all();
+        $experiences = collect($raw['experiences'] ?? [])->filter(fn ($e) => is_array($e) && ! empty($e['title']))
+            ->map(fn ($e) => ['title' => (string) $e['title'], 'org' => $str($e['org'] ?? null), 'years' => is_numeric($e['years'] ?? null) ? (float) $e['years'] : null, 'summary' => $str($e['summary'] ?? null)])
+            ->values()->all();
+        $certificates = collect($raw['certificates'] ?? [])->filter(fn ($c) => is_array($c) && ! empty($c['name']))
+            ->map(fn ($c) => ['name' => (string) $c['name'], 'issuer' => $str($c['issuer'] ?? null), 'year' => is_numeric($c['year'] ?? null) ? (int) $c['year'] : null])
+            ->values()->all();
+
+        return [
+            'name' => $str($raw['name'] ?? null),
+            'headline' => $str($raw['headline'] ?? null),
+            'summary' => $str($raw['summary'] ?? null),
+            'location' => $str($raw['location'] ?? null),
+            'email' => $str($raw['email'] ?? null),
+            'phone' => $str($raw['phone'] ?? null),
+            'skills' => $skills,
+            'experiences' => $experiences,
+            'certificates' => $certificates,
+            'confidence' => max(0, min(100, (int) ($raw['confidence'] ?? 0))),
+        ];
+    }
+
+    private function emptyCvSuggestion(): array
+    {
+        return [
+            'name' => null, 'headline' => null, 'summary' => null, 'location' => null,
+            'email' => null, 'phone' => null, 'skills' => [], 'experiences' => [], 'certificates' => [], 'confidence' => 0,
+        ];
+    }
+
+    // ═══════════════════ استوديو السيرة: صياغة تكيّفيّة بالذكاء ═══════════════════
+
+    /**
+     * يصوغ نبذة مهنيّة + مسمّى + نقاط إبراز، مخصّصة لمجال المستخدم ومهاراته وخبراته،
+     * بطول قابل للاختيار (short/medium/expanded). مزوّد حيّ إن هُيّئ، وإلّا محاكاة تكيّفيّة
+     * حقيقيّة (تعمل بلا مفتاح — ليجرّب المستخدم الاستوديو فورًا).
+     *
+     * @param  array  $profile  {name, headline, field, skills:[{name,level}], experiences:[{title,org,years,summary}], certificates:[...]}
+     * @return array{live:bool, data:array, meta:array}
+     */
+    public function composeCv(array $profile, string $length): array
+    {
+        $length = in_array($length, ['short', 'medium', 'expanded'], true) ? $length : 'medium';
+        $ai = AiSetting::current();
+        $provider = $this->providerFor($ai);
+
+        if ($provider === null) {
+            return ['live' => false, 'data' => $this->simulateCompose($profile, $length), 'meta' => ['simulated' => true, 'length' => $length]];
+        }
+
+        $spec = match ($length) {
+            'short' => 'نبذة موجزة جدًّا (25-40 كلمة) + 3 نقاط إبراز قصيرة مؤثّرة',
+            'expanded' => 'نبذة موسّعة غنيّة (85-120 كلمة) + 5 نقاط إبراز تفصيليّة',
+            default => 'نبذة متوسّطة (45-65 كلمة) + 4 نقاط إبراز متوازنة',
+        };
+        $system = 'أنت كاتب سير ذاتيّة محترف. اكتب بالعربيّة الفصحى المهنيّة، مخصّصًا لمجال المستخدم وتخصّصه وخبرته ومهاراته وسابقات أعماله. '
+            .'المطلوب: '.$spec.'. لا تختلق شهادات أو جهات أو أرقامًا غير مذكورة. '
+            .'أعِد JSON صالحًا فقط بلا أيّ نصّ إضافيّ بالشكل: {"headline":"مسمّى مهنيّ جذّاب","summary":"نبذة","highlights":["نقطة","نقطة"]}';
+
+        try {
+            $result = $provider->generate($system, 'بيانات المستخدم: '.json_encode($profile, JSON_UNESCAPED_UNICODE));
+            $parsed = $this->parseJsonObject($result['text']);
+            if ($parsed === null) {
+                throw new \RuntimeException('compose_parse');
+            }
+
+            return [
+                'live' => true,
+                'data' => $this->normalizeCompose($parsed, $profile, $length),
+                'meta' => [
+                    'simulated' => false, 'length' => $length,
+                    'provider' => $ai->provider, 'model' => $ai->model,
+                    'usage' => ['request' => (int) ($result['usage']['input'] ?? 0), 'response' => (int) ($result['usage']['output'] ?? 0)],
+                ],
+            ];
+        } catch (\Throwable $e) {
+            return ['live' => false, 'data' => $this->simulateCompose($profile, $length), 'meta' => ['simulated' => true, 'length' => $length, 'fallback' => true, 'fallbackReason' => $e->getMessage()]];
+        }
+    }
+
+    /** يستخرج أوّل كائن JSON من نصّ المزوّد (يتحمّل أسوار ```json ونصًّا محيطًا). */
+    private function parseJsonObject(string $text): ?array
+    {
+        $start = strpos($text, '{');
+        $end = strrpos($text, '}');
+        if ($start === false || $end === false || $end <= $start) {
+            return null;
+        }
+        $json = substr($text, $start, $end - $start + 1);
+        $data = json_decode($json, true);
+
+        return is_array($data) ? $data : null;
+    }
+
+    private function normalizeCompose(array $raw, array $profile, string $length): array
+    {
+        $str = fn ($v, $fallback = '') => is_string($v) && trim($v) !== '' ? trim($v) : $fallback;
+        $max = ['short' => 3, 'medium' => 4, 'expanded' => 5][$length] ?? 4;
+        $highlights = collect($raw['highlights'] ?? [])->filter(fn ($h) => is_string($h) && trim($h) !== '')
+            ->map(fn ($h) => trim($h))->take($max)->values()->all();
+
+        return [
+            'headline' => $str($raw['headline'] ?? null, $profile['headline'] ?? ''),
+            'summary' => $str($raw['summary'] ?? null, $profile['summary'] ?? ''),
+            'highlights' => $highlights,
+            'length' => $length,
+        ];
+    }
+
+    /** محاكاة تكيّفيّة — تبني صياغة حقيقيّة من مهارات وخبرات المستخدم بثلاثة أطوال (بلا مفتاح). */
+    private function simulateCompose(array $profile, string $length): array
+    {
+        $skills = collect($profile['skills'] ?? [])->pluck('name')->filter()->take(6)->values();
+        $exps = collect($profile['experiences'] ?? [])->filter(fn ($e) => ! empty($e['title']));
+        $field = $profile['field'] ?? $profile['headline'] ?? 'مجاله المهنيّ';
+        $topSkills = $skills->take(3)->join('، ');
+        $years = (int) $exps->sum(fn ($e) => (float) ($e['years'] ?? 0));
+
+        $headline = $str = $profile['headline'] ?? ($skills->first() ? ('متخصّص في '.$skills->first()) : 'محترف');
+
+        $summaries = [
+            'short' => "محترف في {$field}"."، متمكّن من {$topSkills}.",
+            'medium' => "محترف في {$field} بخبرة عمليّة"
+                .($years ? " تناهز {$years} سنوات" : '')
+                ."، متمكّن من {$topSkills}. يركّز على تسليم نتائج عالية الجودة وحلّ المشكلات بكفاءة.",
+            'expanded' => "محترف في {$field} بخبرة عمليّة"
+                .($years ? " تمتدّ نحو {$years} سنوات" : ' متنامية')
+                ."، يجمع بين إتقان {$topSkills} وفهم عميق لاحتياجات العمل. "
+                .'قاد مبادرات أثمرت تحسينات ملموسة في الأداء والجودة، ويتميّز بالتعلّم السريع والعمل ضمن الفريق وتحويل المتطلّبات إلى حلول عمليّة قابلة للتوسّع.',
+        ];
+
+        $count = ['short' => 3, 'medium' => 4, 'expanded' => 5][$length] ?? 4;
+        $pool = [];
+        if ($topSkills) {
+            $pool[] = "إتقان {$topSkills} وتطبيقها في مشاريع عمليّة.";
+        }
+        foreach ($exps->take(3) as $e) {
+            $pool[] = trim(($e['title'] ?? '').(! empty($e['org']) ? ' — '.$e['org'] : '').(! empty($e['summary']) ? ': '.$e['summary'] : '.'));
+        }
+        $pool[] = 'التعلّم المستمرّ ومواكبة أحدث ممارسات المجال.';
+        $pool[] = 'العمل ضمن فريق وتحويل المتطلّبات إلى نتائج قابلة للقياس.';
+        $pool[] = 'التركيز على الجودة والأداء وتجربة المستخدم النهائيّة.';
+
+        return [
+            'headline' => $headline,
+            'summary' => $summaries[$length] ?? $summaries['medium'],
+            'highlights' => array_slice(array_values(array_unique(array_filter($pool))), 0, $count),
+            'length' => $length,
+        ];
+    }
 }

@@ -10,6 +10,8 @@ export interface Resume {
   createdAt: string
   updatedAt: string
   active: boolean
+  /** إعداد استوديو السيرة الكامل (ثيم/لون/طول/ترتيب/روابط/أقسام إضافيّة) — يُستعاد كما هو. */
+  config?: unknown
 }
 
 const STORAGE_KEY = 'resumes'
@@ -76,5 +78,22 @@ export const useResumesStore = defineStore('resumes', () => {
       resumes.value[0].active = true
   }
 
-  return { resumes, syncStatus, count, active, add, setActive, remove }
+  /** يحفظ نسخة استوديو كاملة بإعدادها (theme/accent/length/order/links/extras) ويجعلها الفعّالة. */
+  function saveVersion(name: string, config: unknown): Resume {
+    const version: Resume = {
+      id: nextId++, name, template: 'studio', language: 'عربي',
+      createdAt: 'الآن', updatedAt: 'الآن', active: true, config,
+    }
+    resumes.value.forEach(r => (r.active = false))
+    resumes.value.unshift(version)
+    return version
+  }
+
+  /** يحدّث إعداد نسخة قائمة. */
+  function updateVersion(id: number, config: unknown) {
+    const r = resumes.value.find(v => v.id === id)
+    if (r) { r.config = config; r.updatedAt = 'الآن' }
+  }
+
+  return { resumes, syncStatus, count, active, add, setActive, remove, saveVersion, updateVersion }
 })
