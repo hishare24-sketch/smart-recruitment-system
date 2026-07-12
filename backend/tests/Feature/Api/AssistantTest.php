@@ -266,4 +266,43 @@ class AssistantTest extends TestCase
             ->assertJsonPath('data.meta.fallback', true)
             ->assertJsonPath('data.meta.fallbackReason', 'claude_refusal');
     }
+
+    private function useOpenAiProvider(): void
+    {
+        AiSetting::query()->where('id', 1)->update(['provider' => 'openai', 'api_key' => 'sk-openai-test', 'model' => 'gpt-4o-mini']);
+    }
+
+    public function test_uses_live_openai_provider_and_records_real_tokens(): void
+    {
+        $this->seed(AiSeeder::class);
+        $this->useOpenAiProvider();
+        Http::fake(['api.openai.com/*' => Http::response([
+            'choices' => [['message' => ['content' => 'ردّ OpenAI الحقيقيّ للمستخدم.'], 'finish_reason' => 'stop']],
+            'usage' => ['prompt_tokens' => 55, 'completion_tokens' => 23],
+        ], 200)]);
+        $user = $this->user(['role' => 'seeker']);
+
+        $this->postJson('/api/v1/assistant/message', ['message' => 'ساعدني'])
+            ->assertOk()
+            ->assertJsonPath('data.blocked', false)
+            ->assertJsonPath('data.reply', 'ردّ OpenAI الحقيقيّ للمستخدم.')
+            ->assertJsonPath('data.meta.simulated', false);
+
+        $row = \Modules\Ai\Entities\AiUsage::where('user_id', $user->id)->first();
+        $this->assertSame(55, $row->request_tokens);
+        $this->assertSame(23, $row->response_tokens);
+    }
+
+    public function test_openai_provider_falls_back_to_simulation_on_error(): void
+    {
+        $this->seed(AiSeeder::class);
+        $this->useOpenAiProvider();
+        Http::fake(['api.openai.com/*' => Http::response('rate limited', 429)]);
+        $this->user(['role' => 'seeker']);
+
+        $this->postJson('/api/v1/assistant/message', ['message' => 'ساعدني'])
+            ->assertOk()
+            ->assertJsonPath('data.blocked', false)
+            ->assertJsonPath('data.meta.fallback', true);
+    }
 }
