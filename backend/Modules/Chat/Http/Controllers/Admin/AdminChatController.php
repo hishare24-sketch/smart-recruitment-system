@@ -8,7 +8,6 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Modules\Ai\Entities\AiCapability;
-use Modules\Ai\Entities\AiKnowledge;
 use Modules\Ai\Entities\AiSetting;
 use Modules\Chat\Entities\ChatSetting;
 use Modules\Chat\Entities\DirectMessage;
@@ -173,18 +172,23 @@ class AdminChatController extends Controller
 
         $level = (int) $ai->assistant_level;
         $tokensCap = (int) ($ai->level_tokens[$level] ?? [1 => 600, 2 => 1200, 3 => 2400][$level] ?? 1200);
-        $knowledge = AiKnowledge::where('enabled', true)->get(['title', 'content']);
 
-        $reply = $this->composeReply($prompt, $level, $knowledge);
+        // المعاينة تمرّ بنفس مسار المساعد الحيّ (compose) — فتعكس المزوّد الحقيقيّ
+        // (Claude/OpenAI) عند تهيئته، وتعود للمحاكاة الموسومة عند غياب المفتاح/الفشل.
+        $service = app(\Modules\Ai\Services\AssistantService::class);
+        $composed = $service->compose($prompt, $service->context(current_user()));
+        $meta = $composed['meta'] ?? [];
 
         return $this->dataResponse([
-            'reply' => $reply,
+            'reply' => $composed['reply'] ?? '',
             'level' => $level,
             'tokensCap' => $tokensCap,
             'provider' => $ai->provider,
             'model' => $ai->model,
-            'simulated' => $ai->provider === 'simulation',
-            'usedKnowledge' => $knowledge->pluck('title')->values()->all(),
+            'simulated' => (bool) ($meta['simulated'] ?? true) || (bool) ($meta['fallback'] ?? false),
+            'fallback' => (bool) ($meta['fallback'] ?? false),
+            'fallbackReason' => $meta['fallbackReason'] ?? null,
+            'usedKnowledge' => $meta['usedKnowledge'] ?? [],
         ]);
     }
 
@@ -228,26 +232,5 @@ class AdminChatController extends Controller
         sort($pair);
 
         return implode('|', $pair);
-    }
-
-    /** يشكّل ردًّا (محاكاة) بحسب مستوى المساعد ويحقن المعرفة المفعّلة — عربيّ (لغة المنصّة الأساس). */
-    private function composeReply(string $prompt, int $level, $knowledge): string
-    {
-        $intro = 'بخصوص رسالتك: «'.Str::limit($prompt, 120).'»';
-
-        $core = match ($level) {
-            1 => 'إجابة مباشرة: أستطيع أن أدلّك على أنسب فرصة أو خبير بناءً على بيانات ملفّك، بلا استطراد.',
-            3 => 'تحليل معمّق: راجعتُ مقصد رسالتك، وأرصد أنسب الفرص لك وأيّ نقص في ملفّك، ثمّ أقترح خطواتٍ '
-                .'عمليّة مرتّبة بالأولويّة عبر أقسام المنصّة (استكمال المهارات، توثيقها، التقديم على الفرص الملائمة)، '
-                .'وأختم بسؤال متابعة: أيّ مسار تفضّل أن نبدأ به الآن؟',
-            default => 'إجابة واضحة مستندة إلى بياناتك، مع نصيحة استباقيّة واحدة: أكمِل قسم المهارات في ملفّك لرفع درجة مطابقتك للفرص.',
-        };
-
-        $kb = '';
-        if ($knowledge->count() > 0) {
-            $kb = "\n\n".'مستندًا إلى معرفة المنصّة: '.$knowledge->pluck('title')->take(3)->join('، ');
-        }
-
-        return $intro."\n\n".$core.$kb;
     }
 }
