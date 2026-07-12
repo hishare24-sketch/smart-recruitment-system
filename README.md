@@ -27,32 +27,32 @@
 
 ## 🚀 التشغيل
 
-### Docker (موصى به — كل شيء بأمر واحد)
+### Docker (موصى به — كل شيء داخل Docker، بما فيها nginx + SSL)
 
-الدومين المعتمد: **https://recruitment.mawazinswift.com**
+الدومين: **https://recruitment.mawazinswift.com** — لا تحتاج nginx على السيرفر.
 
 ```bash
 cp .env.docker.example .env
+# تأكد DNS: A record → recruitment.mawazinswift.com → IP السيرفر
+# وافتح Security Group: TCP 80 و 443
+
 docker compose up -d --build
+
+# أول مرة فقط — شهادة Let's Encrypt من داخل Docker:
+docker compose --profile ssl run --rm certbot-init
+docker compose exec web nginx -s reload
 ```
 
-ثم اربط nginx على المضيف (ملف جاهز في `docker/host-nginx/recruitment.mawazinswift.com.conf`) وفعّل الشهادة:
-
-```bash
-# مثال — انسخ الكونفيج لمجلد nginx عندك ثم:
-sudo certbot --nginx -d recruitment.mawazinswift.com
-sudo nginx -t && sudo systemctl reload nginx
-```
-
-التطبيق داخليًا على `127.0.0.1:8080`؛ العامة عبر الدومين فقط.
+بعدها الموقع على HTTPS. التجديد تلقائي عبر خدمة `certbot-renew`.
 
 | الخدمة | الدور |
 |--------|------|
-| `web` | واجهة Vue عبر nginx + بروكسي `/api` و WebSocket |
+| `web` | nginx عام (80/443) + Vue + بروكسي API/WebSocket |
 | `api` | Laravel (FrankenPHP) |
 | `queue` | عامل الطابور |
 | `reverb` | البثّ اللحظي |
 | `mysql` / `redis` | قاعدة البيانات والكاش |
+| `certbot-*` | شهادات SSL |
 
 إيقاف: `docker compose down` — مع الإبقاء على البيانات: بدون `-v`.
 
