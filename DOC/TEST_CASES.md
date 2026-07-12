@@ -513,6 +513,21 @@
 **اختبارات باك-إند موجودة اكتُشِفت هنا:** AdminAccessTest · AdminRoleTest · AdminAuditTest · AdminGovernanceTest · AdminComplianceTest · AdminSettingTest · AdminBrandingTest · AdminBroadcastTest · AdminArchiveTest · AdminSystemHealthTest · AdminReportTest · AdminSurveyTemplateTest · SurveyTest · ProfileTest · PublicProfileTest · AccountStateTest.
 **ملفّات هدف مفقودة كليًّا:** ~~AdminUserTest~~ ✅ **أُنشئ (13 اختبارًا خضراء: ADM-004..007/010..027)** · `AdminSurveyTest` (⏭️) · `InterviewTest` (⏭️) · **`BroadcastChannelsTest`** ⏸️ **مؤجَّل** — سقالة RT-001..006 محفوظة لكن `markTestSkipped`: اختبار `/broadcasting/auth` عبر Sanctum أعطى **200 لقناة user.{uuid} تخصّ الغير** (المتوقّع 403) — **يلزم تحقّق: عطل أمنيّ حقيقيّ أم أثر بيئة اختبار؟** البديل: استدعاء ردود `routes/channels.php` مباشرةً عبر Reflection.
 
+### Quality (مركز قيادة الجودة — اللوحة الذرّية)
+| ID | الحالة | نوع | أولويّة | حالة | الاختبار |
+|----|--------|-----|--------|------|----------|
+| QCC-01 | المحلّل يوزّع جدول 6-أعمدة → طبقة/قسم/موديول/نوع/أولويّة/حالة/ملفّ | U | 🔴 | ✅ | TestCaseRegistryParserTest |
+| QCC-02 | جدول 4-أعمدة (بلا حالة/اختبار) → فجوة بلا ملفّ | U | 🟠 | ✅ | TestCaseRegistryParserTest |
+| QCC-03 | تفكيك نطاق «FE-OPP-01..09» → 9 ذرّات + أعلى أولويّة | U | 🔴 | ✅ | TestCaseRegistryParserTest |
+| QCC-04 | جدول ملخّص (أعمدة مختلفة) + مركّب نطاق «SYS../RT..» → توزيع صحيح + مختلط⇒فجوة | U | 🔴 | ✅ | TestCaseRegistryParserTest |
+| QCC-05 | تجاهل صفوف الرأس/الفاصل والنصّ خارج الجداول | U | 🟠 | ✅ | TestCaseRegistryParserTest |
+| QCC-06 | quality:import يملأ الذرّات من السجلّ (>300، الطبقتان) | F | 🔴 | ✅ | AdminQualityTest |
+| QCC-07 | الاستيراد idempotent (تشغيلان → نفس العدد) | F | 🟠 | ✅ | AdminQualityTest |
+| QCC-08 | overview → عدّادات + توزيعات + سلسلة + تناسق التغطية | F | 🔴 | ✅ | AdminQualityTest |
+| QCC-09 | atoms → تقسيم صفحات + فلترة layer/status | F | 🔴 | ✅ | AdminQualityTest |
+| QCC-10 | atoms → بحث بالمعرّف (q) | F | 🟠 | ✅ | AdminQualityTest |
+| QCC-11 | غير أدمن → overview/atoms → 403 | F | 🔴 | ✅ | AdminQualityTest |
+
 ---
 # الواجهة (Frontend)
 
