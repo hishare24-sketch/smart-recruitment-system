@@ -511,7 +511,7 @@
 | ACCS-001..006 | AccountState | get/put · **عزل لكلّ مستخدم/store** · 401 · upsert | ✅ الأساس (AccountStateTest) · ⬜ العزل/401 | AccountStateTest |
 
 **اختبارات باك-إند موجودة اكتُشِفت هنا:** AdminAccessTest · AdminRoleTest · AdminAuditTest · AdminGovernanceTest · AdminComplianceTest · AdminSettingTest · AdminBrandingTest · AdminBroadcastTest · AdminArchiveTest · AdminSystemHealthTest · AdminReportTest · AdminSurveyTemplateTest · SurveyTest · ProfileTest · PublicProfileTest · AccountStateTest.
-**ملفّات هدف مفقودة كليًّا (فجوات كبرى):** `AdminUserTest` · `AdminSurveyTest` · `InterviewTest` · **`BroadcastChannelsTest`** (تخويل قنوات Reverb — لا اختبار).
+**ملفّات هدف مفقودة كليًّا:** ~~AdminUserTest~~ ✅ **أُنشئ (13 اختبارًا خضراء: ADM-004..007/010..027)** · `AdminSurveyTest` (⏭️) · `InterviewTest` (⏭️) · **`BroadcastChannelsTest`** ⏸️ **مؤجَّل** — سقالة RT-001..006 محفوظة لكن `markTestSkipped`: اختبار `/broadcasting/auth` عبر Sanctum أعطى **200 لقناة user.{uuid} تخصّ الغير** (المتوقّع 403) — **يلزم تحقّق: عطل أمنيّ حقيقيّ أم أثر بيئة اختبار؟** البديل: استدعاء ردود `routes/channels.php` مباشرةً عبر Reflection.
 
 ---
 # الواجهة (Frontend)
