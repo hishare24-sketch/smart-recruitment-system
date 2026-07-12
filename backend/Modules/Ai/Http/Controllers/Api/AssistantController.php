@@ -11,6 +11,7 @@ use Modules\Ai\Entities\AssistantPreference;
 use Modules\Ai\Services\AiUsageService;
 use Modules\Ai\Services\AssistantService;
 use Modules\Support\Entities\Ticket;
+use Modules\Support\Events\TicketReplyPosted;
 
 class AssistantController extends Controller
 {
@@ -187,12 +188,15 @@ class AssistantController extends Controller
             'status' => 'open',
             'last_reply_at' => Carbon::now(),
         ]);
-        $ticket->replies()->create([
+        $reply = $ticket->replies()->create([
             'author_id' => $user->id,
             'author_name' => $user->name,
             'is_staff' => false,
             'body' => $summary,
         ]);
+
+        // بثّ لحظيّ لطابور الأدمن — تصعيد المساعد يصل كونسول الدعم فورًا (كتذكرة حقيقيّة).
+        event(new TicketReplyPosted(TicketReplyPosted::payloadFor($ticket, $reply), 'support.admin'));
 
         return $this->createdResponse([
             'id' => $ticket->id,

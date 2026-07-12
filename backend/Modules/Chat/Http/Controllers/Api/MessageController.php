@@ -4,12 +4,15 @@ namespace Modules\Chat\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Modules\Chat\Entities\ChatSetting;
 use Modules\Chat\Events\MessageSent;
 use Modules\Chat\Http\Requests\Api\ReadThreadRequest;
 use Modules\Chat\Http\Requests\Api\SendMessageRequest;
 use Modules\Chat\Http\Resources\Api\DirectMessageResource;
 use Modules\Chat\Services\MessageService;
+use Modules\Notification\Services\NotificationService;
+use Modules\User\Entities\User;
 
 class MessageController extends Controller
 {
@@ -28,6 +31,19 @@ class MessageController extends Controller
 
         // بثّ لحظيّ للمستقبِل عبر Reverb (قناة خاصّة user.{uuid})
         broadcast(new MessageSent($payload));
+
+        // إشعار مُستديم للمستقبِل — يبقى في الشارة إن كان غير متّصل لحظة الإرسال.
+        $recipientUuid = $request->validated()['recipientId'];
+        if ($recipient = User::where('uuid', $recipientUuid)->first(['id', 'uuid'])) {
+            app(NotificationService::class)->push($recipient->id, [
+                'icon' => 'mdi-message-text',
+                'title' => 'رسالة جديدة من '.$user->name,
+                'body' => Str::limit($request->validated()['body'], 90),
+                'category' => 'message',
+                'actionTo' => '/messages',
+                'uuid' => $recipient->uuid,
+            ]);
+        }
 
         return response()->json($this->dataResponse($payload), 201);
     }

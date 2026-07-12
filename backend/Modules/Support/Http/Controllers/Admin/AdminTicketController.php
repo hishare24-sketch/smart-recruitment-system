@@ -5,6 +5,8 @@ namespace Modules\Support\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
+use Modules\Notification\Services\NotificationService;
 use Modules\Support\Entities\Ticket;
 use Modules\Support\Events\TicketReplyPosted;
 use Modules\Support\Http\Resources\Admin\AdminTicketResource;
@@ -100,8 +102,22 @@ class AdminTicketController extends Controller
         ]);
 
         // بثّ لحظيّ لصاحب التذكرة على قناته (إن وُجد uuid) — event() يبثّ ShouldBroadcast تلقائيًّا.
-        if ($ownerUuid = User::whereKey($ticket->user_id)->value('uuid')) {
+        $ownerUuid = User::whereKey($ticket->user_id)->value('uuid');
+        if ($ownerUuid) {
             event(new TicketReplyPosted(TicketReplyPosted::payloadFor($ticket, $reply), 'user.'.$ownerUuid));
+        }
+
+        // إشعار مُستديم لصاحب التذكرة — يبقى في الشارة حتى لو كان غير متّصل لحظة الردّ
+        // (push يُنشئ الإشعار + يبثّه لحظيًّا NotificationSent + يرسل FCM، كلّه محكوم).
+        if ($ticket->user_id) {
+            app(NotificationService::class)->push($ticket->user_id, [
+                'icon' => 'mdi-face-agent',
+                'title' => 'ردّ جديد من فريق الدعم',
+                'body' => Str::limit($data['body'], 90),
+                'category' => 'support',
+                'actionTo' => '/assistant',
+                'uuid' => $ownerUuid,
+            ]);
         }
 
         return $this->updatedResponse((new AdminTicketResource($ticket->load('replies')))->resolve());

@@ -44,12 +44,15 @@ class TicketController extends Controller
             'status' => 'open',
             'last_reply_at' => Carbon::now(),
         ]);
-        $ticket->replies()->create([
+        $reply = $ticket->replies()->create([
             'author_id' => $user->id,
             'author_name' => $user->name,
             'is_staff' => false,
             'body' => $data['body'],
         ]);
+
+        // بثّ لحظيّ لطابور الأدمن — تظهر التذكرة الجديدة في كونسول الدعم فورًا (لا سحب فقط).
+        event(new TicketReplyPosted(TicketReplyPosted::payloadFor($ticket, $reply), 'support.admin'));
 
         return $this->createdResponse($this->row($ticket->loadCount('replies')));
     }
