@@ -54,6 +54,15 @@ if [ "${RUN_MIGRATIONS:-1}" = "1" ]; then
   php artisan package:discover --ansi 2>/dev/null || true
   php artisan migrate --force || true
   php artisan permission:insert || true
+
+  # مركز قيادة الجودة: استيراد ذرّات حالات الاختبار إن وُجد السجلّ
+  # (compose يركّب ./DOC على /DOC — المسار الافتراضيّ للأمر)
+  if [ -f /DOC/TEST_CASES.md ]; then
+    echo "[entrypoint] quality:import…"
+    php artisan quality:import || true
+  fi
+  # لقطة تغطية اليوم (idempotent) — تضمن نقطة اتّجاه حتى قبل دور الجدولة
+  php artisan quality:snapshot || true
 fi
 
 exec "$@"
