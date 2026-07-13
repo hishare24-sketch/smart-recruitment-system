@@ -22,60 +22,67 @@ pipeline {
           sh '''
             echo ">>> Deploying ${PROJECT} branch=${BRANCH_NAME} host=${TARGET_HOST}"
 
-            # تهريب ' داخل القيم (متوافق مع dash)
             esc() { printf '%s' "$1" | sed "s/'/'\\\\''/g"; }
 
-            # heredoc غير مقتبس: القيم تُحقَن محلّيًا داخل '...'; الأوامر عن بُعد تستخدم \\$
-            ssh -o StrictHostKeyChecking=no "${TARGET_USER}@${TARGET_HOST}" bash -s <<EOF
-set -euo pipefail
-export APP_DIR='$(esc "$APP_DIR")'
-export GIT_REPO='$(esc "$GIT_REPO")'
-export BRANCH='$(esc "$BRANCH_NAME")'
-export SITE='$(esc "$SITE_URL")'
-export SUPER_ADMIN_EMAIL='$(esc "$SUPER_ADMIN_EMAIL")'
-export SUPER_ADMIN_PASSWORD='$(esc "$SUPER_ADMIN_PASSWORD")'
-export SUPER_ADMIN_NAME='$(esc "$SUPER_ADMIN_NAME")'
-
-if [ ! -d "\$APP_DIR/.git" ]; then
-  echo ">>> App dir missing - cloning into \$APP_DIR ..."
-  mkdir -p "\$(dirname "\$APP_DIR")"
-  git clone -b "\$BRANCH" "\$GIT_REPO" "\$APP_DIR"
+            # سكربت مؤقت: سطور export تُبنى محلّيًا، وباقي الأوامر في heredoc مقتبس
+            # حتى لا يوسّع dash متغيّرات السيرفر قبل الإرسال
+            REMOTE_SCRIPT="$(mktemp)"
+            {
+              echo 'set -euo pipefail'
+              echo "export APP_DIR='$(esc "$APP_DIR")'"
+              echo "export GIT_REPO='$(esc "$GIT_REPO")'"
+              echo "export DEPLOY_BRANCH='$(esc "$BRANCH_NAME")'"
+              echo "export SITE='$(esc "$SITE_URL")'"
+              echo "export SUPER_ADMIN_EMAIL='$(esc "$SUPER_ADMIN_EMAIL")'"
+              echo "export SUPER_ADMIN_PASSWORD='$(esc "$SUPER_ADMIN_PASSWORD")'"
+              echo "export SUPER_ADMIN_NAME='$(esc "$SUPER_ADMIN_NAME")'"
+              cat <<'REMOTE_EOF'
+if [ ! -d "$APP_DIR/.git" ]; then
+  echo ">>> App dir missing - cloning into $APP_DIR ..."
+  mkdir -p "$(dirname "$APP_DIR")"
+  git clone -b "$DEPLOY_BRANCH" "$GIT_REPO" "$APP_DIR"
 fi
 
-cd "\$APP_DIR"
+cd "$APP_DIR"
 
-echo '>>> git pull...'
-git fetch origin "\$BRANCH"
-git checkout "\$BRANCH"
-git pull --ff-only origin "\$BRANCH"
+echo ">>> git pull branch=$DEPLOY_BRANCH ..."
+# إن كان الـ remote القديم غلط (mawazin_swift)، صحّحه للمستودع الرسمي
+git remote set-url origin "$GIT_REPO" 2>/dev/null || git remote add origin "$GIT_REPO"
+git fetch origin "$DEPLOY_BRANCH"
+git checkout "$DEPLOY_BRANCH"
+git pull --ff-only origin "$DEPLOY_BRANCH"
 
 if [ ! -f .env ]; then
   cp .env.docker.example .env
 fi
 upsert_env() {
-  key="\$1"
-  val="\$2"
-  tmp="\$(mktemp)"
+  key="$1"
+  val="$2"
+  tmp="$(mktemp)"
   if [ -f .env ]; then
-    grep -vE "^\${key}=" .env > "\$tmp" || true
+    grep -vE "^${key}=" .env > "$tmp" || true
   else
-    : > "\$tmp"
+    : > "$tmp"
   fi
-  printf '%s=%s\\n' "\$key" "\$val" >> "\$tmp"
-  mv "\$tmp" .env
+  printf '%s=%s\n' "$key" "$val" >> "$tmp"
+  mv "$tmp" .env
 }
-upsert_env SUPER_ADMIN_EMAIL "\$SUPER_ADMIN_EMAIL"
-upsert_env SUPER_ADMIN_PASSWORD "\$SUPER_ADMIN_PASSWORD"
-upsert_env SUPER_ADMIN_NAME "\$SUPER_ADMIN_NAME"
+upsert_env SUPER_ADMIN_EMAIL "$SUPER_ADMIN_EMAIL"
+upsert_env SUPER_ADMIN_PASSWORD "$SUPER_ADMIN_PASSWORD"
+upsert_env SUPER_ADMIN_NAME "$SUPER_ADMIN_NAME"
 
 echo '>>> deploy + ensure super admin...'
 bash deploy.sh
 
 echo '>>> smoke check...'
-curl -skI "\$SITE" | head -5
+curl -skI "$SITE" | head -5
 
 echo 'Deploy done.'
-EOF
+REMOTE_EOF
+            } > "$REMOTE_SCRIPT"
+
+            ssh -o StrictHostKeyChecking=no "${TARGET_USER}@${TARGET_HOST}" bash -s < "$REMOTE_SCRIPT"
+            rm -f "$REMOTE_SCRIPT"
           '''
 
           script {
