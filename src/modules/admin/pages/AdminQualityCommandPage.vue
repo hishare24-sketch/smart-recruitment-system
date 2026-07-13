@@ -138,6 +138,27 @@ async function loadRuntime() {
 }
 function fmtTime(s: string | null) { return s ? new Date(s).toLocaleString() : '—' }
 
+// ——— الوكيل L1→L3 (ف6) ———
+const ACTION_COLOR: Record<string, ChipColor> = { escalate: 'error', diagnose: 'warning', track: 'info', ignore: 'neutral' }
+const diagnosisOpen = ref(false)
+const activeError = ref<QualityRuntimeError | null>(null)
+const diagnosing = ref(false)
+async function diagnoseError(e: QualityRuntimeError) {
+  diagnosing.value = true
+  activeError.value = e
+  diagnosisOpen.value = true
+  try {
+    const updated = await api.admin.qualityDiagnose(e.id)
+    activeError.value = updated
+    const idx = runtimeErrors.value.findIndex(x => x.id === updated.id)
+    if (idx !== -1)
+      runtimeErrors.value[idx] = updated
+  }
+  catch (err) { fail(err) }
+  finally { diagnosing.value = false }
+}
+function viewDiagnosis(e: QualityRuntimeError) { activeError.value = e; diagnosisOpen.value = true }
+
 // ——— حالة CI (GitHub Actions) ———
 const ci = ref<QualityCi | null>(null)
 async function loadCi() {
@@ -327,6 +348,7 @@ const filterDefs = computed<FilterDef[]>(() => [
               <th class="py-2 text-start font-medium">{{ t('admin.qcc.rtMessage') }}</th>
               <th class="py-2 text-center font-medium">{{ t('admin.qcc.rtCount') }}</th>
               <th class="py-2 text-center font-medium">{{ t('admin.qcc.rtStatus') }}</th>
+              <th class="py-2 text-start font-medium">{{ t('admin.qcc.rtAgent') }}</th>
               <th class="py-2 text-start font-medium">{{ t('admin.qcc.rtLastSeen') }}</th>
             </tr>
           </thead>
@@ -340,9 +362,21 @@ const filterDefs = computed<FilterDef[]>(() => [
               </td>
               <td class="py-2 text-center font-mono text-content">{{ e.count }}</td>
               <td class="py-2 text-center"><BaseChip :color="RT_STATE_COLOR[e.status] || 'neutral'">{{ e.status }}</BaseChip></td>
+              <td class="py-2">
+                <div class="flex items-center gap-1.5">
+                  <BaseChip v-if="e.suggested" :color="LAYER_COLOR[e.suggested.department] || 'neutral'">{{ deptLabel(e.suggested.department) }}</BaseChip>
+                  <BaseChip v-if="e.suggested" :color="ACTION_COLOR[e.suggested.action] || 'neutral'">{{ t(`admin.qcc.act_${e.suggested.action}`) }}</BaseChip>
+                  <BaseTooltip v-if="e.diagnosis" :text="t('admin.qcc.viewDiagnosis')">
+                    <button class="row-act text-brand" :aria-label="t('admin.qcc.viewDiagnosis')" @click="viewDiagnosis(e)"><BaseIcon name="mdi-file-document-check-outline" :size="16" /></button>
+                  </BaseTooltip>
+                  <BaseTooltip v-else-if="canManage" :text="t('admin.qcc.diagnose')">
+                    <button class="row-act text-brand" :aria-label="t('admin.qcc.diagnose')" @click="diagnoseError(e)"><BaseIcon name="mdi-robot-outline" :size="16" /></button>
+                  </BaseTooltip>
+                </div>
+              </td>
               <td class="py-2 text-[11px] text-muted" dir="ltr">{{ fmtTime(e.lastSeen) }}</td>
             </tr>
-            <tr v-if="!runtimeErrors.length"><td colspan="6" class="py-6 text-center text-xs text-muted">{{ t('admin.qcc.rtEmpty') }}</td></tr>
+            <tr v-if="!runtimeErrors.length"><td colspan="7" class="py-6 text-center text-xs text-muted">{{ t('admin.qcc.rtEmpty') }}</td></tr>
           </tbody>
         </table>
       </div>
@@ -419,6 +453,32 @@ const filterDefs = computed<FilterDef[]>(() => [
         </div>
         <pre class="max-h-[55vh] overflow-auto rounded-ui border border-ui bg-ui/30 p-3 text-[12px] leading-relaxed text-content" dir="ltr"><code>{{ scaffold.code }}</code></pre>
       </div>
+    </BaseModal>
+
+    <!-- حوار تشخيص الوكيل (ف6) -->
+    <BaseModal v-model="diagnosisOpen" :title="t('admin.qcc.diagnosisTitle')" :max-width="560">
+      <div v-if="diagnosing" class="flex h-32 items-center justify-center gap-2">
+        <BaseIcon name="mdi-robot-outline" :size="24" class="animate-pulse text-brand" />
+        <span class="text-sm text-muted">{{ t('admin.qcc.diagnosing') }}</span>
+      </div>
+      <div v-else-if="activeError?.diagnosis" class="space-y-3">
+        <div class="flex flex-wrap items-center gap-2 text-xs">
+          <BaseChip :color="SEVERITY_COLOR[activeError.severity] || 'neutral'">{{ activeError.severity }}</BaseChip>
+          <span class="font-mono text-muted" dir="ltr">{{ activeError.type }}</span>
+          <BaseChip color="neutral">{{ t('admin.qcc.diagSource') }}: {{ activeError.diagnosis.source }}</BaseChip>
+          <BaseChip color="info">{{ t('admin.qcc.diagConfidence') }}: {{ activeError.diagnosis.confidence }}</BaseChip>
+        </div>
+        <div class="rounded-ui border-ui p-3">
+          <p class="mb-1 text-xs font-bold text-content">{{ t('admin.qcc.rootCause') }}</p>
+          <p class="text-sm text-muted">{{ activeError.diagnosis.rootCause }}</p>
+        </div>
+        <div class="rounded-ui border-ui p-3">
+          <p class="mb-1 text-xs font-bold text-content">{{ t('admin.qcc.suggestion') }}</p>
+          <p class="text-sm text-muted">{{ activeError.diagnosis.suggestion }}</p>
+          <p class="mt-2 text-[11px] text-muted">{{ t('admin.qcc.humanApproval') }}</p>
+        </div>
+      </div>
+      <p v-else class="py-6 text-center text-xs text-muted">—</p>
     </BaseModal>
 
     <!-- حوار التحويل -->

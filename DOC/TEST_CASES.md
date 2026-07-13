@@ -555,6 +555,13 @@
 | QCC-37 | E → هيكل Playwright | U | ⚪ | ✅ | TestScaffoldGeneratorTest |
 | QCC-38 | endpoint scaffold يعيد code+framework+filename من ذرّة | F | 🔴 | ✅ | AdminQualityTest |
 | QCC-39 | غير أدمن → scaffold → 403 | F | 🔴 | ✅ | AdminQualityTest |
+| QCC-40 | الوكيل L1: توجيه 5xx→backend · render→frontend · slow→ops | U | 🔴 | ✅ | QualityAgentTriageTest |
+| QCC-41 | L1: حرِج→تصعيد · high متكرّر (≥5)→تصعيد | U | 🟠 | ✅ | QualityAgentTriageTest |
+| QCC-42 | L1: رسالة filter→قسم الفلاتر · info→تجاهل | U | 🟠 | ✅ | QualityAgentTriageTest |
+| QCC-43 | قائمة runtime تضمّ اقتراح L1 (suggested.department) | F | 🔴 | ✅ | ObserveTest |
+| QCC-44 | L2/L3 diagnose يحفظ التشخيص (سبب/إصلاح/مصدر/ثقة) ويعيده | F | 🔴 | ✅ | ObserveTest |
+| QCC-45 | quality:resolve-stale يحلّ الإشارات الصامتة منذ N ساعة | F | 🟠 | ✅ | ObserveTest |
+| QCC-46 | غير أدمن → diagnose → 403 | F | 🔴 | ✅ | ObserveTest |
 
 ---
 # الواجهة (Frontend)

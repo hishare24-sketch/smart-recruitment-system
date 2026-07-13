@@ -239,6 +239,7 @@ export const API_PATHS = {
     qualityRuntime: '/admin/quality/runtime',
     qualityCi: '/admin/quality/ci',
     qualityScaffold: (atomId: number) => `/admin/quality/atoms/${atomId}/scaffold`,
+    qualityDiagnose: (errorId: number) => `/admin/quality/runtime/${errorId}/diagnose`,
     qualityDispatch: (atomId: number) => `/admin/quality/atoms/${atomId}/dispatch`,
     qualityDispatchItem: (id: number) => `/admin/quality/dispatches/${id}`,
   },
@@ -567,6 +568,7 @@ export interface QualityOverview {
   series: { date: string, coverage: number, total: number, automated: number }[]
   runtime: { open: number, critical: number, today: number }
 }
+export interface QualityDiagnosis { rootCause: string, suggestion: string, source: string, confidence: string }
 export interface QualityRuntimeError {
   id: number
   fingerprint: string
@@ -580,6 +582,9 @@ export interface QualityRuntimeError {
   count: number
   firstSeen: string | null
   lastSeen: string | null
+  suggested?: { department: string, action: string, severity: string }
+  diagnosis?: QualityDiagnosis | null
+  diagnosedAt?: string | null
 }
 export interface QualityRuntimeQuery { page?: number, perPage?: number, sort?: string, q?: string, type?: string, layer?: string, scope?: string, severity?: string, status?: string }
 export interface QualityCiRun { id: number, name: string, branch: string | null, event: string | null, status: string | null, conclusion: string | null, runNumber: number | null, url: string | null, commit: string, createdAt: string | null, updatedAt: string | null }
@@ -874,6 +879,7 @@ export const api = {
     qualityRuntime: (params?: QualityRuntimeQuery) => getPage<QualityRuntimeError>(API_PATHS.admin.qualityRuntime, params as Record<string, unknown>),
     qualityCi: () => get<QualityCi>(API_PATHS.admin.qualityCi),
     qualityScaffold: (atomId: number) => get<QualityScaffold>(API_PATHS.admin.qualityScaffold(atomId)),
+    qualityDiagnose: (errorId: number) => post<QualityRuntimeError>(API_PATHS.admin.qualityDiagnose(errorId)),
     qualityDispatch: (atomId: number, body: QualityDispatchPayload) => post<QualityDispatchCard>(API_PATHS.admin.qualityDispatch(atomId), body),
     qualityMoveDispatch: (id: number, body: QualityDispatchPayload) => patch<QualityDispatchCard>(API_PATHS.admin.qualityDispatchItem(id), body),
     qualityRemoveDispatch: (id: number) => del(API_PATHS.admin.qualityDispatchItem(id)),

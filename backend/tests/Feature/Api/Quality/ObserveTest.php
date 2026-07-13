@@ -103,4 +103,48 @@ class ObserveTest extends TestCase
         Sanctum::actingAs(User::create(['name' => 'U', 'email' => 'u'.uniqid().'@rec.test', 'password' => 'secret123']));
         $this->getJson('/api/admin/quality/runtime')->assertStatus(403);
     }
+
+    // ═══ الوكيل L1→L3 (ف6) ═══
+
+    public function test_runtime_list_includes_l1_triage_suggestion(): void
+    {
+        $this->postJson('/api/v1/observe', $this->signal()); // api_5xx → backend
+        $this->admin();
+
+        $row = $this->getJson('/api/admin/quality/runtime')->assertOk()->json('data.0');
+        $this->assertArrayHasKey('suggested', $row);
+        $this->assertSame('backend', $row['suggested']['department']);
+    }
+
+    public function test_diagnose_saves_diagnosis_and_returns_it(): void
+    {
+        $this->postJson('/api/v1/observe', $this->signal());
+        $id = RuntimeError::first()->id;
+        $this->admin();
+
+        $res = $this->postJson("/api/admin/quality/runtime/{$id}/diagnose")
+            ->assertOk()
+            ->assertJsonStructure(['data' => ['diagnosis' => ['rootCause', 'suggestion', 'source', 'confidence'], 'diagnosedAt']]);
+
+        $this->assertNotEmpty($res->json('data.diagnosis.rootCause'));
+        $this->assertNotNull(RuntimeError::first()->diagnosed_at); // حُفظ
+    }
+
+    public function test_resolve_stale_command_closes_silent_errors(): void
+    {
+        $this->postJson('/api/v1/observe', $this->signal());
+        RuntimeError::query()->update(['last_seen_at' => now()->subDays(3)]);
+
+        $this->artisan('quality:resolve-stale', ['--hours' => 48])->assertSuccessful();
+
+        $this->assertSame('resolved', RuntimeError::first()->status);
+    }
+
+    public function test_non_admin_cannot_diagnose(): void
+    {
+        $this->postJson('/api/v1/observe', $this->signal());
+        $id = RuntimeError::first()->id;
+        Sanctum::actingAs(User::create(['name' => 'U', 'email' => 'u'.uniqid().'@rec.test', 'password' => 'secret123']));
+        $this->postJson("/api/admin/quality/runtime/{$id}/diagnose")->assertStatus(403);
+    }
 }

@@ -795,7 +795,21 @@
       "scaffold": "ولِّد هيكل اختبار",
       "scaffoldTitle": "هيكل اختبار — {id}",
       "copy": "نسخ",
-      "copied": "نُسخ الهيكل"
+      "copied": "نُسخ الهيكل",
+      "rtAgent": "الوكيل",
+      "act_escalate": "تصعيد",
+      "act_diagnose": "تشخيص",
+      "act_track": "تتبّع",
+      "act_ignore": "تجاهل",
+      "diagnose": "شخّص",
+      "diagnosing": "يُشخّص الوكيل…",
+      "viewDiagnosis": "عرض التشخيص",
+      "diagnosisTitle": "تشخيص الوكيل",
+      "diagSource": "المصدر",
+      "diagConfidence": "الثقة",
+      "rootCause": "السبب الجذريّ المرجّح",
+      "suggestion": "الإصلاح المقترح",
+      "humanApproval": "مقترَح — يُطبَّق بمراجعة بشريّة (لا تطبيق تلقائيّ للمنطق)."
     },
     "iquality": {
       "title": "جودة المقابلات",
