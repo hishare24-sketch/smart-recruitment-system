@@ -11,6 +11,7 @@ use Modules\Quality\Entities\QualitySnapshot;
 use Modules\Quality\Entities\RuntimeError;
 use Modules\Quality\Entities\TestCase as TestCaseAtom;
 use Modules\Quality\Services\GithubCiService;
+use Modules\Quality\Services\QualityAgentService;
 use Modules\Quality\Services\TestScaffoldGenerator;
 
 /**
@@ -24,6 +25,8 @@ class AdminQualityController extends Controller
 
     /** دورة حياة البطاقة داخل القسم. */
     public const STATES = ['todo', 'doing', 'review', 'done'];
+
+    public function __construct(private readonly QualityAgentService $agent) {}
     /** بطاقات + توزيعات + اتّجاه التغطية. */
     public function overview()
     {
@@ -119,6 +122,17 @@ class AdminQualityController extends Controller
         $page->getCollection()->transform(fn (TestCaseAtom $a) => $this->present($a));
 
         return $this->dashboardResponse($page);
+    }
+
+    /** الوكيل L2/L3 — تشخيص خطأ وقت-تشغيل + إصلاح مقترح (ف6، بموافقة بشريّة). */
+    public function diagnose(RuntimeError $runtimeError)
+    {
+        $this->authorize('manage_quality');
+
+        $diagnosis = $this->agent->diagnose($runtimeError);
+        $runtimeError->update(['diagnosis' => $diagnosis, 'diagnosed_at' => Carbon::now()]);
+
+        return $this->dataResponse($this->presentError($runtimeError->fresh()));
     }
 
     /** يولّد هيكل اختبار من ذرّة فجوة (ف5). */
@@ -237,6 +251,9 @@ class AdminQualityController extends Controller
             'count' => $e->count,
             'firstSeen' => optional($e->first_seen_at)->toISOString(),
             'lastSeen' => optional($e->last_seen_at)->toISOString(),
+            'suggested' => $this->agent->triage($e),          // L1 فرز قاعديّ
+            'diagnosis' => $e->diagnosis,                      // L2/L3 (إن شُخّص)
+            'diagnosedAt' => optional($e->diagnosed_at)->toISOString(),
         ];
     }
 

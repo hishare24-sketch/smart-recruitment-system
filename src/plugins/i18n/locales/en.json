@@ -795,7 +795,21 @@
       "scaffold": "Generate test",
       "scaffoldTitle": "Test scaffold — {id}",
       "copy": "Copy",
-      "copied": "Scaffold copied"
+      "copied": "Scaffold copied",
+      "rtAgent": "Agent",
+      "act_escalate": "Escalate",
+      "act_diagnose": "Diagnose",
+      "act_track": "Track",
+      "act_ignore": "Ignore",
+      "diagnose": "Diagnose",
+      "diagnosing": "Agent diagnosing…",
+      "viewDiagnosis": "View diagnosis",
+      "diagnosisTitle": "Agent diagnosis",
+      "diagSource": "Source",
+      "diagConfidence": "Confidence",
+      "rootCause": "Likely root cause",
+      "suggestion": "Suggested fix",
+      "humanApproval": "Suggested — apply with human review (no automatic logic changes)."
     },
     "iquality": {
       "title": "Interview Quality",
