@@ -3,7 +3,7 @@ pipeline {
   options { timestamps(); disableConcurrentBuilds() }
 
   environment {
-    TARGET_HOST = '54.86.29.10'
+    TARGET_HOST = '52.90.216.174'
     TARGET_USER = 'ubuntu'
     APP_DIR     = '/home/ubuntu/recruitment'
     GIT_REPO    = 'git@github.com:hishare24-sketch/Smart_Recruitment_Platform.git'
