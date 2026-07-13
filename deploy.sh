@@ -1,31 +1,41 @@
 #!/usr/bin/env bash
-# صفح / التوظيف — نشر: compose up + health + migrate + nginx reload
+# صفح / التوظيف — نشر: compose up + health + migrate + ربط nginx
 set -euo pipefail
 cd "$(dirname "$0")"
 
 export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-sufha}"
 
 if docker compose version >/dev/null 2>&1; then DC="docker compose"; else DC="docker-compose"; fi
-
-dc() { # shellcheck disable=SC2086
-  $DC "$@"
-}
+dc() { $DC "$@"; }
 
 if [ ! -f .env ]; then
   cp .env.docker.example .env
   echo "Created .env from .env.docker.example"
 fi
 
+# حاوية nginx المشتركة
+NGINX_CT="$(docker ps --format '{{.Names}}' | grep -E '^ubuntu-nginx-1$' || true)"
+if [ -z "$NGINX_CT" ]; then
+  NGINX_CT="$(docker ps --format '{{.Names}}' | grep -Ei 'nginx' | head -n1 || true)"
+fi
+
+# اختر شبكة nginx: فضّل dashboard-net إن وُجدت على الحاوية
 NGINX_NETWORK="$(grep -E '^NGINX_NETWORK=' .env 2>/dev/null | cut -d= -f2 || true)"
 NGINX_NETWORK="${NGINX_NETWORK:-dashboard-net}"
-
-# Prefer the network that the running nginx container actually uses
-NGINX_CT="$(docker ps --format '{{.Names}}' | grep -Ei 'nginx' | head -n1 || true)"
 if [ -n "$NGINX_CT" ]; then
-  DETECTED="$(docker inspect -f '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}' "$NGINX_CT" 2>/dev/null | awk '{print $1}' || true)"
-  [ -n "$DETECTED" ] && NGINX_NETWORK="$DETECTED"
+  NETS="$(docker inspect -f '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}' "$NGINX_CT" 2>/dev/null || true)"
+  if echo " $NETS " | grep -q ' dashboard-net '; then
+    NGINX_NETWORK=dashboard-net
+  elif echo " $NETS " | grep -q " ${NGINX_NETWORK} "; then
+    :
+  else
+    # أول شبكة حقيقية غير فارغة
+    FIRST="$(echo "$NETS" | awk '{print $1}')"
+    [ -n "$FIRST" ] && NGINX_NETWORK="$FIRST"
+  fi
 fi
 export NGINX_NETWORK
+echo "Using nginx container: ${NGINX_CT:-none}"
 echo "Using nginx network: $NGINX_NETWORK"
 
 if ! docker network inspect "$NGINX_NETWORK" >/dev/null 2>&1; then
@@ -39,13 +49,21 @@ else
 fi
 
 echo "Building and starting containers..."
-# Avoid docker-compose 1.29 ContainerConfig recreate bug
 dc down --remove-orphans || true
 dc up -d --build --remove-orphans
 
-WEB_CT="$(docker ps --format '{{.Names}}' | grep -E "${COMPOSE_PROJECT_NAME}.*web" | head -n1 || true)"
-if [ -n "$WEB_CT" ]; then
-  docker network connect --alias sufha-web "$NGINX_NETWORK" "$WEB_CT" 2>/dev/null || true
+# ربط web بشبكة nginx بالـ alias sufha-web (نفس أوامرك اليدوية)
+WEB="$(docker ps --format '{{.Names}}' | grep -E 'sufha.*web|recruit.*web' | head -n1 || true)"
+echo "WEB=$WEB"
+if [ -n "$WEB" ] && [ -n "$NGINX_CT" ]; then
+  NET="$(docker inspect -f '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}' "$NGINX_CT" | awk '{print $1}')"
+  # فضّل dashboard-net من شبكات nginx
+  ALL_NETS="$(docker inspect -f '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}' "$NGINX_CT")"
+  if echo " $ALL_NETS " | grep -q ' dashboard-net '; then
+    NET=dashboard-net
+  fi
+  echo "NET=$NET"
+  docker network connect --alias sufha-web "$NET" "$WEB" 2>/dev/null || true
 fi
 
 echo "Waiting for API health..."
@@ -73,10 +91,11 @@ dc exec -T api php artisan permission:insert || true
 if [ -n "$NGINX_CT" ]; then
   echo "Reloading nginx: $NGINX_CT"
   docker exec "$NGINX_CT" nginx -t
-  docker exec "$NGINX_CT" nginx -s reload
-else
-  echo "No nginx container found - skip reload"
-  docker ps --format '  - {{.Names}}'
+  docker exec "$NGINX_CT" nginx -s reload || true
+
+  echo "Upstream check..."
+  docker exec "$NGINX_CT" wget -qO- -T 5 http://sufha-web/ >/dev/null && echo "sufha-web OK" || echo "FAIL_upstream"
 fi
 
+curl -skI https://sufha.com 2>/dev/null | head -8 || true
 echo "Done: https://sufha.com"

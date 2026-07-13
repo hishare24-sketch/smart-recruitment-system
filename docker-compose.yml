@@ -1,10 +1,9 @@
 # ===== منظومة التوظيف — مكدّس Docker =====
-# السيرفر عنده nginx مشترك على :80/:443 — لذلك web هنا على 127.0.0.1:8088 فقط.
+# الوصول العام عبر ubuntu-nginx-1 على :80/:443 — لا نربط منافذ على المضيف.
+# alias الشبكة: sufha-web
 #
 #   cp .env.docker.example .env
-#   docker compose up -d --build
-# ثم أضف موقع الدومين في nginx المشترك (انظر docker/host-nginx/)
-# اسم المشروع: COMPOSE_PROJECT_NAME=sufha  و alias الشبكة: sufha-web
+#   bash deploy.sh
 
 services:
   mysql:
@@ -149,9 +148,7 @@ services:
         VITE_REVERB_PORT: ""
         VITE_REVERB_SCHEME: ${VITE_REVERB_SCHEME:-https}
     restart: unless-stopped
-    ports:
-      # للفحص المحلي فقط؛ الوصول العام عبر ubuntu-nginx-1
-      - "${HTTP_BIND:-127.0.0.1}:${HTTP_PORT:-8088}:80"
+    # لا منافذ على المضيف — الوصول عبر ubuntu-nginx-1 والـ alias sufha-web
     depends_on:
       api:
         condition: service_healthy
