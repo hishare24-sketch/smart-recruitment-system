@@ -5,68 +5,72 @@ pipeline {
   environment {
     TARGET_HOST = '54.86.29.10'
     TARGET_USER = 'ubuntu'
-    APP_DIR     = '~/recruitment'
+    APP_DIR     = '/home/ubuntu/recruitment'
     BRANCH_NAME = 'live-stage'
     SITE_URL    = 'https://sufha.com'
+    PROJECT     = 'Sufha Recruitment'
   }
 
   stages {
-    stage('Deploy Sufha / Recruitment [LIVE]') {
+    stage('Deploy Sufha Recruitment [LIVE]') {
       steps {
         sshagent(credentials: ['aws-backend-ssh']) {
           sh '''
-            echo ">>> Connecting to server and deploying latest ${BRANCH_NAME}..."
+            echo ">>> Deploying ${PROJECT} (${BRANCH_NAME}) to ${TARGET_HOST}..."
 
             ssh -o StrictHostKeyChecking=no ${TARGET_USER}@${TARGET_HOST} "
             set -Eeuo pipefail
-
             cd ${APP_DIR}
 
-            echo '>>> Fetching latest branch from origin...'
+            echo '>>> git pull...'
             git fetch origin ${BRANCH_NAME}
+            git checkout ${BRANCH_NAME}
+            git pull --ff-only origin ${BRANCH_NAME}
 
-            echo '>>> Switching to ${BRANCH_NAME} branch...'
-            git checkout -B ${BRANCH_NAME} origin/${BRANCH_NAME}
-
-            echo '>>> Resetting local branch to origin/${BRANCH_NAME}...'
-            git reset --hard origin/${BRANCH_NAME}
-
-            echo '>>> Ensuring .env exists (do not overwrite secrets)...'
+            echo '>>> ensure .env...'
             if [ ! -f .env ]; then
               cp .env.docker.example .env
-              echo 'Created .env from .env.docker.example — review secrets on server if needed.'
+              echo 'Created .env from .env.docker.example'
             fi
 
-            echo '>>> Building and restarting Docker stack...'
-            docker compose up -d --build --remove-orphans
+            if docker compose version >/dev/null 2>&1; then DC='docker compose'; else DC='docker-compose'; fi
 
-            echo '>>> Waiting for API health...'
+            echo '>>> deploy...'
+            \$DC up -d --build --remove-orphans
+
+            echo '>>> wait for API health...'
             for i in \$(seq 1 30); do
-              if docker compose exec -T api php -r \"exit(@file_get_contents('http://127.0.0.1:10000/up')===false?1:0);\" 2>/dev/null; then
+              if \$DC exec -T api php -r \"exit(@file_get_contents('http://127.0.0.1:10000/up')===false?1:0);\" 2>/dev/null; then
                 echo \"API healthy after \${i} attempt(s)\"
                 break
               fi
               if [ \"\$i\" -eq 30 ]; then
                 echo 'API did not become healthy in time' >&2
-                docker compose ps
-                docker compose logs --tail=80 api || true
+                \$DC ps
+                \$DC logs --tail=80 api || true
                 exit 1
               fi
               sleep 5
             done
 
-            echo '>>> Running migrations + permissions inside api container...'
-            docker compose exec -T api php artisan migrate --force
-            docker compose exec -T api php artisan permission:insert || true
+            echo '>>> migrations...'
+            \$DC exec -T api php artisan migrate --force
+            \$DC exec -T api php artisan permission:insert || true
 
-            echo '>>> Reloading shared nginx (sufha.com)...'
-            docker exec ubuntu-nginx-1 nginx -t
-            docker exec ubuntu-nginx-1 nginx -s reload
+            echo '>>> reload nginx...'
+            NGINX_CT=\$(docker ps --format '{{.Names}}' | grep -Ei 'nginx' | head -n1 || true)
+            if [ -n \"\$NGINX_CT\" ]; then
+              docker exec \"\$NGINX_CT\" nginx -t
+              docker exec \"\$NGINX_CT\" nginx -s reload
+            else
+              echo 'No nginx container found - skip reload'
+              docker ps --format '  - {{.Names}}'
+            fi
 
-            echo '>>> Smoke check ${SITE_URL}...'
+            echo '>>> smoke check...'
             curl -skI ${SITE_URL} | head -5
 
-            echo '✅ LIVE deployment completed successfully.'
+            echo '✅ Deploy done.'
             "
           '''
 
@@ -87,9 +91,11 @@ pipeline {
   post {
     success {
       mail to: 'mostafaramdan5544@gmail.com,hi.share.24@gmail.com',
-           subject: "✅ SUCCESS: Sufha Recruitment [LIVE] | ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-           body: """🎉 Pipeline succeeded for *Sufha — Recruitment LIVE*
+           subject: "✅ SUCCESS: ${env.PROJECT} [LIVE] | ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+           body: """🎉 Pipeline succeeded
 
+Project:   ${env.PROJECT}
+Desc:      صفح — نظام التوظيف الذكي (git pull + docker compose + migrate + nginx reload)
 Site:      ${env.SITE_URL}
 Branch:    ${env.BRANCH_NAME}
 Commit:    ${env.COMMIT_INFO}
@@ -102,9 +108,11 @@ App dir:   ${env.APP_DIR}
 
     failure {
       mail to: 'mostafaramdan5544@gmail.com,hi.share.24@gmail.com',
-           subject: "❌ FAILURE: Sufha Recruitment [LIVE] | ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-           body: """⚠️ Pipeline failed for *Sufha — Recruitment LIVE*
+           subject: "❌ FAILURE: ${env.PROJECT} [LIVE] | ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+           body: """⚠️ Pipeline failed
 
+Project:   ${env.PROJECT}
+Desc:      صفح — نظام التوظيف الذكي (git pull + docker compose + migrate + nginx reload)
 Site:      ${env.SITE_URL}
 Branch:    ${env.BRANCH_NAME}
 Commit:    ${env.COMMIT_INFO}
