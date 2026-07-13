@@ -78,6 +78,8 @@ services:
       PORT: "10000"
     volumes:
       - api_storage:/app/storage
+      # سجلّ حالات الاختبار — يقرأه quality:import عند الإقلاع (مصدره الريبو على السيرفر)
+      - ./DOC:/DOC:ro
     depends_on:
       mysql:
         condition: service_healthy
@@ -109,6 +111,27 @@ services:
       disable: true
     volumes:
       - api_storage:/app/storage
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - app
+
+  # مُجدوِل Laravel — يشغّل المهامّ الدوريّة (quality:snapshot 02:30 · quality:resolve-stale 03:00)
+  scheduler:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      <<: *laravel_env
+      RUN_MIGRATIONS: "0"
+    command: ["php", "artisan", "schedule:work"]
+    healthcheck:
+      disable: true
+    volumes:
+      - api_storage:/app/storage
+      - ./DOC:/DOC:ro
     depends_on:
       api:
         condition: service_healthy
