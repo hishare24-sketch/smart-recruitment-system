@@ -1463,6 +1463,29 @@
       "openAi": "فتح حوكمة الذكاء الكاملة"
     }
   },
+  "chat": {
+    "title": "المساعد والدعم",
+    "open": "افتح المحادثة",
+    "close": "إغلاق",
+    "expand": "فتح بملء الشاشة",
+    "online": "متاح الآن",
+    "offline": "غير متاح حاليًّا",
+    "tabAssistant": "المساعد الذكيّ",
+    "tabSupport": "الدعم الفنّيّ",
+    "placeholder": "اكتب رسالتك…",
+    "replyPlaceholder": "اكتب ردّك…",
+    "escalate": "تصعيد للدعم",
+    "escalateHint": "هل تحتاج مساعدة بشريّة؟ يمكنك التصعيد للدعم الفنّيّ.",
+    "noTickets": "لا تذاكر دعم بعد.",
+    "newTicket": "تذكرة دعم جديدة",
+    "ticketSubject": "الموضوع",
+    "ticketSubjectPh": "عنوان مختصر لمشكلتك",
+    "ticketCategory": "التصنيف",
+    "ticketPriority": "الأولويّة",
+    "ticketBody": "التفاصيل",
+    "ticketBodyPh": "صف مشكلتك بالتفصيل…",
+    "ticketSend": "إرسال التذكرة"
+  },
   "assistant": {
     "title": "مركز المساعدة",
     "online": "المساعد متصل",
